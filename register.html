@@ -90,14 +90,14 @@
       return;
     }
 
-    const { data, error } = await supabase.auth.signUp({ email, password });
+    const { data, error } = await sb.auth.signUp({ email, password });
     if (error) {
       msg.textContent = error.message;
       msg.style.color = 'red';
       return;
     }
 
-    await supabase.from('profiles').insert({
+    await sb.from('profiles').insert({
       user_id: data.user.id,
       telegram_username: telegram,
       phone: phone,
@@ -113,7 +113,7 @@
     const password = document.getElementById('loginPassword').value;
     const msg = document.getElementById('loginMsg');
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await sb.auth.signInWithPassword({ email, password });
     if (error) {
       msg.textContent = error.message;
       msg.style.color = 'red';
@@ -128,7 +128,7 @@
       alert('Спочатку введіть email вище');
       return;
     }
-    await supabase.auth.resetPasswordForEmail(email);
+    await sb.auth.resetPasswordForEmail(email);
     alert('Лист для відновлення паролю надіслано на email');
   }
 </script>
