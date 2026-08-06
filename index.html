@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NORMALNO — Головна</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; background: #ffffff; margin: 0; padding-bottom: 80px; }
+
+  .topbar { display: flex; align-items: center; justify-content: space-between; padding: 16px; }
+  .logo { font-size: 22px; font-weight: bold; color: #8E00FF; }
+  .status { background: #f5e6ff; color: #8E00FF; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+
+  .search-wrap { padding: 0 16px; }
+  .search-input { width: 100%; padding: 14px; border: 1px solid #ddd; border-radius: 10px; font-size: 15px; margin-bottom: 10px; }
+  .search-btn { width: 100%; padding: 14px; background: #FF7A00; color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: bold; cursor: pointer; margin-bottom: 20px; }
+
+  .feed { padding: 0 16px; text-align: center; color: #999; margin-top: 40px; }
+
+  .bottom-nav {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    display: flex; background: white; border-top: 1px solid #eee;
+    padding: 8px 0;
+  }
+  .nav-item {
+    flex: 1; text-align: center; padding: 8px 0; cursor: pointer;
+    color: #999; font-size: 11px; position: relative;
+  }
+  .nav-item .icon { font-size: 20px; display: block; margin-bottom: 2px; }
+  .nav-item.active { color: #8E00FF; font-weight: bold; }
+  .nav-item.active::before {
+    content: ''; position: absolute; top: -8px; left: 20%; right: 20%;
+    height: 3px; background: #FF7A00; border-radius: 3px;
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">NORMALNO</div>
+  <div class="status" id="statusBadge">...</div>
+</div>
+
+<div class="search-wrap">
+  <input type="text" class="search-input" placeholder="Марка авто">
+  <button class="search-btn" onclick="alert('Сторінка пошуку за параметрами буде додана далі')">Пошук за параметрами</button>
+</div>
+
+<div class="feed" id="feed">Скоро тут з'являться авто</div>
+
+<div class="bottom-nav">
+  <div class="nav-item active" onclick="setActive(this)">
+    <span class="icon">🏠</span>Головна
+  </div>
+  <div class="nav-item" onclick="setActive(this)">
+    <span class="icon">🔨</span>Аукціон
+  </div>
+  <div class="nav-item" onclick="setActive(this)">
+    <span class="icon">➕</span>Продати
+  </div>
+  <div class="nav-item" onclick="setActive(this)">
+    <span class="icon">❤️</span>Обране
+  </div>
+  <div class="nav-item" onclick="setActive(this)">
+    <span class="icon">👤</span>Профіль
+  </div>
+</div>
+
+<script>
+  const supabaseUrl = 'https://ipzvgqyjtqofthbpkdsd.supabase.co';
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwenZncXlqdHFvZnRoYnBrZHNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMTEwNjEsImV4cCI6MjEwMTU4NzA2MX0.jbbpKpHaD6S9SJMIbxcwb12ggBCv44J_-s4OQ8ESNfA';
+  const sb = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+  function setActive(el) {
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    el.classList.add('active');
+  }
+
+  const roleLabels = {
+    professional: 'Професіонал',
+    owner: 'Власник'
+  };
+
+  async function checkUserAndLoadProfile() {
+    const { data: { session } } = await sb.auth.getSession();
+
+    if (!session) {
+      window.location.href = 'register2.html';
+      return;
+    }
+
+    const { data: profile } = await sb
+      .from('profiles')
+      .select('role')
+      .eq('user_id', session.user.id)
+      .single();
+
+    const badge = document.getElementById('statusBadge');
+    if (profile && profile.role) {
+      badge.textContent = roleLabels[profile.role] || profile.role;
+    } else {
+      badge.textContent = 'Гість';
+    }
+  }
+
+  checkUserAndLoadProfile();
+</script>
+
+</body>
+</html>
