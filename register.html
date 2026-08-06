@@ -89,7 +89,7 @@ username || '';
     const telegram = document.getElementById('regTelegram').value;
     const msg = document.getElementById('regMsg');
 
-    if (!phone  !email  !password || !selectedRole) {
+    if (!phone || !email || !password || !selectedRole) {
       msg.textContent = 'Заповніть всі поля та оберіть статус';
       msg.style.color = 'red';
       return;
