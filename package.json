@@ -1,0 +1,9 @@
+{
+  "name":"normalno",
+  "private":true,
+  "version":"0.1.0",
+  "workspaces":["apps/*","backend"],
+  "scripts":{
+    "dev":"echo Development setup will be added in next step"
+  }
+}
