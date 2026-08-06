@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NORMALNO — Реєстрація</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; background: #ffffff; margin: 0; padding: 20px; }
+  .logo { text-align: center; font-size: 28px; font-weight: bold; color: #8E00FF; margin: 20px 0 30px; }
+  .tabs { display: flex; margin-bottom: 20px; border-bottom: 2px solid #eee; }
+  .tab { flex: 1; text-align: center; padding: 12px; cursor: pointer; color: #999; font-weight: bold; }
+  .tab.active { color: #8E00FF; border-bottom: 3px solid #FF7A00; }
+  input { width: 100%; padding: 14px; margin-bottom: 12px; border: 1px solid #ddd; border-radius: 10px; font-size: 15px; }
+  .role-row { display: flex; gap: 10px; margin-bottom: 16px; }
+  .role-btn { flex: 1; padding: 14px 8px; border: 2px solid #eee; border-radius: 10px; text-align: center; cursor: pointer; font-size: 13px; }
+  .role-btn.selected { border-color: #8E00FF; background: #f5e6ff; color: #8E00FF; font-weight: bold; }
+  button.main { width: 100%; padding: 15px; background: #8E00FF; color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; }
+  .forgot { text-align: center; margin-top: 12px; color: #FF7A00; font-size: 14px; cursor: pointer; }
+  .msg { text-align: center; margin-top: 12px; font-size: 14px; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+
+<div class="logo">NORMALNO</div>
+
+<div class="tabs">
+  <div class="tab active" id="tabRegister" onclick="showTab('register')">Реєстрація</div>
+  <div class="tab" id="tabLogin" onclick="showTab('login')">Вхід</div>
+</div>
+
+<!-- РЕЄСТРАЦІЯ -->
+<div id="registerForm">
+  <input type="text" id="regTelegram" placeholder="Telegram нікнейм" readonly>
+  <input type="tel" id="regPhone" placeholder="Номер телефону">
+  <input type="email" id="regEmail" placeholder="Email">
+  <div class="role-row">
+    <div class="role-btn" id="roleProf" onclick="selectRole('professional')">Я професійно займаюсь авто</div>
+    <div class="role-btn" id="roleOwner" onclick="selectRole('owner')">Я власник</div>
+  </div>
+  <input type="password" id="regPassword" placeholder="Придумайте пароль">
+  <button class="main" onclick="register()">Зареєструватися</button>
+  <div class="msg" id="regMsg"></div>
+</div>
+
+<!-- ВХІД -->
+<div id="loginForm" class="hidden">
+  <input type="email" id="loginEmail" placeholder="Email">
+  <input type="password" id="loginPassword" placeholder="Пароль">
+  <button class="main" onclick="login()">Увійти</button>
+  <div class="forgot" onclick="forgotPassword()">Забули пароль?</div>
+  <div class="msg" id="loginMsg"></div>
+</div>
+
+<script>
+  const supabaseUrl = 'https://ipzvgqyjtqofthbpkdsd.supabase.co';
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwenZncXlqdHFvZnRoYnBrZHNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMTEwNjEsImV4cCI6MjEwMTU4NzA2MX0.jbbpKpHaD6S9SJMlbxcwb12ggBCv44J_-s4OQ8ESNfA';
+  const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+  let selectedRole = null;
+
+  function showTab(tab) {
+    document.getElementById('tabRegister').classList.toggle('active', tab === 'register');
+    document.getElementById('tabLogin').classList.toggle('active', tab === 'login');
+    document.getElementById('registerForm').classList.toggle('hidden', tab !== 'register');
+    document.getElementById('loginForm').classList.toggle('hidden', tab !== 'login');
+  }
+
+  function selectRole(role) {
+    selectedRole = role;
+    document.getElementById('roleProf').classList.toggle('selected', role === 'professional');
+    document.getElementById('roleOwner').classList.toggle('selected', role === 'owner');
+  }
+
+  if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe.user) {
+    document.getElementById('regTelegram').value = window.Telegram.WebApp.initDataUnsafe.user.
+
+
+username || '';
+  }
+
+  async function register() {
+    const phone = document.getElementById('regPhone').value;
+    const email = document.getElementById('regEmail').value;
+    const password = document.getElementById('regPassword').value;
+    const telegram = document.getElementById('regTelegram').value;
+    const msg = document.getElementById('regMsg');
+
+    if (!phone  !email  !password || !selectedRole) {
+      msg.textContent = 'Заповніть всі поля та оберіть статус';
+      msg.style.color = 'red';
+      return;
+    }
+
+    const { data, error } = await supabase.auth.signUp({ email, password });
+    if (error) {
+      msg.textContent = error.message;
+      msg.style.color = 'red';
+      return;
+    }
+
+    await supabase.from('profiles').insert({
+      user_id: data.user.id,
+      telegram_username: telegram,
+      phone: phone,
+      role: selectedRole
+    });
+
+    msg.textContent = 'Готово! Перевірте email для підтвердження.';
+    msg.style.color = 'green';
+  }
+
+  async function login() {
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+    const msg = document.getElementById('loginMsg');
+
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      msg.textContent = error.message;
+      msg.style.color = 'red';
+      return;
+    }
+    window.location.href = 'index.html';
+  }
+
+  async function forgotPassword() {
+    const email = document.getElementById('loginEmail').value;
+    if (!email) {
+      alert('Спочатку введіть email вище');
+      return;
+    }
+    await supabase.auth.resetPasswordForEmail(email);
+    alert('Лист для відновлення паролю надіслано на email');
+  }
+</script>
+
+</body>
+</html>
