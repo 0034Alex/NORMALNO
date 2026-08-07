@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NORMALNO</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  body { font-family: Arial, sans-serif; background: #fff; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+  .logo { font-size: 26px; font-weight: bold; color: #8E00FF; }
+</style>
+</head>
+<body>
+<div class="logo">NORMALNO</div>
+<script>
+  const supabaseUrl = 'https://ipzvgqyjtqofthbpkdsd.supabase.co';
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwenZncXlqdHFvZnRoYnBrZHNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMTEwNjEsImV4cCI6MjEwMTU4NzA2MX0.jbbpKpHaD6S9SJMIbxcwb12ggBCv44J_-s4OQ8ESNfA';
+  const sb = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+  async function telegramLogin() {
+    const tg = window.Telegram && window.Telegram.WebApp;
+
+    if (!tg || !tg.initData) {
+      window.location.href = 'register2.html';
+      return;
+    }
+
+    const resp = await fetch('/api/telegram-auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ initData: tg.initData })
+    });
+    const result = await resp.json();
+
+    if (result.error) {
+      document.body.innerHTML = '<div style="padding:20px;color:red">' + result.error + '</div>';
+      return;
+    }
+
+    const { error } = await sb.auth.signInWithPassword({ email: result.email, password: result.password });
+    if (error) {
+      document.body.innerHTML = '<div style="padding:20px;color:red">' + error.message + '</div>';
+      return;
+    }
+
+    window.location.href = result.isNewUser ? 'choose-role.html' : 'index.html';
+  }
+
+  telegramLogin();
+</script>
+</body>
+</html>
