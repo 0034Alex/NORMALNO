@@ -53,6 +53,20 @@
   .ncard-badge { background: #f5e6ff; color: #8E00FF; font-size: 11px; font-weight: bold; padding: 4px 10px; border-radius: 20px; }
   .ncard-time { color: #bbb; font-size: 11px; }
 
+  @media (min-width: 700px) {
+    .feed, .results {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+      gap: 16px;
+    }
+    .ncard { margin-bottom: 0; }
+    .ncard-photo { aspect-ratio: 4/3; }
+    .ncard-title { font-size: 14px; }
+    .ncard-price { font-size: 16px; }
+    .ncard-specs { font-size: 11px; gap: 6px 10px; }
+  }
+
+
 </style>
 </head>
 <body>
