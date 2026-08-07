@@ -173,6 +173,10 @@
   <input type="checkbox" id="customsCleared">
   <label for="customsCleared">Розмитнене</label>
 </div>
+<div class="check-row">
+  <input type="checkbox" id="isUrgent">
+  <label for="isUrgent">Терміновий продаж</label>
+</div>
 
 <h2>Фото та опис</h2>
 <input type="text" id="photoUrl" placeholder="Посилання на фото (додамо завантаження пізніше)">
@@ -290,6 +294,7 @@
       owners_count: parseInt(document.getElementById('ownersCount').value) || null,
       exchange_possible: document.getElementById('exchangePossible').checked,
       customs_cleared: document.getElementById('customsCleared').checked,
+      is_urgent: document.getElementById('isUrgent').checked,
       listing_type: listingType
     };
 
