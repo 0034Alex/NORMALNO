@@ -176,7 +176,7 @@ const TRANSMISSION_LABELS = { manual: 'Механіка', automatic: 'Автом
 const FUEL_LABELS = { petrol: 'Бензин', diesel: 'Дизель', hybrid: 'Гібрид', gas: 'Газ', electric: 'Електро' };
 const CONDITION_LABELS = { new: 'Нове', used: 'Б/у', imported: 'Пригон' };
 
-function renderCarCard(car, currentUserId) {
+function renderCarCard(car, currentUserId, favoritedIds) {
   const transmission = TRANSMISSION_LABELS[car.transmission] || '';
   const fuel = FUEL_LABELS[car.fuel_type] || '';
   const condition = CONDITION_LABELS[car.condition] || '';
@@ -187,17 +187,15 @@ function renderCarCard(car, currentUserId) {
   if (car.customs_cleared) badges.push('Розмитнено');
   if (car.sold) badges.push('Продано');
 
-  const isOwn = currentUserId && car.user_id === currentUserId;
-  const markSoldBtn = (isOwn && !car.sold)
-    ? `<button class="ncard-sold-btn" onclick="event.stopPropagation(); markCarSold('${car.id}')">Позначити як продано</button>`
-    : '';
+  const isFav = favoritedIds && favoritedIds.has(car.id);
+  const heartChar = isFav ? '❤️' : '♡';
 
   return `
     <div class="ncard ${car.sold ? 'ncard-sold' : ''}">
       <div class="ncard-photo">
         ${car.photo_url ? `<img src="${car.photo_url}" onerror="this.style.display='none'">` : `<div class="ncard-noimg">🚗</div>`}
         <div class="ncard-watermark">NORMALNO</div>
-        <div class="ncard-heart">♡</div>
+        <div class="ncard-heart" onclick="event.stopPropagation(); if(window.toggleFavorite) window.toggleFavorite('${car.id}')">${heartChar}</div>
       </div>
       <div class="ncard-body">
         <div class="ncard-title">${car.brand} ${car.model}, ${car.year}</div>
@@ -211,7 +209,6 @@ function renderCarCard(car, currentUserId) {
         </div>
         ${badges.length ? `<div class="ncard-badges">${badges.map(b => `<span class="ncard-badge">${b}</span>`).join('')}</div>` : ''}
         <div class="ncard-time">🕐 ${timeAgo(car.created_at)}</div>
-        ${markSoldBtn}
       </div>
     </div>
   `;

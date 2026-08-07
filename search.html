@@ -228,6 +228,7 @@
   let allCars = [];
   let currentUserId = null;
   let selectedBrand = '';
+  let favoritedIds = new Set();
 
   populateRegionSelect(document.getElementById('fRegion'), 'Регіон — всі');
 
@@ -239,12 +240,28 @@
 
   async function init() {
     const { data: { session } } = await sb.auth.getSession();
-    if (session) currentUserId = session.user.id;
+    if (session) {
+      currentUserId = session.user.id;
+      const { data: favs } = await sb.from('favorites').select('car_id').eq('user_id', currentUserId);
+      favoritedIds = new Set((favs || []).map(f => f.car_id));
+    }
 
     const { data: cars } = await sb.from('cars').select('*').order('created_at', { ascending: false });
     allCars = cars || [];
     updateCount();
   }
+
+  window.toggleFavorite = async function(carId) {
+    if (!currentUserId) return;
+    if (favoritedIds.has(carId)) {
+      await sb.from('favorites').delete().eq('user_id', currentUserId).eq('car_id', carId);
+      favoritedIds.delete(carId);
+    } else {
+      await sb.from('favorites').insert({ user_id: currentUserId, car_id: carId });
+      favoritedIds.add(carId);
+    }
+    showResults();
+  };
 
   /* ---- автопідказка марки ---- */
   const brandInput = document.getElementById('fBrand');
@@ -391,12 +408,7 @@
       resultsEl.innerHTML = '<div class="empty">Нічого не знайдено за цими параметрами</div>';
       return;
     }
-    resultsEl.innerHTML = filtered.map(car => renderCarCard(car, currentUserId)).join('');
-  }
-
-  async function markCarSold(carId) {
-    const { error } = await sb.from('cars').update({ sold: true }).eq('id', carId);
-    if (!error) { await init(); showResults(); }
+    resultsEl.innerHTML = filtered.map(car => renderCarCard(car, currentUserId, favoritedIds)).join('');
   }
 
   document.querySelectorAll('#fCondition, #fRegion, #fPaymentType, #fFuel, #fTransmission, #fDriveType, #fDoors, #fOwnersCount, #fSort, #fColor, #fYearFrom, #fYearTo, #fPriceFrom, #fPriceTo, #fMileageFrom, #fMileageTo, #fEngineFrom, #fEngineTo, #fPowerFrom, #fPowerTo, #fExchangePossible, #fCustomsCleared')

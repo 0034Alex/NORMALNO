@@ -102,7 +102,7 @@
   <div class="nav-item" onclick="window.location.href='sell.html'">
     <span class="icon">➕</span>Продати
   </div>
-  <div class="nav-item" onclick="setActive(this)">
+  <div class="nav-item" onclick="window.location.href='favorites.html'">
     <span class="icon">❤️</span>Обране
   </div>
   <div class="nav-item" onclick="setActive(this)">
@@ -117,6 +117,7 @@
 
   let allCars = [];
   let currentUserId = null;
+  let favoritedIds = new Set();
 
   function setActive(el) {
     document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
@@ -140,6 +141,9 @@
 
     const status = getStatusForCount(count || 0);
     document.getElementById('statusBadge').textContent = status.name;
+
+    const { data: favs } = await sb.from('favorites').select('car_id').eq('user_id', currentUserId);
+    favoritedIds = new Set((favs || []).map(f => f.car_id));
   }
 
   async function loadCars() {
@@ -164,7 +168,7 @@
       feed.innerHTML = '<div class="empty-feed">Нічого не знайдено</div>';
       return;
     }
-    feed.innerHTML = cars.map(car => renderCarCard(car, currentUserId)).join('');
+    feed.innerHTML = cars.map(car => renderCarCard(car, currentUserId, favoritedIds)).join('');
   }
 
   function filterByBrand() {
@@ -177,16 +181,22 @@
     renderFeed(filtered);
   }
 
-  async function markCarSold(carId) {
-    const { error } = await sb.from('cars').update({ sold: true }).eq('id', carId);
-    if (!error) {
-      loadCars();
-      checkUserAndLoadStatus();
+  window.toggleFavorite = async function(carId) {
+    if (!currentUserId) return;
+    if (favoritedIds.has(carId)) {
+      await sb.from('favorites').delete().eq('user_id', currentUserId).eq('car_id', carId);
+      favoritedIds.delete(carId);
+    } else {
+      await sb.from('favorites').insert({ user_id: currentUserId, car_id: carId });
+      favoritedIds.add(carId);
     }
-  }
+    renderFeed(allCars);
+  };
 
-  checkUserAndLoadStatus();
-  loadCars();
+  (async function start() {
+    await checkUserAndLoadStatus();
+    await loadCars();
+  })();
 </script>
 
 </body>
