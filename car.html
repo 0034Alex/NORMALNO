@@ -55,13 +55,14 @@
     position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(3px);
     display: flex; align-items: flex-end; justify-content: center; z-index: 100;
   }
+  .modal-overlay.hidden { display: none; }
   .modal-sheet {
     background: #fff; width: 100%; max-width: 520px; border-radius: 20px 20px 0 0;
     padding: 20px; max-height: 70vh; overflow-y: auto;
   }
   .modal-title { font-size: 17px; font-weight: bold; margin-bottom: 4px; }
   .modal-sub { font-size: 12px; color: #999; margin-bottom: 18px; }
-  .modal-close { float: right; font-size: 20px; color: #999; cursor: pointer; }
+  .modal-close { float: right; font-size: 20px; color: #999; cursor: pointer; background: none; border: none; padding: 4px 8px; }
   .slider-row { margin-bottom: 20px; }
   .slider-label { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px; }
   .slider-label b { color: #8E00FF; }
@@ -94,12 +95,17 @@
   const DRIVE_LABELS = { front: 'Передній', rear: 'Задній', all: 'Повний' };
 
   let currentCarPriceUAH = 0;
+  let currentCarLabel = '';
+  let userPhone = '';
+  let userName = '';
 
   async function load() {
     await ensureRatesLoaded();
     const { data: { session } } = await sb.auth.getSession();
     if (session) {
       currentUserId = session.user.id;
+      const { data: profile } = await sb.from('profiles').select('phone').eq('user_id', currentUserId).maybeSingle();
+      if (profile && profile.phone) userPhone = profile.phone;
       const { data: fav } = await sb.from('favorites').select('id').eq('user_id', currentUserId).eq('car_id', carId).maybeSingle();
       isFav = !!fav;
     }
@@ -175,7 +181,7 @@
 
       <div class="modal-overlay hidden" id="leasingModal" onclick="if(event.target===this) closeLeasingModal()">
         <div class="modal-sheet">
-          <span class="modal-close" onclick="closeLeasingModal()">✕</span>
+          <button type="button" class="modal-close" onclick="closeLeasingModal(); return false;">✕</button>
           <div class="modal-title">Розрахунок лізингу</div>
           <div class="modal-sub" id="leasingCarLabel"></div>
 
@@ -192,6 +198,10 @@
             <div class="calc-row"><span>Разом за весь термін</span><span id="calcTotal">—</span></div>
           </div>
           <div class="calc-note">Попередній розрахунок. Точні умови уточнюйте у менеджера. Розрахунок у гривнях за курсом НБУ.</div>
+
+          <input type="tel" id="leasingPhone" placeholder="Ваш номер телефону" style="width:100%; padding:12px; margin-top:14px; border:1px solid #ddd; border-radius:10px; font-size:14px;">
+          <button class="leasing-btn" style="margin-top:8px; margin-bottom:0;" onclick="submitLeasingLead()">📞 Зв'язатися з менеджером</button>
+          <div id="leasingLeadMsg" style="text-align:center; font-size:13px; margin-top:8px;"></div>
         </div>
       </div>
 
@@ -199,12 +209,54 @@
     `;
 
     currentCarPriceUAH = car.currency === 'UAH' ? car.price : (convertToUAH(car.price, car.currency) || car.price);
-    document.getElementById('leasingCarLabel').textContent = `${car.brand} ${car.model}, ${car.year}`;
+    currentCarLabel = `${car.brand} ${car.model}, ${car.year}`;
+    document.getElementById('leasingCarLabel').textContent = currentCarLabel;
   }
 
   window.openLeasingModal = function() {
     document.getElementById('leasingModal').classList.remove('hidden');
+    document.getElementById('leasingPhone').value = userPhone;
+    document.getElementById('leasingLeadMsg').textContent = '';
     updateLeasingCalc();
+  };
+
+  window.submitLeasingLead = async function() {
+    const msg = document.getElementById('leasingLeadMsg');
+    const phone = document.getElementById('leasingPhone').value.trim();
+
+    if (!phone) {
+      msg.textContent = 'Вкажіть номер телефону';
+      msg.style.color = 'red';
+      return;
+    }
+
+    const months = parseInt(document.getElementById('monthsSlider').value);
+    const result = calcLeasing(currentCarPriceUAH, months);
+    const details = `Авто: ${currentCarLabel}. Термін: ${months} міс. Аванс: ${result.downPayment.toLocaleString('uk-UA')} грн. Щомісячний платіж: ${result.monthlyPayment.toLocaleString('uk-UA')} грн. Разом: ${result.totalPayment.toLocaleString('uk-UA')} грн.`;
+
+    const { error } = await sb.from('leads').insert({
+      type: 'leasing',
+      user_id: currentUserId,
+      name: userName,
+      phone: phone,
+      budget: result.monthlyPayment,
+      details: details
+    });
+
+    if (error) {
+      msg.textContent = error.message;
+      msg.style.color = 'red';
+      return;
+    }
+
+    fetch('/api/notify-lead', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ leadType: 'leasing', name: userName, phone, summary: details })
+    }).catch(() => {});
+
+    msg.textContent = "Дякуємо! Менеджер зв'яжеться з вами найближчим часом.";
+    msg.style.color = 'green';
   };
 
   window.closeLeasingModal = function() {
