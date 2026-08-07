@@ -9,35 +9,74 @@
 <style>
   * { box-sizing: border-box; }
   body { font-family: Arial, sans-serif; background: #fff; margin: 0; padding: 16px; padding-bottom: 80px; }
-  .logo { text-align: center; font-size: 20px; font-weight: bold; color: #8E00FF; margin-bottom: 16px; }
-  .tabs { display: flex; margin-bottom: 16px; border-bottom: 2px solid #eee; }
-  .tab { flex: 1; text-align: center; padding: 12px; cursor: pointer; color: #999; font-weight: bold; }
+
+  .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .logo { font-size: 22px; font-weight: bold; color: #8E00FF; }
+  .status { background: #f5e6ff; color: #8E00FF; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+
+  .tabs { display: flex; gap: 20px; border-bottom: 2px solid #eee; margin-bottom: 14px; }
+  .tab { padding: 10px 0; cursor: pointer; color: #999; font-weight: bold; font-size: 14px; }
   .tab.active { color: #8E00FF; border-bottom: 3px solid #FF7A00; }
-  .empty { text-align: center; color: #999; margin-top: 40px; }
 
-  .lots { display: flex; flex-direction: column; gap: 16px; }
-  .lot-card { border: 1px solid #eee; border-radius: 14px; overflow: hidden; cursor: pointer; }
-  .lot-photo { position: relative; width: 100%; aspect-ratio: 16/9; background: #f2f2f2; }
-  .lot-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .lot-noimg { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 40px; color: #ccc; }
-  .lot-badge { position: absolute; top: 10px; left: 10px; background: #8E00FF; color: #fff; font-size: 11px; font-weight: bold; padding: 5px 10px; border-radius: 20px; }
-  .lot-timer { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.6); color: #fff; font-size: 12px; font-weight: bold; padding: 5px 10px; border-radius: 20px; }
-  .lot-timer.urgent { background: #cc0000; }
-  .lot-heart { position: absolute; bottom: 10px; right: 10px; width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.9); display: flex; align-items: center; justify-content: center; font-size: 16px; color: #8E00FF; cursor: pointer; }
-  .lot-body { padding: 12px 14px; }
-  .lot-title { font-weight: bold; font-size: 16px; margin-bottom: 6px; }
-  .lot-row { display: flex; justify-content: space-between; font-size: 13px; color: #555; padding: 4px 0; border-top: 1px solid #f5f5f5; }
-  .lot-row b { color: #111; }
-  .lot-bid { color: #8E00FF; font-weight: bold; }
+  .chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 20px; }
+  .chip { flex-shrink: 0; background: #f7f7f7; border: 1px solid #eee; border-radius: 20px; padding: 8px 14px; font-size: 13px; cursor: pointer; white-space: nowrap; }
+  .chip.active { background: #f5e6ff; border-color: #8E00FF; color: #8E00FF; font-weight: bold; }
 
-  @media (min-width: 700px) {
-    .lots { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
-  }
+  .section { margin-bottom: 24px; }
+  .section-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .section-title { font-size: 15px; font-weight: bold; }
+  .section-link { color: #8E00FF; font-size: 13px; font-weight: bold; cursor: pointer; }
+  .section-reset { color: #FF7A00; font-size: 12px; font-weight: bold; margin-bottom: 8px; cursor: pointer; }
+  .hidden { display: none; }
+  .empty { text-align: center; color: #999; padding: 20px; }
 
-  .bottom-nav {
-    position: fixed; bottom: 0; left: 0; right: 0;
-    display: flex; background: white; border-top: 1px solid #eee; padding: 8px 0;
-  }
+  /* великі картки (закінчуються скоро) */
+  .big-cards { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 4px; }
+  .big-card { flex-shrink: 0; width: 220px; border: 1px solid #eee; border-radius: 14px; overflow: hidden; }
+  .big-photo { position: relative; width: 100%; aspect-ratio: 4/3; background: #f2f2f2; }
+  .big-photo img { width: 100%; height: 100%; object-fit: cover; }
+  .big-noimg { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 30px; color: #ccc; }
+  .big-heart { position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; border-radius: 50%; background: rgba(255,255,255,0.9); display: flex; align-items: center; justify-content: center; font-size: 14px; color: #8E00FF; }
+  .big-badge { position: absolute; bottom: 8px; left: 8px; background: #FF7A00; color: #fff; font-size: 10px; font-weight: bold; padding: 4px 8px; border-radius: 6px; }
+  .big-timer { position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.65); color: #fff; font-size: 10px; font-weight: bold; padding: 4px 8px; border-radius: 6px; }
+  .big-body { padding: 10px 12px; }
+  .big-title { font-weight: bold; font-size: 14px; margin-bottom: 2px; }
+  .big-specs { color: #999; font-size: 11px; margin-bottom: 6px; }
+  .big-label { color: #999; font-size: 11px; }
+  .big-bid { color: #8E00FF; font-weight: bold; font-size: 16px; margin-bottom: 2px; }
+  .big-count { color: #999; font-size: 11px; margin-bottom: 6px; }
+  .big-start { color: #999; font-size: 11px; margin-bottom: 8px; }
+  .big-btn { width: 100%; padding: 10px; background: #8E00FF; color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer; }
+
+  /* середні рядки (всі активні торги) */
+  .row-card { display: flex; gap: 12px; border: 1px solid #eee; border-radius: 12px; padding: 10px; margin-bottom: 10px; cursor: pointer; align-items: center; }
+  .row-photo { position: relative; width: 70px; height: 70px; border-radius: 10px; overflow: hidden; background: #f2f2f2; flex-shrink: 0; }
+  .row-photo img { width: 100%; height: 100%; object-fit: cover; }
+  .row-heart { position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; border-radius: 50%; background: rgba(255,255,255,0.9); display: flex; align-items: center; justify-content: center; font-size: 10px; color: #8E00FF; }
+  .row-info { flex: 1; min-width: 0; }
+  .row-title { font-weight: bold; font-size: 14px; margin-bottom: 2px; }
+  .row-specs { color: #999; font-size: 11px; margin-bottom: 4px; }
+  .row-bid { color: #8E00FF; font-weight: bold; font-size: 15px; }
+  .row-count { color: #999; font-size: 11px; margin-left: 6px; }
+  .row-right { text-align: right; flex-shrink: 0; }
+  .row-badge { background: #fff0e0; color: #FF7A00; font-size: 10px; font-weight: bold; padding: 3px 8px; border-radius: 10px; margin-bottom: 4px; display: inline-block; }
+  .row-timer { color: #999; font-size: 11px; }
+
+  /* маленькі картки (скоро завершаться / завершені) */
+  .small-cards { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; }
+  .small-card { flex-shrink: 0; width: 130px; border: 1px solid #eee; border-radius: 12px; overflow: hidden; cursor: pointer; }
+  .small-photo { position: relative; width: 100%; aspect-ratio: 1/1; background: #f2f2f2; }
+  .small-photo img { width: 100%; height: 100%; object-fit: cover; }
+  .small-heart { position: absolute; top: 6px; right: 6px; width: 22px; height: 22px; border-radius: 50%; background: rgba(255,255,255,0.9); display: flex; align-items: center; justify-content: center; font-size: 11px; color: #8E00FF; }
+  .small-body { padding: 8px; }
+  .small-title { font-weight: bold; font-size: 12px; margin-bottom: 3px; }
+  .small-sub { font-size: 10px; margin-bottom: 3px; }
+  .small-sub.orange { color: #FF7A00; }
+  .small-sub.green { color: #1a8f2a; }
+  .small-sub.red { color: #cc0000; }
+  .small-row { display: flex; justify-content: space-between; font-size: 10px; color: #666; }
+
+  .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; display: flex; background: white; border-top: 1px solid #eee; padding: 8px 0; }
   .nav-item { flex: 1; text-align: center; padding: 8px 0; cursor: pointer; color: #999; font-size: 11px; position: relative; }
   .nav-item .icon { font-size: 20px; display: block; margin-bottom: 2px; }
   .nav-item.active { color: #8E00FF; font-weight: bold; }
@@ -46,21 +85,70 @@
 </head>
 <body>
 
-<div class="logo">Аукціон</div>
-
-<div class="tabs">
-  <div class="tab active" id="tabAll" onclick="showTab('all')">Всі торги</div>
-  <div class="tab" id="tabFav" onclick="showTab('fav')">Обране</div>
+<div class="topbar">
+  <div class="logo">Аукціон</div>
+  <div class="status" id="statusBadge">...</div>
 </div>
 
-<div class="lots" id="lots">Завантаження...</div>
+<div class="tabs">
+  <div class="tab active" id="tabActive" onclick="setTab('active')">Активні</div>
+  <div class="tab" id="tabMyBids" onclick="setTab('myBids')">Мої ставки</div>
+  <div class="tab" id="tabEnded" onclick="setTab('ended')">Завершені</div>
+</div>
+
+<div id="activeContent">
+  <div class="chips">
+    <div class="chip active" data-f="all" onclick="applyChip('all')">🔲 Всі</div>
+    <div class="chip" data-f="car" onclick="applyChip('car')">🚗 Легкові</div>
+    <div class="chip" data-f="moto" onclick="applyChip('moto')">🏍️ Мото</div>
+    <div class="chip" data-f="truck" onclick="applyChip('truck')">🚛 Вантажні</div>
+    <div class="chip" data-f="cheap" onclick="applyChip('cheap')">💰 До $10 000</div>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <div class="section-title">🔥 Закінчуються скоро</div>
+      <div class="section-link" onclick="setTab('closingSoon')">Всі</div>
+    </div>
+    <div class="big-cards" id="closingSoonCards">Завантаження...</div>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <div class="section-title" id="allActiveTitle">🟣 Всі активні торги</div>
+    </div>
+    <div class="section-reset hidden" id="resetChipBtn" onclick="applyChip('all')">← Показати всі</div>
+    <div id="allActiveRows">Завантаження...</div>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <div class="section-title">🟠 Скоро завершаться</div>
+      <div class="section-link" onclick="setTab('endingSoon')">Всі</div>
+    </div>
+    <div class="small-cards" id="endingSoonCards">Завантаження...</div>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <div class="section-title">⚫ Завершені торги</div>
+      <div class="section-link" onclick="setTab('ended')">Всі</div>
+    </div>
+    <div class="small-cards" id="endedTeaser">Завантаження...</div>
+  </div>
+</div>
+
+<div id="myBidsContent" class="hidden"></div>
+<div id="endedContent" class="hidden"></div>
+<div id="closingSoonContent" class="hidden"></div>
+<div id="endingSoonContent" class="hidden"></div>
 
 <div class="bottom-nav">
   <div class="nav-item" onclick="window.location.href='index.html'"><span class="icon">🏠</span>Головна</div>
   <div class="nav-item active"><span class="icon">🔨</span>Аукціон</div>
   <div class="nav-item" onclick="window.location.href='sell.html'"><span class="icon">➕</span>Продати</div>
   <div class="nav-item" onclick="window.location.href='favorites.html'"><span class="icon">❤️</span>Обране</div>
-  <div class="nav-item" onclick="window.location.href='index.html'"><span class="icon">👤</span>Профіль</div>
+  <div class="nav-item" onclick="alert('Розділ Профіль в розробці')"><span class="icon">👤</span>Профіль</div>
 </div>
 
 <script>
@@ -69,8 +157,13 @@
   const sb = window.supabase.createClient(supabaseUrl, supabaseKey);
 
   let currentUserId = null;
+  let favoritedIds = new Set();
   let allLots = [];
-  let favoriteCarIds = new Set();
+  let currentChip = 'all';
+
+  const CONDITION_LABELS = { new: 'Нове', used: 'Б/у', imported: 'Пригон' };
+  const TRANSMISSION_LABELS = { manual: 'Механіка', automatic: 'Автомат', variator: 'Варіатор' };
+  const FUEL_LABELS = { petrol: 'Бензин', diesel: 'Дизель', hybrid: 'Гібрид', gas: 'Газ', electric: 'Електро' };
 
   function lotStatus(car) {
     const now = new Date();
@@ -82,61 +175,203 @@
     return 'sold';
   }
 
-  function formatTimer(car) {
-    const now = new Date();
-    const status = lotStatus(car);
-    const target = status === 'awaiting' ? new Date(car.auction_starts_at) : new Date(car.auction_ends_at);
-    const diff = target - now;
-    if (diff <= 0) return status === 'awaiting' ? 'От-от почнеться' : 'Завершено';
-    const d = Math.floor(diff / 86400000);
-    const h = Math.floor((diff % 86400000) / 3600000);
-    const m = Math.floor((diff % 3600000) / 60000);
-    const s = Math.floor((diff % 60000) / 1000);
-    const label = d > 0 ? `${d}д ${h}г` : `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-    return (status === 'awaiting' ? 'Старт через ' : '') + label;
+  function timeLeftMs(car) {
+    return new Date(car.auction_ends_at) - new Date();
   }
 
-  function renderLotCard(car) {
-    const status = lotStatus(car);
-    const urgent = status === 'active' && (new Date(car.auction_ends_at) - new Date()) < 24 * 3600000;
-    const badgeText = status === 'awaiting' ? 'Очікування' : status === 'active' ? 'Йдуть торги' : status === 'sold' ? 'Продано' : 'Резерв не пройдено';
+  function formatCountdown(ms) {
+    if (ms <= 0) return 'Завершено';
+    const d = Math.floor(ms / 86400000);
+    const h = Math.floor((ms % 86400000) / 3600000);
+    const m = Math.floor((ms % 3600000) / 60000);
+    return d > 0 ? `${d}д ${h}г ${m}хв` : `${h}г ${m}хв`;
+  }
 
+  function heartHtml(carId, cls) {
+    const isFav = favoritedIds.has(carId);
+    return `<div class="${cls}" onclick="event.stopPropagation(); toggleFavorite(${carId})">${isFav ? '❤️' : '♡'}</div>`;
+  }
+
+  window.toggleFavorite = async function(carId) {
+    if (!currentUserId) return;
+    if (favoritedIds.has(carId)) {
+      await sb.from('favorites').delete().eq('user_id', currentUserId).eq('car_id', carId);
+      favoritedIds.delete(carId);
+    } else {
+      await sb.from('favorites').insert({ user_id: currentUserId, car_id: carId });
+      favoritedIds.add(carId);
+    }
+    renderAll();
+  };
+
+  function goLot(id) { window.location.href = 'lot.html?id=' + id; }
+
+  function renderBigCard(car) {
     return `
-      <div class="lot-card" onclick="window.location.href='lot.html?id=${car.id}'">
-        <div class="lot-photo">
-          ${car.photo_url ? `<img src="${car.photo_url}" onerror="this.style.display='none'">` : `<div class="lot-noimg">🚗</div>`}
-          <div class="lot-badge">${badgeText}</div>
-          <div class="lot-timer ${urgent ? 'urgent' : ''}">${formatTimer(car)}</div>
-          <div class="lot-heart" onclick="event.stopPropagation(); toggleLotFavorite(${car.id})">${favoriteCarIds.has(car.id) ? '❤️' : '♡'}</div>
+      <div class="big-card" onclick="goLot(${car.id})">
+        <div class="big-photo">
+          ${car.photo_url ? `<img src="${car.photo_url}" onerror="this.style.display='none'">` : `<div class="big-noimg">🚗</div>`}
+          ${heartHtml(car.id, 'big-heart')}
+          <div class="big-badge">ТОРГИ ІДУТЬ</div>
+          <div class="big-timer">${formatCountdown(timeLeftMs(car))}</div>
         </div>
-        <div class="lot-body">
-          <div class="lot-title">${car.brand} ${car.model}, ${car.year}</div>
-          <div class="lot-row"><span>Стан</span><b>${CONDITION_LABELS[car.condition] || '—'}</b></div>
-          <div class="lot-row"><span>Поточна ставка</span><b class="lot-bid">${car.current_bid ? Number(car.current_bid).toLocaleString('uk-UA') : Number(car.start_price||0).toLocaleString('uk-UA')} ${car.currency}</b></div>
-          <div class="lot-row"><span>Ставок зроблено</span><b>${car.bid_count || 0}</b></div>
+        <div class="big-body">
+          <div class="big-title">${car.brand} ${car.model}, ${car.year}</div>
+          <div class="big-specs">${[car.engine_volume ? car.engine_volume + ' л' : '', FUEL_LABELS[car.fuel_type], TRANSMISSION_LABELS[car.transmission], car.mileage ? Number(car.mileage).toLocaleString('uk-UA') + ' км' : ''].filter(Boolean).join(' · ')}</div>
+          <div class="big-label">Поточна ставка</div>
+          <div class="big-bid">${Number(car.current_bid || car.start_price || 0).toLocaleString('uk-UA')} ${car.currency}</div>
+          <div class="big-count">👤 ${car.bid_count || 0} ставок</div>
+          <div class="big-start">Стартова ціна: ${Number(car.start_price || 0).toLocaleString('uk-UA')} ${car.currency}</div>
+          <button class="big-btn" onclick="event.stopPropagation(); goLot(${car.id})">Зробити ставку</button>
         </div>
       </div>
     `;
   }
 
-  async function toggleLotFavorite(carId) {
-    if (!currentUserId) return;
-    if (favoriteCarIds.has(carId)) {
-      await sb.from('favorites').delete().eq('user_id', currentUserId).eq('car_id', carId);
-      favoriteCarIds.delete(carId);
-    } else {
-      await sb.from('favorites').insert({ user_id: currentUserId, car_id: carId });
-      favoriteCarIds.add(carId);
+  function renderRowCard(car) {
+    return `
+      <div class="row-card" onclick="goLot(${car.id})">
+        <div class="row-photo">
+          ${car.photo_url ? `<img src="${car.photo_url}" onerror="this.style.display='none'">` : ''}
+          ${heartHtml(car.id, 'row-heart')}
+        </div>
+        <div class="row-info">
+          <div class="row-title">${car.brand} ${car.model}, ${car.year}</div>
+          <div class="row-specs">${[car.engine_volume ? car.engine_volume + ' л' : '', FUEL_LABELS[car.fuel_type], TRANSMISSION_LABELS[car.transmission], car.mileage ? Number(car.mileage).toLocaleString('uk-UA') + ' км' : ''].filter(Boolean).join(' · ')}</div>
+          <span class="row-bid">${Number(car.current_bid || car.start_price || 0).toLocaleString('uk-UA')} ${car.currency}</span>
+          <span class="row-count">👤 ${car.bid_count || 0} ставок</span>
+        </div>
+        <div class="row-right">
+          <div class="row-badge">ТОРГИ ІДУТЬ</div>
+          <div class="row-timer">🕐 ${formatCountdown(timeLeftMs(car))}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderSmallCard(car, mode) {
+    const status = lotStatus(car);
+    let sub = '';
+    if (mode === 'endingSoon') sub = `<div class="small-sub orange">Завершення через ${formatCountdown(timeLeftMs(car))}</div>`;
+    else if (status === 'sold') sub = `<div class="small-sub green">Авто продано</div>`;
+    else sub = `<div class="small-sub red">Резерв не пройдено</div>`;
+
+    return `
+      <div class="small-card" onclick="goLot(${car.id})">
+        <div class="small-photo">
+          ${car.photo_url ? `<img src="${car.photo_url}" onerror="this.style.display='none'">` : ''}
+          ${heartHtml(car.id, 'small-heart')}
+        </div>
+        <div class="small-body">
+          <div class="small-title">${car.brand} ${car.model}${car.year ? ', ' + car.year : ''}</div>
+          ${sub}
+          <div class="small-row">
+            <span>${mode === 'endingSoon' ? 'Ставка' : (mode === 'ended' ? 'Фінальна ставка' : '')}</span>
+          </div>
+          <div style="font-weight:bold; font-size:12px; color:#8E00FF;">${Number(car.current_bid || car.start_price || 0).toLocaleString('uk-UA')} ${car.currency}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  function matchChip(car, chip) {
+    if (chip === 'all') return true;
+    if (chip === 'cheap') return (car.current_bid || car.start_price || 0) <= 10000;
+    return car.transport_type === chip;
+  }
+
+  function applyChip(chip) {
+    currentChip = chip;
+    document.querySelectorAll('.chip').forEach(c => c.classList.toggle('active', c.dataset.f === chip));
+    document.getElementById('resetChipBtn').classList.toggle('hidden', chip === 'all');
+    document.getElementById('allActiveTitle').textContent = chip === 'all' ? '🟣 Всі активні торги' : '🟣 Результати фільтра';
+    renderAllActiveRows();
+  }
+
+  function renderAllActiveRows() {
+    const active = allLots.filter(c => lotStatus(c) === 'active');
+    const filtered = active.filter(c => matchChip(c, currentChip));
+    const el = document.getElementById('allActiveRows');
+    el.innerHTML = filtered.length ? filtered.map(renderRowCard).join('') : '<div class="empty">Нічого не знайдено</div>';
+  }
+
+  function renderAll() {
+    const active = allLots.filter(c => lotStatus(c) === 'active');
+    const closingSoon = active.filter(c => timeLeftMs(c) < 3 * 3600000);
+    const endingSoon = active.filter(c => timeLeftMs(c) >= 3 * 3600000 && timeLeftMs(c) < 24 * 3600000);
+    const ended = allLots.filter(c => lotStatus(c) === 'sold' || lotStatus(c) === 'reserve_not_met');
+
+    document.getElementById('closingSoonCards').innerHTML = closingSoon.length
+      ? closingSoon.map(renderBigCard).join('') : '<div class="empty">Немає лотів</div>';
+
+    renderAllActiveRows();
+
+    document.getElementById('endingSoonCards').innerHTML = endingSoon.length
+      ? endingSoon.map(c => renderSmallCard(c, 'endingSoon')).join('') : '<div class="empty">Немає лотів</div>';
+
+    document.getElementById('endedTeaser').innerHTML = ended.length
+      ? ended.slice(0, 6).map(c => renderSmallCard(c, 'ended')).join('') : '<div class="empty">Немає завершених торгів</div>';
+  }
+
+  function setTab(tab) {
+    ['tabActive', 'tabMyBids', 'tabEnded'].forEach(id => document.getElementById(id) && document.getElementById(id).classList.remove('active'));
+    document.getElementById('activeContent').classList.add('hidden');
+    document.getElementById('myBidsContent').classList.add('hidden');
+    document.getElementById('endedContent').classList.add('hidden');
+    document.getElementById('closingSoonContent').classList.add('hidden');
+    document.getElementById('endingSoonContent').classList.add('hidden');
+
+    if (tab === 'active') {
+      document.getElementById('tabActive').classList.add('active');
+      document.getElementById('activeContent').classList.remove('hidden');
+    } else if (tab === 'myBids') {
+      document.getElementById('tabMyBids').classList.add('active');
+      document.getElementById('myBidsContent').classList.remove('hidden');
+      renderMyBids();
+    } else if (tab === 'ended') {
+      document.getElementById('tabEnded').classList.add('active');
+      document.getElementById('endedContent').classList.remove('hidden');
+      renderEndedFull();
+    } else if (tab === 'closingSoon') {
+      document.getElementById('closingSoonContent').classList.remove('hidden');
+      renderFullList('closingSoonContent', allLots.filter(c => lotStatus(c) === 'active' && timeLeftMs(c) < 3 * 3600000), '🔥 Закінчуються скоро', 'active');
+    } else if (tab === 'endingSoon') {
+      document.getElementById('endingSoonContent').classList.remove('hidden');
+      renderFullList('endingSoonContent', allLots.filter(c => lotStatus(c) === 'active' && timeLeftMs(c) >= 3 * 3600000 && timeLeftMs(c) < 24 * 3600000), '🟠 Скоро завершаться', 'active');
     }
-    document.getElementById('tabFav').classList.contains('active') ? renderFav() : renderAll();
+  }
+
+  function renderFullList(containerId, cars, title, mode) {
+    const el = document.getElementById(containerId);
+    el.innerHTML = `<div class="section-title" style="margin-bottom:12px;">${title}</div>` +
+      (cars.length ? cars.map(renderRowCard).join('') : '<div class="empty">Немає лотів</div>');
+  }
+
+  async function renderMyBids() {
+    const el = document.getElementById('myBidsContent');
+    if (!currentUserId) { el.innerHTML = '<div class="empty">Увійдіть, щоб бачити свої ставки</div>'; return; }
+    const { data: bids } = await sb.from('bids').select('car_id').eq('user_id', currentUserId);
+    const carIds = [...new Set((bids || []).map(b => b.car_id))];
+    const myLots = allLots.filter(c => carIds.includes(c.id) && lotStatus(c) === 'active');
+    el.innerHTML = `<div class="section-title" style="margin-bottom:12px;">Мої активні ставки</div>` +
+      (myLots.length ? myLots.map(renderRowCard).join('') : '<div class="empty">Ви ще не робили ставок</div>');
+  }
+
+  function renderEndedFull() {
+    const el = document.getElementById('endedContent');
+    const ended = allLots.filter(c => lotStatus(c) === 'sold' || lotStatus(c) === 'reserve_not_met');
+    el.innerHTML = `<div class="section-title" style="margin-bottom:12px;">Завершені торги</div>` +
+      (ended.length ? ended.map(c => renderSmallCard(c, 'ended')).join('') : '<div class="empty">Немає завершених торгів</div>');
   }
 
   async function load() {
     const { data: { session } } = await sb.auth.getSession();
     if (session) {
       currentUserId = session.user.id;
+      const { count } = await sb.from('cars').select('*', { count: 'exact', head: true }).eq('user_id', currentUserId).eq('sold', true);
+      document.getElementById('statusBadge').textContent = getStatusForCount(count || 0).name;
       const { data: favs } = await sb.from('favorites').select('car_id').eq('user_id', currentUserId);
-      favoriteCarIds = new Set((favs || []).map(f => f.car_id));
+      favoritedIds = new Set((favs || []).map(f => f.car_id));
     }
 
     const { data: cars } = await sb.from('cars').select('*').eq('listing_type', 'auction').order('auction_ends_at', { ascending: true });
@@ -144,36 +379,7 @@
     renderAll();
   }
 
-  function renderAll() {
-    const lotsEl = document.getElementById('lots');
-    if (allLots.length === 0) {
-      lotsEl.innerHTML = '<div class="empty">Поки що немає активних аукціонів</div>';
-      return;
-    }
-    lotsEl.innerHTML = allLots.map(c => renderLotCard(c)).join('');
-  }
-
-  function renderFav() {
-    const lotsEl = document.getElementById('lots');
-    const favLots = allLots.filter(c => favoriteCarIds.has(c.id));
-    if (favLots.length === 0) {
-      lotsEl.innerHTML = '<div class="empty">Ви ще не додали лоти в обране</div>';
-      return;
-    }
-    lotsEl.innerHTML = favLots.map(c => renderLotCard(c)).join('');
-  }
-
-  function showTab(tab) {
-    document.getElementById('tabAll').classList.toggle('active', tab === 'all');
-    document.getElementById('tabFav').classList.toggle('active', tab === 'fav');
-    if (tab === 'all') renderAll(); else renderFav();
-  }
-
-  setInterval(() => {
-    document.querySelectorAll('.lot-timer').forEach((el, i) => {
-      if (allLots[i]) el.textContent = formatTimer(allLots[i]);
-    });
-  }, 1000);
+  setInterval(() => { if (!document.getElementById('activeContent').classList.contains('hidden')) renderAll(); }, 30000);
 
   load();
 </script>
