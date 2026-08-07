@@ -41,7 +41,7 @@
   <option value="used">Б/у</option>
   <option value="imported">Пригон</option>
 </select>
-<select id="transportType">
+<select id="transportType" onchange="onTransportTypeChange()">
   <option value="">Тип транспорту — оберіть</option>
   <option value="car">🚗 Легкові</option>
   <option value="moto">🏍️ Мото</option>
@@ -54,15 +54,8 @@
   <option value="air">🚁 Повітряний транспорт</option>
   <option value="motorhome">🚐 Автобудинки</option>
 </select>
-<select id="bodyType">
-  <option value="">Тип кузова — оберіть</option>
-  <option value="sedan">Седан</option>
-  <option value="hatchback">Хетчбек</option>
-  <option value="coupe">Купе</option>
-  <option value="suv">Позашляховик / SUV</option>
-  <option value="wagon">Універсал</option>
-  <option value="minivan">Мінівен</option>
-  <option value="pickup">Пікап</option>
+<select id="bodyType" disabled>
+  <option value="">Спочатку оберіть тип транспорту</option>
 </select>
 
 <h2>Основне</h2>
@@ -156,6 +149,11 @@
   const supabaseUrl = 'https://ipzvgqyjtqofthbpkdsd.supabase.co';
   const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwenZncXlqdHFvZnRoYnBrZHNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMTEwNjEsImV4cCI6MjEwMTU4NzA2MX0.jbbpKpHaD6S9SJMIbxcwb12ggBCv44J_-s4OQ8ESNfA';
   const sb = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+  function onTransportTypeChange() {
+    const transportType = document.getElementById('transportType').value;
+    populateBodyTypeSelect(document.getElementById('bodyType'), transportType, 'Тип кузова — оберіть');
+  }
 
   populateBrandSelect(document.getElementById('brand'));
   populateRegionSelect(document.getElementById('region'), 'Регіон — оберіть');

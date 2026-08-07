@@ -1,38 +1,3 @@
-const CAR_BRANDS = {
-  "Toyota": ["Camry","Corolla","RAV4","Land Cruiser","Prius","Yaris","Highlander","C-HR","Avalon","Sienna"],
-  "BMW": ["1 Series","3 Series","5 Series","7 Series","X1","X3","X5","X6","X7"],
-  "Mercedes-Benz": ["A-Class","C-Class","E-Class","S-Class","CLA","GLA","GLC","GLE","G-Class"],
-  "Volkswagen": ["Golf","Passat","Polo","Jetta","Tiguan","Touareg","Arteon","Caddy"],
-  "Audi": ["A3","A4","A6","A8","Q3","Q5","Q7","Q8"],
-  "Ford": ["Fiesta","Focus","Mondeo","Kuga","Explorer","Escape","Fusion","EcoSport"],
-  "Hyundai": ["Accent","Elantra","Sonata","Tucson","Santa Fe","i30","Kona","Creta"],
-  "Kia": ["Rio","Cerato","Optima","Sportage","Sorento","Picanto","Soul","Stinger"],
-  "Skoda": ["Fabia","Octavia","Superb","Rapid","Kodiaq","Karoq"],
-  "Renault": ["Logan","Sandero","Duster","Megane","Clio","Kadjar","Talisman"],
-  "Nissan": ["Micra","Almera","Qashqai","X-Trail","Juke","Leaf","Murano"],
-  "Chevrolet": ["Aveo","Lacetti","Cruze","Captiva","Niva","Tahoe"],
-  "Honda": ["Civic","Accord","CR-V","Pilot","Fit","HR-V"],
-  "Mazda": ["Mazda2","Mazda3","Mazda6","CX-3","CX-5","CX-9"],
-  "Opel": ["Corsa","Astra","Insignia","Zafira","Vectra","Mokka"],
-  "Peugeot": ["208","308","408","3008","5008"],
-  "Mitsubishi": ["Lancer","Outlander","ASX","Pajero","Eclipse Cross"],
-  "Volvo": ["S60","S90","V40","V60","XC40","XC60","XC90"],
-  "Lexus": ["ES","IS","RX","NX","GX","LX","LS"],
-  "Subaru": ["Impreza","Forester","Outback","XV","Legacy"],
-  "Suzuki": ["Swift","SX4","Vitara","Jimny"],
-  "Fiat": ["500","Punto","Tipo","Doblo"],
-  "Citroen": ["C3","C4","C5","Berlingo"],
-  "Land Rover": ["Range Rover","Range Rover Sport","Range Rover Evoque","Discovery","Defender"],
-  "Porsche": ["911","Cayenne","Macan","Panamera","Taycan"],
-  "Jeep": ["Cherokee","Grand Cherokee","Compass","Wrangler","Renegade"],
-  "Dacia": ["Duster","Logan","Sandero"],
-  "Daewoo": ["Lanos","Sens","Nexia","Matiz"],
-  "ВАЗ (Lada)": ["2107","2109","2110","Priora","Vesta","Granta","Niva"],
-  "Infiniti": ["Q50","Q60","QX50","QX60","QX80"],
-  "Jaguar": ["XE","XF","F-Pace","E-Pace"],
-  "Tesla": ["Model 3","Model S","Model X","Model Y"]
-};
-
 const UA_REGIONS = [
   "Вінницька область","Волинська область","Дніпропетровська область","Донецька область",
   "Житомирська область","Закарпатська область","Запорізька область","Івано-Франківська область",
@@ -42,13 +7,70 @@ const UA_REGIONS = [
   "Хмельницька область","Черкаська область","Чернівецька область","Чернігівська область","АР Крим"
 ];
 
-function populateBrandSelect(selectEl) {
-  selectEl.innerHTML = '<option value="">Марка — оберіть</option>' +
-    Object.keys(CAR_BRANDS).map(b => `<option value="${b}">${b}</option>`).join('');
+const BODY_TYPES_BY_TRANSPORT = {
+  car: ["Седан","Хетчбек","Купе","Позашляховик / SUV","Універсал","Мінівен","Пікап","Кабріолет","Лімузин"],
+  moto: ["Спортбайк","Круізер","Чоппер","Ендуро","Скутер","Класичний мотоцикл","Квадроцикл","Мотоцикл турер"],
+  truck: ["Бортовий","Тентований","Рефрижератор","Самоскид","Тягач","Фургон","Автовоз","Цистерна"],
+  trailer: ["Бортовий причіп","Тентований причіп","Рефрижератор","Низькорамний","Причіп-цистерна"],
+  special: ["Екскаватор","Кран","Бульдозер","Навантажувач","Грейдер","Каток","Екскаватор-навантажувач"],
+  agro: ["Трактор","Комбайн","Сівалка","Обприскувач","Причіп сільгосп","Прес-підбирач"],
+  bus: ["Міський","Міжміський","Мікроавтобус","Шкільний","Туристичний"],
+  water: ["Катер","Яхта","Гідроцикл","Катамаран","Човен","Вітрильник"],
+  air: ["Літак","Вертоліт","Планер","Дирижабль"],
+  motorhome: ["Інтегрований","Напівінтегрований","На базі фургона","Причіп-дача"]
+};
+
+let _brandsCache = null;
+
+async function fetchAllBrands() {
+  if (_brandsCache) return _brandsCache;
+
+  const types = ["car", "multipurpose passenger vehicle (mpv)", "truck"];
+  const results = await Promise.all(types.map(t =>
+    fetch(`https://vpic.nhtsa.dot.gov/api/vehicles/GetMakesForVehicleType/${encodeURIComponent(t)}?format=json`)
+      .then(r => r.json())
+      .then(d => d.Results || [])
+      .catch(() => [])
+  ));
+
+  const namesSet = new Set();
+  results.flat().forEach(item => {
+    if (item.MakeName) namesSet.add(item.MakeName.trim());
+  });
+
+  _brandsCache = Array.from(namesSet).sort((a, b) => a.localeCompare(b));
+  return _brandsCache;
 }
 
-function populateModelSelect(selectEl, brand, placeholder) {
-  const models = CAR_BRANDS[brand] || [];
+async function fetchModelsForBrand(brand) {
+  try {
+    const resp = await fetch(`https://vpic.nhtsa.dot.gov/api/vehicles/GetModelsForMake/${encodeURIComponent(brand)}?format=json`);
+    const data = await resp.json();
+    const names = (data.Results || []).map(m => m.Model_Name).filter(Boolean);
+    return Array.from(new Set(names)).sort((a, b) => a.localeCompare(b));
+  } catch (e) {
+    return [];
+  }
+}
+
+async function populateBrandSelect(selectEl) {
+  selectEl.innerHTML = '<option value="">Завантаження марок...</option>';
+  selectEl.disabled = true;
+  const brands = await fetchAllBrands();
+  selectEl.innerHTML = '<option value="">Марка — оберіть</option>' +
+    brands.map(b => `<option value="${b}">${b}</option>`).join('');
+  selectEl.disabled = false;
+}
+
+async function populateModelSelect(selectEl, brand, placeholder) {
+  if (!brand) {
+    selectEl.innerHTML = `<option value="">${placeholder}</option>`;
+    selectEl.disabled = true;
+    return;
+  }
+  selectEl.innerHTML = '<option value="">Завантаження моделей...</option>';
+  selectEl.disabled = true;
+  const models = await fetchModelsForBrand(brand);
   selectEl.innerHTML = `<option value="">${placeholder}</option>` +
     models.map(m => `<option value="${m}">${m}</option>`).join('');
   selectEl.disabled = models.length === 0;
@@ -57,4 +79,16 @@ function populateModelSelect(selectEl, brand, placeholder) {
 function populateRegionSelect(selectEl, placeholder) {
   selectEl.innerHTML = `<option value="">${placeholder}</option>` +
     UA_REGIONS.map(r => `<option value="${r}">${r}</option>`).join('');
+}
+
+function populateBodyTypeSelect(selectEl, transportType, placeholder) {
+  if (!transportType) {
+    selectEl.innerHTML = '<option value="">Спочатку оберіть тип транспорту</option>';
+    selectEl.disabled = true;
+    return;
+  }
+  const types = BODY_TYPES_BY_TRANSPORT[transportType] || [];
+  selectEl.innerHTML = `<option value="">${placeholder}</option>` +
+    types.map(t => `<option value="${t}">${t}</option>`).join('');
+  selectEl.disabled = types.length === 0;
 }
