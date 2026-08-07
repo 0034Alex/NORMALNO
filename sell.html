@@ -43,10 +43,16 @@
 </select>
 <select id="transportType">
   <option value="">Тип транспорту — оберіть</option>
-  <option value="car">Легкове</option>
-  <option value="moto">Мото</option>
-  <option value="truck">Вантажне</option>
-  <option value="water">Водне</option>
+  <option value="car">🚗 Легкові</option>
+  <option value="moto">🏍️ Мото</option>
+  <option value="truck">🚛 Вантажівки</option>
+  <option value="trailer">🚚 Причепи</option>
+  <option value="special">🏗️ Спецтехніка</option>
+  <option value="agro">🚜 Сільгосптехніка</option>
+  <option value="bus">🚌 Автобуси</option>
+  <option value="water">🚤 Водний транспорт</option>
+  <option value="air">🚁 Повітряний транспорт</option>
+  <option value="motorhome">🚐 Автобудинки</option>
 </select>
 <select id="bodyType">
   <option value="">Тип кузова — оберіть</option>
@@ -154,9 +160,9 @@
   populateBrandSelect(document.getElementById('brand'));
   populateRegionSelect(document.getElementById('region'), 'Регіон — оберіть');
 
-  function onBrandChange() {
+  async function onBrandChange() {
     const brand = document.getElementById('brand').value;
-    populateModelSelect(document.getElementById('model'), brand, 'Модель — оберіть');
+    await populateModelSelect(document.getElementById('model'), brand, 'Модель — оберіть');
   }
 
   async function submitCar() {
