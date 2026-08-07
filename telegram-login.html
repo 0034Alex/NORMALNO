@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NORMALNO</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  body { font-family: Arial, sans-serif; background: #fff; margin: 0; padding: 20px; }
+  .logo { text-align: center; font-size: 26px; font-weight: bold; color: #8E00FF; margin-top: 100px; }
+  .debug { margin-top: 20px; font-size: 12px; color: #666; word-break: break-all; white-space: pre-wrap; background: #f5f5f5; padding: 10px; border-radius: 8px; }
+  .err { color: red; font-weight: bold; }
+</style>
+</head>
+<body>
+<div class="logo">NORMALNO</div>
+<div class="debug" id="debug">Запуск...</div>
+<script>
+  const log = (text) => {
+    document.getElementById('debug').textContent += '\n' + text;
+  };
+
+  const supabaseUrl = 'https://ipzvgqyjtqofthbpkdsd.supabase.co';
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwenZncXlqdHFvZnRoYnBrZHNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMTEwNjEsImV4cCI6MjEwMTU4NzA2MX0.jbbpKpHaD6S9SJMIbxcwb12ggBCv44J_-s4OQ8ESNfA';
+  const sb = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+  async function telegramLogin() {
+    try {
+      const tg = window.Telegram && window.Telegram.WebApp;
+      log('Telegram WebApp знайдено: ' + !!tg);
+
+      if (!tg || !tg.initData) {
+        log('initData відсутній, редірект на register2.html');
+        window.location.href = 'register2.html';
+        return;
+      }
+
+      log('initData є, довжина: ' + tg.initData.length);
+      log('Відправляю на /api/telegram-auth...');
+
+      const resp = await fetch('/api/telegram-auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ initData: tg.initData })
+      });
+
+      log('Статус відповіді: ' + resp.status);
+      const text = await resp.text();
+      log('Тіло відповіді: ' + text);
+
+      let result;
+      try {
+        result = JSON.parse(text);
+      } catch (e) {
+        log('Не вдалося розпарсити JSON');
+        return;
+      }
+
+      if (result.error) {
+        log('Помилка сервера: ' + result.error);
+        return;
+      }
+
+      log('Логінюсь через Supabase...');
+      const { error } = await sb.auth.signInWithPassword({ email: result.email, password: result.password });
+      if (error) {
+        log('Помилка входу: ' + error.message);
+        return;
+      }
+
+      log('Успіх! Переходжу далі...');
+      window.location.href = result.isNewUser ? 'choose-role.html' : 'index.html';
+    } catch (err) {
+      log('Виняток: ' + err.message);
+    }
+  }
+
+  telegramLogin();
+</script>
+</body>
+</html>
