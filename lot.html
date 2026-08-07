@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NORMALNO — Лот</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="car-data.js"></script>
 <style>
   * { box-sizing: border-box; }
   body { font-family: Arial, sans-serif; background: #fff; margin: 0; padding: 20px; max-width: 480px; margin-left: auto; margin-right: auto; }
@@ -132,7 +133,8 @@
     statusArea.innerHTML = statusHtml;
 
     const bid = car.current_bid || car.start_price || 0;
-    document.getElementById('currentBid').textContent = `${Number(bid).toLocaleString('uk-UA')} ${car.currency}`;
+    const uah = convertToUAH(bid, car.currency);
+    document.getElementById('currentBid').textContent = `${Number(bid).toLocaleString('uk-UA')} ${car.currency}` + (uah ? ` (≈${uah.toLocaleString('uk-UA')} грн)` : '');
     document.getElementById('leaderName').textContent = car.current_bid_user_id ? 'учасник #' + car.current_bid_user_id.slice(0, 6) : '—';
     document.getElementById('minNext').textContent = `${Number(bid + getBidStep(bid)).toLocaleString('uk-UA')} ${car.currency}`;
     document.getElementById('sellerName').textContent = car.user_id ? 'продавець #' + car.user_id.slice(0, 6) : '—';
@@ -239,6 +241,7 @@
   }
 
   async function init() {
+    await ensureRatesLoaded();
     const { data: { session } } = await sb.auth.getSession();
     if (session) currentUserId = session.user.id;
 

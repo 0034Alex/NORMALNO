@@ -197,7 +197,8 @@ function renderCarCard(car, currentUserId, favoritedIds) {
   const photos = carPhotos(car, 4);
 
   const photoHtml = photos.length
-    ? `<div class="ncard-photo-scroll">${photos.map(p => `<img src="${p}" onerror="this.style.display='none'">`).join('')}</div>`
+    ? `<div class="ncard-photo-scroll">${photos.map(p => `<img src="${p}" onerror="this.style.display='none'">`).join('')}</div>` +
+      (photos.length > 1 ? `<div class="ncard-dots">${photos.map(() => '<span></span>').join('')}</div>` : '')
     : `<div class="ncard-noimg">🚗</div>`;
 
   return `

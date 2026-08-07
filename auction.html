@@ -215,7 +215,7 @@
           <div class="big-title">${car.brand} ${car.model}, ${car.year}</div>
           <div class="big-specs">${[car.engine_volume ? car.engine_volume + ' л' : '', FUEL_LABELS[car.fuel_type], TRANSMISSION_LABELS[car.transmission], car.mileage ? Number(car.mileage).toLocaleString('uk-UA') + ' км' : ''].filter(Boolean).join(' · ')}</div>
           <div class="big-label">Поточна ставка</div>
-          <div class="big-bid">${Number(car.current_bid || car.start_price || 0).toLocaleString('uk-UA')} ${car.currency}</div>
+          <div class="big-bid">${Number(car.current_bid || car.start_price || 0).toLocaleString('uk-UA')} ${car.currency}${(() => { const uah = convertToUAH((car.current_bid || car.start_price || 0), car.currency); return uah ? ` <span style=\"color:#999;font-weight:normal;font-size:11px;\">(≈${uah.toLocaleString('uk-UA')} грн)</span>` : ''; })()}</div>
           <div class="big-count">👤 ${car.bid_count || 0} ставок</div>
           <div class="big-start">Стартова ціна: ${Number(car.start_price || 0).toLocaleString('uk-UA')} ${car.currency}</div>
           <button class="big-btn" onclick="event.stopPropagation(); goLot(${car.id})">Зробити ставку</button>
@@ -234,7 +234,7 @@
         <div class="row-info">
           <div class="row-title">${car.brand} ${car.model}, ${car.year}</div>
           <div class="row-specs">${[car.engine_volume ? car.engine_volume + ' л' : '', FUEL_LABELS[car.fuel_type], TRANSMISSION_LABELS[car.transmission], car.mileage ? Number(car.mileage).toLocaleString('uk-UA') + ' км' : ''].filter(Boolean).join(' · ')}</div>
-          <span class="row-bid">${Number(car.current_bid || car.start_price || 0).toLocaleString('uk-UA')} ${car.currency}</span>
+          <span class="row-bid">${Number(car.current_bid || car.start_price || 0).toLocaleString('uk-UA')} ${car.currency}${(() => { const uah = convertToUAH((car.current_bid || car.start_price || 0), car.currency); return uah ? ` <span style=\"color:#999;font-weight:normal;font-size:10px;\">(≈${uah.toLocaleString('uk-UA')} грн)</span>` : ''; })()}</span>
           <span class="row-count">👤 ${car.bid_count || 0} ставок</span>
         </div>
         <div class="row-right">
@@ -264,7 +264,7 @@
           <div class="small-row">
             <span>${mode === 'endingSoon' ? 'Ставка' : (mode === 'ended' ? 'Фінальна ставка' : '')}</span>
           </div>
-          <div style="font-weight:bold; font-size:12px; color:#8E00FF;">${Number(car.current_bid || car.start_price || 0).toLocaleString('uk-UA')} ${car.currency}</div>
+          <div style="font-weight:bold; font-size:12px; color:#8E00FF;">${Number(car.current_bid || car.start_price || 0).toLocaleString('uk-UA')} ${car.currency}${(() => { const uah = convertToUAH((car.current_bid || car.start_price || 0), car.currency); return uah ? ` <span style=\"color:#999;font-weight:normal;font-size:9px;\">(≈${uah.toLocaleString('uk-UA')} грн)</span>` : ''; })()}</div>
         </div>
       </div>
     `;
@@ -370,6 +370,7 @@
       favoritedIds = new Set((favs || []).map(f => f.car_id));
     }
 
+    await ensureRatesLoaded();
     const { data: cars } = await sb.from('cars').select('*').eq('listing_type', 'auction').order('auction_ends_at', { ascending: true });
     allLots = cars || [];
     renderAll();
