@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NORMALNO — Пошук за параметрами</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="car-data.js"></script>
 <style>
   * { box-sizing: border-box; }
   body { font-family: Arial, sans-serif; background: #fff; margin: 0; padding: 20px; }
@@ -15,8 +16,11 @@
     width: 100%; padding: 13px; margin-bottom: 10px; border: 1px solid #ddd;
     border-radius: 10px; font-size: 14px; font-family: Arial, sans-serif;
   }
+  select:disabled { color: #bbb; background: #fafafa; }
   .row { display: flex; gap: 10px; }
   .row > * { flex: 1; }
+  .check-row { display: flex; align-items: center; gap: 8px; padding: 8px 2px; font-size: 14px; }
+  .check-row input { width: auto; margin: 0; }
   button.main {
     width: 100%; padding: 15px; background: #FF7A00; color: white; border: none;
     border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px;
@@ -40,6 +44,9 @@
 
 <a href="index.html" class="back">&larr; Назад на головну</a>
 <div class="logo">Пошук за параметрами</div>
+
+<h3>Ключове слово</h3>
+<input type="text" id="fKeyword" placeholder="Пошук у описі оголошень">
 
 <h3>Тип</h3>
 <select id="fCondition">
@@ -67,8 +74,9 @@
 </select>
 
 <h3>Марка і модель</h3>
-<input type="text" id="fBrand" placeholder="Марка (напр. Toyota)">
-<input type="text" id="fModel" placeholder="Модель (напр. Camry)">
+<select id="fBrand" onchange="onFilterBrandChange()"></select>
+<select id="fModel" disabled></select>
+<input type="text" id="fColor" placeholder="Колір">
 
 <h3>Рік випуску</h3>
 <div class="row">
@@ -77,7 +85,7 @@
 </div>
 
 <h3>Регіон</h3>
-<input type="text" id="fRegion" placeholder="Регіон">
+<select id="fRegion"></select>
 
 <h3>Ціна</h3>
 <div class="row">
@@ -129,6 +137,42 @@
   <input type="number" step="0.1" id="fEngineFrom" placeholder="Об'єм двиг. від">
   <input type="number" step="0.1" id="fEngineTo" placeholder="Об'єм двиг. до">
 </div>
+<div class="row">
+  <input type="number" id="fPowerFrom" placeholder="Потужність від, к.с.">
+  <input type="number" id="fPowerTo" placeholder="Потужність до, к.с.">
+</div>
+<select id="fDoors">
+  <option value="">Кількість дверей — всі</option>
+  <option value="2">2</option>
+  <option value="3">3</option>
+  <option value="4">4</option>
+  <option value="5">5</option>
+</select>
+<select id="fOwnersCount">
+  <option value="">Кількість власників — всі</option>
+  <option value="1">1</option>
+  <option value="2">2</option>
+  <option value="3">3</option>
+  <option value="4">4+</option>
+</select>
+
+<div class="check-row">
+  <input type="checkbox" id="fExchangePossible">
+  <label for="fExchangePossible">Тільки з можливістю обміну</label>
+</div>
+<div class="check-row">
+  <input type="checkbox" id="fCustomsCleared">
+  <label for="fCustomsCleared">Тільки розмитнені</label>
+</div>
+
+<h3>Сортування</h3>
+<select id="fSort">
+  <option value="date_desc">Спочатку нові оголошення</option>
+  <option value="price_asc">Ціна: спочатку дешевші</option>
+  <option value="price_desc">Ціна: спочатку дорожчі</option>
+  <option value="year_desc">Рік: спочатку новіші авто</option>
+  <option value="mileage_asc">Пробіг: спочатку менший</option>
+</select>
 
 <button class="main" onclick="search()">ПОКАЗАТИ</button>
 <div class="count" id="count"></div>
@@ -140,6 +184,14 @@
   const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwenZncXlqdHFvZnRoYnBrZHNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMTEwNjEsImV4cCI6MjEwMTU4NzA2MX0.jbbpKpHaD6S9SJMIbxcwb12ggBCv44J_-s4OQ8ESNfA';
   const sb = window.supabase.createClient(supabaseUrl, supabaseKey);
 
+  populateBrandSelect(document.getElementById('fBrand'));
+  populateRegionSelect(document.getElementById('fRegion'), 'Регіон — всі');
+
+  function onFilterBrandChange() {
+    const brand = document.getElementById('fBrand').value;
+    populateModelSelect(document.getElementById('fModel'), brand, 'Модель — всі');
+  }
+
   async function search() {
     const countEl = document.getElementById('count');
     const resultsEl = document.getElementById('results');
@@ -148,8 +200,10 @@
 
     let query = sb.from('cars').select('*');
 
-    const brand = document.getElementById('fBrand').value.trim();
-    const model = document.getElementById('fModel').value.trim();
+    const keyword = document.getElementById('fKeyword').value.trim();
+    const brand = document.getElementById('fBrand').value;
+    const model = document.getElementById('fModel').value;
+    const color = document.getElementById('fColor').value.trim();
     const yearFrom = document.getElementById('fYearFrom').value;
     const yearTo = document.getElementById('fYearTo').value;
     const priceFrom = document.getElementById('fPriceFrom').value;
@@ -159,7 +213,7 @@
     const mileageTo = document.getElementById('fMileageTo').value;
     const fuel = document.getElementById('fFuel').value;
     const transmission = document.getElementById('fTransmission').value;
-    const region = document.getElementById('fRegion').value.trim();
+    const region = document.getElementById('fRegion').value;
     const condition = document.getElementById('fCondition').value;
     const transportType = document.getElementById('fTransportType').value;
     const bodyType = document.getElementById('fBodyType').value;
@@ -167,9 +221,18 @@
     const paymentType = document.getElementById('fPaymentType').value;
     const engineFrom = document.getElementById('fEngineFrom').value;
     const engineTo = document.getElementById('fEngineTo').value;
+    const powerFrom = document.getElementById('fPowerFrom').value;
+    const powerTo = document.getElementById('fPowerTo').value;
+    const doors = document.getElementById('fDoors').value;
+    const ownersCount = document.getElementById('fOwnersCount').value;
+    const exchangePossible = document.getElementById('fExchangePossible').checked;
+    const customsCleared = document.getElementById('fCustomsCleared').checked;
+    const sort = document.getElementById('fSort').value;
 
-    if (brand) query = query.ilike('brand', `%${brand}%`);
-    if (model) query = query.ilike('model', `%${model}%`);
+    if (keyword) query = query.ilike('description', `%${keyword}%`);
+    if (brand) query = query.eq('brand', brand);
+    if (model) query = query.eq('model', model);
+    if (color) query = query.ilike('color', `%${color}%`);
     if (yearFrom) query = query.gte('year', parseInt(yearFrom));
     if (yearTo) query = query.lte('year', parseInt(yearTo));
     if (priceFrom) query = query.gte('price', parseFloat(priceFrom));
@@ -179,7 +242,7 @@
     if (mileageTo) query = query.lte('mileage', parseInt(mileageTo));
     if (fuel) query = query.eq('fuel_type', fuel);
     if (transmission) query = query.eq('transmission', transmission);
-    if (region) query = query.ilike('region', `%${region}%`);
+    if (region) query = query.eq('region', region);
     if (condition) query = query.eq('condition', condition);
     if (transportType) query = query.eq('transport_type', transportType);
     if (bodyType) query = query.eq('body_type', bodyType);
@@ -187,8 +250,18 @@
     if (paymentType) query = query.eq('payment_type', paymentType);
     if (engineFrom) query = query.gte('engine_volume', parseFloat(engineFrom));
     if (engineTo) query = query.lte('engine_volume', parseFloat(engineTo));
+    if (powerFrom) query = query.gte('power_hp', parseInt(powerFrom));
+    if (powerTo) query = query.lte('power_hp', parseInt(powerTo));
+    if (doors) query = query.eq('doors', parseInt(doors));
+    if (ownersCount) query = query.eq('owners_count', parseInt(ownersCount));
+    if (exchangePossible) query = query.eq('exchange_possible', true);
+    if (customsCleared) query = query.eq('customs_cleared', true);
 
-    query = query.order('created_at', { ascending: false });
+    if (sort === 'price_asc') query = query.order('price', { ascending: true });
+    else if (sort === 'price_desc') query = query.order('price', { ascending: false });
+    else if (sort === 'year_desc') query = query.order('year', { ascending: false });
+    else if (sort === 'mileage_asc') query = query.order('mileage', { ascending: true });
+    else query = query.order('created_at', { ascending: false });
 
     const { data: cars, error } = await query;
 
