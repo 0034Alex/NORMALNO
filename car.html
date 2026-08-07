@@ -48,6 +48,28 @@
 
   .sold-btn { width: 100%; padding: 14px; background: #fff; border: 1px solid #8E00FF; color: #8E00FF; border-radius: 10px; font-weight: bold; font-size: 14px; cursor: pointer; margin-bottom: 16px; }
   .empty { text-align: center; color: #999; margin-top: 40px; }
+  .hidden { display: none; }
+
+  .leasing-btn { width: 100%; padding: 14px; background: #FF7A00; color: #fff; border: none; border-radius: 10px; font-weight: bold; font-size: 15px; cursor: pointer; margin-bottom: 16px; }
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(3px);
+    display: flex; align-items: flex-end; justify-content: center; z-index: 100;
+  }
+  .modal-sheet {
+    background: #fff; width: 100%; max-width: 520px; border-radius: 20px 20px 0 0;
+    padding: 20px; max-height: 70vh; overflow-y: auto;
+  }
+  .modal-title { font-size: 17px; font-weight: bold; margin-bottom: 4px; }
+  .modal-sub { font-size: 12px; color: #999; margin-bottom: 18px; }
+  .modal-close { float: right; font-size: 20px; color: #999; cursor: pointer; }
+  .slider-row { margin-bottom: 20px; }
+  .slider-label { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px; }
+  .slider-label b { color: #8E00FF; }
+  input[type="range"] { width: 100%; accent-color: #8E00FF; }
+  .calc-results { background: #f5e6ff; border-radius: 12px; padding: 14px; }
+  .calc-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; }
+  .calc-row.main { font-size: 18px; font-weight: bold; color: #8E00FF; border-top: 1px solid #e5cfff; margin-top: 6px; padding-top: 10px; }
+  .calc-note { font-size: 11px; color: #999; margin-top: 10px; }
 </style>
 </head>
 <body>
@@ -71,7 +93,10 @@
   const PAYMENT_LABELS = { cash: 'Готівка', credit: 'Кредит', leasing: 'Лізинг', installment: 'Розстрочка', transfer: 'Переказ на рахунок', tradein: 'Трейд-ін' };
   const DRIVE_LABELS = { front: 'Передній', rear: 'Задній', all: 'Повний' };
 
+  let currentCarPriceUAH = 0;
+
   async function load() {
+    await ensureRatesLoaded();
     const { data: { session } } = await sb.auth.getSession();
     if (session) {
       currentUserId = session.user.id;
@@ -141,14 +166,62 @@
 
       ${car.description ? `<div class="desc-title">Опис від продавця</div><div class="desc-text">${car.description}</div>` : ''}
 
+      <button class="leasing-btn" onclick="openLeasingModal()">📊 Розрахувати в лізинг</button>
+
       <div class="seller-box">
         <div class="seller-label">Продавець</div>
         <div class="seller-phone">Контакти доступні після переходу в чат (буде додано)</div>
       </div>
 
+      <div class="modal-overlay hidden" id="leasingModal" onclick="if(event.target===this) closeLeasingModal()">
+        <div class="modal-sheet">
+          <span class="modal-close" onclick="closeLeasingModal()">✕</span>
+          <div class="modal-title">Розрахунок лізингу</div>
+          <div class="modal-sub" id="leasingCarLabel"></div>
+
+          <div class="slider-row">
+            <div class="slider-label"><span>Термін лізингу</span><b id="monthsValue">24 міс.</b></div>
+            <input type="range" id="monthsSlider" min="12" max="36" step="1" value="24" oninput="updateLeasingCalc()">
+          </div>
+
+          <div class="calc-results">
+            <div class="calc-row"><span>Вартість авто</span><span id="calcPrice">—</span></div>
+            <div class="calc-row"><span>Аванс (25%)</span><span id="calcDown">—</span></div>
+            <div class="calc-row"><span>Річна ставка</span><span>36%</span></div>
+            <div class="calc-row main"><span>Щомісячний платіж</span><span id="calcMonthly">—</span></div>
+            <div class="calc-row"><span>Разом за весь термін</span><span id="calcTotal">—</span></div>
+          </div>
+          <div class="calc-note">Попередній розрахунок. Точні умови уточнюйте у менеджера. Розрахунок у гривнях за курсом НБУ.</div>
+        </div>
+      </div>
+
       ${isOwn && !car.sold ? `<button class="sold-btn" onclick="markSold()">Позначити як продано</button>` : ''}
     `;
+
+    currentCarPriceUAH = car.currency === 'UAH' ? car.price : (convertToUAH(car.price, car.currency) || car.price);
+    document.getElementById('leasingCarLabel').textContent = `${car.brand} ${car.model}, ${car.year}`;
   }
+
+  window.openLeasingModal = function() {
+    document.getElementById('leasingModal').classList.remove('hidden');
+    updateLeasingCalc();
+  };
+
+  window.closeLeasingModal = function() {
+    document.getElementById('leasingModal').classList.add('hidden');
+  };
+
+  window.updateLeasingCalc = function() {
+    const months = parseInt(document.getElementById('monthsSlider').value);
+    document.getElementById('monthsValue').textContent = months + ' міс.';
+
+    const result = calcLeasing(currentCarPriceUAH, months);
+
+    document.getElementById('calcPrice').textContent = currentCarPriceUAH.toLocaleString('uk-UA') + ' грн';
+    document.getElementById('calcDown').textContent = result.downPayment.toLocaleString('uk-UA') + ' грн';
+    document.getElementById('calcMonthly').textContent = result.monthlyPayment.toLocaleString('uk-UA') + ' грн';
+    document.getElementById('calcTotal').textContent = result.totalPayment.toLocaleString('uk-UA') + ' грн';
+  };
 
   window.toggleFav = async function() {
     if (!currentUserId) { window.location.href = 'register2.html'; return; }

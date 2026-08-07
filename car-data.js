@@ -210,7 +210,7 @@ function renderCarCard(car, currentUserId, favoritedIds) {
       <div class="ncard-body">
         <div class="ncard-title">${car.brand} ${car.model}, ${car.year}</div>
         <div class="ncard-subtitle">${[fuel, car.engine_volume ? car.engine_volume + ' л' : '', transmission].filter(Boolean).join(' · ')}</div>
-        <div class="ncard-price">${Number(car.price).toLocaleString('uk-UA')} ${car.currency || ''}</div>
+        <div class="ncard-price">${Number(car.price).toLocaleString('uk-UA')} ${car.currency || ''}${(() => { const uah = convertToUAH(car.price, car.currency); return uah ? ` <span class="ncard-price-uah">(≈ ${uah.toLocaleString('uk-UA')} грн)</span>` : ''; })()}</div>
         <div class="ncard-specs">
           <span>🛣️ ${car.mileage ? Number(car.mileage).toLocaleString('uk-UA') + ' км' : '—'}</span>
           <span>⚙️ ${transmission || '—'}</span>
@@ -222,4 +222,55 @@ function renderCarCard(car, currentUserId, favoritedIds) {
       </div>
     </div>
   `;
+}
+
+/* ---------- Курс валют (НБУ) ---------- */
+
+let _exchangeRates = null;
+let _exchangeRatesPromise = null;
+
+async function ensureRatesLoaded() {
+  if (_exchangeRates) return _exchangeRates;
+  if (_exchangeRatesPromise) return _exchangeRatesPromise;
+
+  _exchangeRatesPromise = fetch('https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?json')
+    .then(r => r.json())
+    .then(list => {
+      const map = { UAH: 1 };
+      (list || []).forEach(item => {
+        if (item.cc === 'USD' || item.cc === 'EUR') map[item.cc] = item.rate;
+      });
+      _exchangeRates = map;
+      return map;
+    })
+    .catch(() => {
+      _exchangeRates = { UAH: 1 };
+      return _exchangeRates;
+    });
+
+  return _exchangeRatesPromise;
+}
+
+function convertToUAH(amount, currency) {
+  if (!_exchangeRates || !amount) return null;
+  if (currency === 'UAH') return null;
+  const rate = _exchangeRates[currency];
+  if (!rate) return null;
+  return Math.round(amount * rate);
+}
+
+/* ---------- Калькулятор лізингу ---------- */
+
+const LEASING_DOWN_PAYMENT_PCT = 0.25;
+const LEASING_ANNUAL_RATE_PCT = 0.36;
+
+function calcLeasing(priceUAH, months) {
+  const downPayment = Math.round(priceUAH * LEASING_DOWN_PAYMENT_PCT);
+  const financed = priceUAH - downPayment;
+  const monthlyRate = LEASING_ANNUAL_RATE_PCT / 12;
+  const factor = Math.pow(1 + monthlyRate, months);
+  const monthlyPayment = Math.round(financed * monthlyRate * factor / (factor - 1));
+  const totalPayment = downPayment + monthlyPayment * months;
+
+  return { downPayment, monthlyPayment, totalPayment, financed };
 }
