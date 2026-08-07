@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NORMALNO — Оголошення</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="car-data.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; background: #fff; margin: 0; padding: 20px; max-width: 520px; margin-left: auto; margin-right: auto; padding-bottom: 40px; }
+  .back { color: #FF7A00; text-decoration: none; font-size: 14px; display: inline-block; margin-bottom: 10px; }
+
+  .gallery { position: relative; width: 100%; aspect-ratio: 4/3; border-radius: 14px; overflow: hidden; margin-bottom: 6px; background: #f2f2f2; }
+  .gallery-scroll { display: flex; overflow-x: auto; width: 100%; height: 100%; scroll-snap-type: x mandatory; }
+  .gallery-scroll img { flex: 0 0 100%; width: 100%; height: 100%; object-fit: cover; scroll-snap-align: start; }
+  .gallery-noimg { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 50px; color: #ccc; }
+  .gallery-watermark {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-25deg);
+    font-size: 26px; font-weight: bold; color: rgba(255,255,255,0.5);
+    text-shadow: 0 0 6px rgba(0,0,0,0.35); letter-spacing: 2px; pointer-events: none;
+  }
+  .gallery-heart {
+    position: absolute; top: 12px; right: 12px; width: 38px; height: 38px; border-radius: 50%;
+    background: rgba(255,255,255,0.9); display: flex; align-items: center; justify-content: center;
+    font-size: 20px; color: #8E00FF; cursor: pointer;
+  }
+  .gallery-count { text-align: center; font-size: 12px; color: #999; margin-bottom: 16px; }
+
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .subline { color: #999; font-size: 13px; margin-bottom: 10px; }
+  .price { color: #8E00FF; font-weight: bold; font-size: 24px; margin-bottom: 14px; }
+
+  .badges { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+  .badge { background: #f5e6ff; color: #8E00FF; font-size: 12px; font-weight: bold; padding: 5px 12px; border-radius: 20px; }
+
+  .specs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+  .spec-item { border: 1px solid #eee; border-radius: 10px; padding: 10px 12px; }
+  .spec-label { font-size: 11px; color: #999; margin-bottom: 2px; }
+  .spec-value { font-size: 14px; font-weight: bold; }
+
+  .desc-title { font-size: 15px; font-weight: bold; margin-bottom: 8px; }
+  .desc-text { font-size: 14px; color: #444; line-height: 1.5; white-space: pre-wrap; margin-bottom: 20px; }
+
+  .seller-box { border: 1px solid #eee; border-radius: 12px; padding: 14px; margin-bottom: 16px; }
+  .seller-label { font-size: 12px; color: #999; margin-bottom: 4px; }
+  .seller-phone { color: #8E00FF; font-weight: bold; font-size: 16px; }
+
+  .sold-btn { width: 100%; padding: 14px; background: #fff; border: 1px solid #8E00FF; color: #8E00FF; border-radius: 10px; font-weight: bold; font-size: 14px; cursor: pointer; margin-bottom: 16px; }
+  .empty { text-align: center; color: #999; margin-top: 40px; }
+</style>
+</head>
+<body>
+
+<a href="index.html" class="back">&larr; Назад</a>
+
+<div id="content">Завантаження...</div>
+
+<script>
+  const supabaseUrl = 'https://ipzvgqyjtqofthbpkdsd.supabase.co';
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwenZncXlqdHFvZnRoYnBrZHNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMTEwNjEsImV4cCI6MjEwMTU4NzA2MX0.jbbpKpHaD6S9SJMIbxcwb12ggBCv44J_-s4OQ8ESNfA';
+  const sb = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+  const params = new URLSearchParams(window.location.search);
+  const carId = params.get('id');
+  let currentUserId = null;
+  let isFav = false;
+
+  const CONDITION_LABELS = { new: 'Нове', used: 'Б/у', imported: 'Пригон' };
+  const TRANSMISSION_LABELS2 = { manual: 'Механіка', automatic: 'Автомат', variator: 'Варіатор' };
+  const FUEL_LABELS2 = { petrol: 'Бензин', diesel: 'Дизель', hybrid: 'Гібрид', gas: 'Газ', electric: 'Електро' };
+  const PAYMENT_LABELS = { cash: 'Готівка', credit: 'Кредит', leasing: 'Лізинг', installment: 'Розстрочка', transfer: 'Переказ на рахунок', tradein: 'Трейд-ін' };
+  const DRIVE_LABELS = { front: 'Передній', rear: 'Задній', all: 'Повний' };
+
+  async function load() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) {
+      currentUserId = session.user.id;
+      const { data: fav } = await sb.from('favorites').select('id').eq('user_id', currentUserId).eq('car_id', carId).maybeSingle();
+      isFav = !!fav;
+    }
+
+    const { data: car, error } = await sb.from('cars').select('*').eq('id', carId).single();
+    if (error || !car) {
+      document.getElementById('content').innerHTML = '<div class="empty">Оголошення не знайдено</div>';
+      return;
+    }
+    render(car);
+  }
+
+  function render(car) {
+    const photos = carPhotos(car);
+    const galleryHtml = photos.length
+      ? `<div class="gallery-scroll">${photos.map(p => `<img src="${p}" onerror="this.style.display='none'">`).join('')}</div>`
+      : `<div class="gallery-noimg">🚗</div>`;
+
+    const badges = [];
+    if (CONDITION_LABELS[car.condition]) badges.push(CONDITION_LABELS[car.condition]);
+    if (car.exchange_possible) badges.push('Можливий обмін');
+    if (car.customs_cleared) badges.push('Розмитнено');
+    if (car.is_urgent) badges.push('🏷️ Терміново');
+    if (car.is_hot) badges.push('🔥 Гаряча пропозиція');
+    if (car.sold) badges.push('Продано');
+
+    const specs = [
+      ['Пробіг', car.mileage ? Number(car.mileage).toLocaleString('uk-UA') + ' км' : '—'],
+      ['Коробка', TRANSMISSION_LABELS2[car.transmission] || '—'],
+      ['Паливо', FUEL_LABELS2[car.fuel_type] || '—'],
+      ['Об\\'єм двигуна', car.engine_volume ? car.engine_volume + ' л' : '—'],
+      ['Потужність', car.power_hp ? car.power_hp + ' к.с.' : '—'],
+      ['Привід', DRIVE_LABELS[car.drive_type] || '—'],
+      ['Кузов', car.body_type || '—'],
+      ['Колір', car.color || '—'],
+      ['Дверей', car.doors || '—'],
+      ['Власників', car.owners_count || '—'],
+      ['Регіон', car.region || '—'],
+      ['Оплата', PAYMENT_LABELS[car.payment_type] || '—']
+    ];
+
+    const isOwn = currentUserId && car.user_id === currentUserId;
+
+    document.getElementById('content').innerHTML = `
+      <div class="gallery">
+        ${galleryHtml}
+        <div class="gallery-watermark">NORMALNO</div>
+        <div class="gallery-heart" onclick="toggleFav()">${isFav ? '❤️' : '♡'}</div>
+      </div>
+      ${photos.length > 1 ? `<div class="gallery-count">📷 ${photos.length} фото — гортайте вбік</div>` : ''}
+
+      <h1>${car.brand} ${car.model}, ${car.year}</h1>
+      <div class="subline">Опубліковано ${timeAgo(car.created_at)}</div>
+      <div class="price">${Number(car.price || 0).toLocaleString('uk-UA')} ${car.currency || ''}</div>
+
+      ${badges.length ? `<div class="badges">${badges.map(b => `<span class="badge">${b}</span>`).join('')}</div>` : ''}
+
+      <div class="specs-grid">
+        ${specs.map(([label, value]) => `
+          <div class="spec-item">
+            <div class="spec-label">${label}</div>
+            <div class="spec-value">${value}</div>
+          </div>
+        `).join('')}
+      </div>
+
+      ${car.description ? `<div class="desc-title">Опис від продавця</div><div class="desc-text">${car.description}</div>` : ''}
+
+      <div class="seller-box">
+        <div class="seller-label">Продавець</div>
+        <div class="seller-phone">Контакти доступні після переходу в чат (буде додано)</div>
+      </div>
+
+      ${isOwn && !car.sold ? `<button class="sold-btn" onclick="markSold()">Позначити як продано</button>` : ''}
+    `;
+  }
+
+  window.toggleFav = async function() {
+    if (!currentUserId) { window.location.href = 'register2.html'; return; }
+    if (isFav) {
+      await sb.from('favorites').delete().eq('user_id', currentUserId).eq('car_id', carId);
+    } else {
+      await sb.from('favorites').insert({ user_id: currentUserId, car_id: carId });
+    }
+    isFav = !isFav;
+    load();
+  };
+
+  window.markSold = async function() {
+    await sb.from('cars').update({ sold: true }).eq('id', carId);
+    load();
+  };
+
+  load();
+</script>
+
+</body>
+</html>

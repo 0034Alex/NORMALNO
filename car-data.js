@@ -176,6 +176,11 @@ const TRANSMISSION_LABELS = { manual: 'Механіка', automatic: 'Автом
 const FUEL_LABELS = { petrol: 'Бензин', diesel: 'Дизель', hybrid: 'Гібрид', gas: 'Газ', electric: 'Електро' };
 const CONDITION_LABELS = { new: 'Нове', used: 'Б/у', imported: 'Пригон' };
 
+function carPhotos(car, limit) {
+  const arr = (car.photos && car.photos.length) ? car.photos : (car.photo_url ? [car.photo_url] : []);
+  return limit ? arr.slice(0, limit) : arr;
+}
+
 function renderCarCard(car, currentUserId, favoritedIds) {
   const transmission = TRANSMISSION_LABELS[car.transmission] || '';
   const fuel = FUEL_LABELS[car.fuel_type] || '';
@@ -189,11 +194,16 @@ function renderCarCard(car, currentUserId, favoritedIds) {
 
   const isFav = favoritedIds && favoritedIds.has(car.id);
   const heartChar = isFav ? '❤️' : '♡';
+  const photos = carPhotos(car, 4);
+
+  const photoHtml = photos.length
+    ? `<div class="ncard-photo-scroll">${photos.map(p => `<img src="${p}" onerror="this.style.display='none'">`).join('')}</div>`
+    : `<div class="ncard-noimg">🚗</div>`;
 
   return `
-    <div class="ncard ${car.sold ? 'ncard-sold' : ''}">
+    <div class="ncard ${car.sold ? 'ncard-sold' : ''}" onclick="window.location.href='car.html?id=${car.id}'">
       <div class="ncard-photo">
-        ${car.photo_url ? `<img src="${car.photo_url}" onerror="this.style.display='none'">` : `<div class="ncard-noimg">🚗</div>`}
+        ${photoHtml}
         <div class="ncard-watermark">NORMALNO</div>
         <div class="ncard-heart" onclick="event.stopPropagation(); if(window.toggleFavorite) window.toggleFavorite(${car.id})">${heartChar}</div>
       </div>

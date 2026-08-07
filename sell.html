@@ -183,7 +183,9 @@
 </div>
 
 <h2>Фото та опис</h2>
-<input type="text" id="photoUrl" placeholder="Посилання на фото (додамо завантаження пізніше)">
+<input type="file" id="photoFiles" accept="image/*" multiple>
+<div class="hint">Можна обрати до 10 фото одразу</div>
+<div id="photoPreview" style="display:flex; gap:8px; overflow-x:auto; margin-bottom:10px;"></div>
 <textarea id="description" placeholder="Опис авто"></textarea>
 
 <button class="main" onclick="submitCar()">Опублікувати оголошення</button>
@@ -248,6 +250,43 @@
     }
   }
 
+  document.getElementById('photoFiles').addEventListener('change', function() {
+    const preview = document.getElementById('photoPreview');
+    preview.innerHTML = '';
+    const files = Array.from(this.files).slice(0, 10);
+    if (this.files.length > 10) {
+      alert('Можна завантажити максимум 10 фото. Взято перші 10.');
+    }
+    files.forEach(file => {
+      const url = URL.createObjectURL(file);
+      const img = document.createElement('img');
+      img.src = url;
+      img.style.cssText = 'width:70px;height:70px;object-fit:cover;border-radius:8px;flex-shrink:0;';
+      preview.appendChild(img);
+    });
+  });
+
+  async function uploadPhotos(userId) {
+    const filesInput = document.getElementById('photoFiles');
+    const files = Array.from(filesInput.files).slice(0, 10);
+    const urls = [];
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const ext = file.name.split('.').pop();
+      const path = `${userId}/${Date.now()}-${i}.${ext}`;
+
+      const { error } = await sb.storage.from('car-photos').upload(path, file);
+      if (error) {
+        console.error('Upload error:', error.message);
+        continue;
+      }
+      const { data: publicUrlData } = sb.storage.from('car-photos').getPublicUrl(path);
+      urls.push(publicUrlData.publicUrl);
+    }
+    return urls;
+  }
+
   async function submitCar() {
     const { data: { session } } = await sb.auth.getSession();
     const msg = document.getElementById('msg');
@@ -285,7 +324,8 @@
       transmission: document.getElementById('transmission').value,
       region: document.getElementById('region').value,
       description: document.getElementById('description').value,
-      photo_url: document.getElementById('photoUrl').value,
+      photo_url: '',
+      photos: [],
       body_type: document.getElementById('bodyType').value,
       transport_type: document.getElementById('transportType').value,
       drive_type: document.getElementById('driveType').value,
@@ -325,6 +365,12 @@
       insertData.auction_starts_at = startsAt.toISOString();
       insertData.auction_ends_at = endsAt.toISOString();
     }
+
+    msg.textContent = "Завантажуємо фото...";
+    msg.style.color = '#8E00FF';
+    const photoUrls = await uploadPhotos(session.user.id);
+    insertData.photos = photoUrls;
+    insertData.photo_url = photoUrls[0] || '';
 
     const { error } = await sb.from('cars').insert(insertData);
 
