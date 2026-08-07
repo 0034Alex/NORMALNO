@@ -64,6 +64,39 @@
   .promo-btn { background: #8E00FF; color: white; border: none; border-radius: 10px; padding: 10px 16px; font-size: 13px; font-weight: bold; cursor: pointer; white-space: nowrap; }
 
   .empty-feed { text-align: center; color: #999; margin-top: 20px; }
+  .section-reset { color: #FF7A00; font-size: 12px; font-weight: bold; margin-bottom: 8px; cursor: pointer; }
+  .hidden { display: none; }
+
+  .full-feed { padding: 0 16px; text-align: left; margin-bottom: 20px; }
+  .ncard { border-radius: 14px; overflow: hidden; border: 1px solid #eee; margin-bottom: 16px; background: #fff; }
+  .ncard-sold { opacity: 0.6; }
+  .ncard-photo { position: relative; width: 100%; aspect-ratio: 16/10; background: #f2f2f2; overflow: hidden; }
+  .ncard-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .ncard-noimg { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 40px; color: #ccc; }
+  .ncard-watermark {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-25deg);
+    font-size: 20px; font-weight: bold; color: rgba(255,255,255,0.55);
+    text-shadow: 0 0 6px rgba(0,0,0,0.35); letter-spacing: 2px; pointer-events: none;
+  }
+  .ncard-heart {
+    position: absolute; top: 10px; right: 10px; width: 34px; height: 34px; border-radius: 50%;
+    background: rgba(255,255,255,0.9); display: flex; align-items: center; justify-content: center;
+    font-size: 18px; color: #8E00FF;
+  }
+  .ncard-body { padding: 12px 14px 14px; }
+  .ncard-title { font-weight: bold; font-size: 16px; margin-bottom: 2px; }
+  .ncard-subtitle { color: #999; font-size: 12px; margin-bottom: 6px; }
+  .ncard-price { color: #8E00FF; font-weight: bold; font-size: 18px; margin-bottom: 8px; }
+  .ncard-specs { display: flex; flex-wrap: wrap; gap: 10px; font-size: 12px; color: #555; margin-bottom: 8px; }
+  .ncard-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+  .ncard-badge { background: #f5e6ff; color: #8E00FF; font-size: 11px; font-weight: bold; padding: 4px 10px; border-radius: 20px; }
+  .ncard-time { color: #bbb; font-size: 11px; }
+
+  @media (min-width: 700px) {
+    .full-feed { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }
+    .ncard { margin-bottom: 0; }
+    .ncard-photo { aspect-ratio: 4/3; }
+  }
 
   .bottom-nav {
     position: fixed; bottom: 0; left: 0; right: 0;
@@ -97,7 +130,7 @@
     <div class="quick-label">Аукціони</div>
     <div class="quick-sub">Ставки на авто</div>
   </div>
-  <div class="quick-btn" onclick="showUrgent()">
+  <div class="quick-btn" onclick="window.location.href='urgent.html'">
     <div class="quick-icon orange">🏷️</div>
     <div class="quick-label">Термінові</div>
     <div class="quick-sub">Гарячі пропозиції</div>
@@ -117,7 +150,6 @@
 <div class="section">
   <div class="section-head">
     <div class="section-title">Популярні запити</div>
-    <div class="section-link" onclick="showAll()">Всі</div>
   </div>
   <div class="chips">
     <div class="chip" onclick="applyChip('suv')">🚙 Кросовери</div>
@@ -130,8 +162,8 @@
 
 <div class="section">
   <div class="section-head">
-    <div class="section-title" id="feedTitle">Гарячі пропозиції 🔥</div>
-    <div class="section-link" onclick="showAll()">Всі</div>
+    <div class="section-title">Гарячі пропозиції 🔥</div>
+    <div class="section-link" onclick="window.location.href='hot-offers.html'">Всі</div>
   </div>
   <div class="hcards" id="feed">Завантаження...</div>
 </div>
@@ -140,6 +172,14 @@
   <div class="promo-text"><b>Продай авто швидко та вигідно!</b>Розмістіть оголошення і отримайте покупців вже сьогодні</div>
   <button class="promo-btn" onclick="window.location.href='sell.html'">+ Додати авто</button>
 </div>
+
+<div class="section">
+  <div class="section-head">
+    <div class="section-title" id="fullFeedTitle">Всі оголошення</div>
+  </div>
+  <div class="section-reset hidden" id="resetFilterBtn" onclick="showAll()">← Показати всі авто</div>
+</div>
+<div class="full-feed" id="fullFeed">Завантаження...</div>
 
 <div class="bottom-nav">
   <div class="nav-item active"><span class="icon">🏠</span>Головна</div>
@@ -178,6 +218,17 @@
     const { data: cars } = await sb.from('cars').select('*').neq('listing_type', 'auction').order('created_at', { ascending: false });
     allCars = cars || [];
     renderHCards(allCars.slice(0, 12));
+    renderFullFeed(allCars);
+  }
+  // hcards (Гарячі пропозиції) завжди показують топ-12 останніх, не залежать від фільтрів чипсів/пошуку
+
+  function renderFullFeed(cars) {
+    const el = document.getElementById('fullFeed');
+    if (!cars || cars.length === 0) {
+      el.innerHTML = '<div class="empty-feed">Поки що немає оголошень</div>';
+      return;
+    }
+    el.innerHTML = cars.map(car => renderCarCard(car, currentUserId, favoritedIds)).join('');
   }
 
   function renderHCards(cars) {
@@ -219,19 +270,17 @@
 
   function filterByBrand() {
     const query = document.getElementById('brandSearch').value.trim();
-    document.getElementById('feedTitle').textContent = query ? `Результати: ${query}` : 'Гарячі пропозиції 🔥';
-    if (!query) { renderHCards(allCars.slice(0, 12)); return; }
-    renderHCards(allCars.filter(car => matchesQuery(car.brand, query)));
-  }
-
-  function showUrgent() {
-    document.getElementById('feedTitle').textContent = 'Термінові 🏷️';
-    renderHCards(allCars.filter(c => c.is_urgent));
+    document.getElementById('fullFeedTitle').textContent = query ? `Результати: ${query}` : 'Всі оголошення';
+    document.getElementById('resetFilterBtn').classList.toggle('hidden', !query);
+    if (!query) { renderFullFeed(allCars); return; }
+    renderFullFeed(allCars.filter(car => matchesQuery(car.brand, query)));
   }
 
   function showAll() {
-    document.getElementById('feedTitle').textContent = 'Гарячі пропозиції 🔥';
-    renderHCards(allCars.slice(0, 12));
+    document.getElementById('fullFeedTitle').textContent = 'Всі оголошення';
+    document.getElementById('resetFilterBtn').classList.add('hidden');
+    document.getElementById('brandSearch').value = '';
+    renderFullFeed(allCars);
   }
 
   function applyChip(type) {
@@ -242,8 +291,9 @@
     else if (type === 'automatic') { filtered = allCars.filter(c => c.transmission === 'automatic'); title = '⚙️ Автомат'; }
     else if (type === 'diesel') { filtered = allCars.filter(c => c.fuel_type === 'diesel'); title = '⛽ Дизель'; }
     else if (type === 'electric') { filtered = allCars.filter(c => c.fuel_type === 'electric'); title = '🔋 Електро'; }
-    document.getElementById('feedTitle').textContent = title;
-    renderHCards(filtered);
+    document.getElementById('fullFeedTitle').textContent = title;
+    document.getElementById('resetFilterBtn').classList.remove('hidden');
+    renderFullFeed(filtered);
   }
 
   (async function start() {
