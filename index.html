@@ -248,7 +248,7 @@
     feed.innerHTML = cars.map(car => {
       const isFav = favoritedIds.has(car.id);
       return `
-        <div class="hcard" onclick="window.location.href='search.html'">
+        <div class="hcard" onclick="window.location.href='car.html?id=' + ${car.id}">
           <div class="hcard-photo">
             ${car.photo_url ? `<img src="${car.photo_url}" onerror="this.style.display='none'">` : `<div class="hcard-noimg">🚗</div>`}
             <div class="hcard-heart" onclick="event.stopPropagation(); toggleFavorite(${car.id})">${isFav ? '❤️' : '♡'}</div>
@@ -282,6 +282,7 @@
     document.getElementById('resetFilterBtn').classList.toggle('hidden', !query);
     if (!query) { renderFullFeed(allCars); return; }
     renderFullFeed(allCars.filter(car => matchesQuery(car.brand, query)));
+    document.getElementById('fullFeedTitle').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   function showAll() {
@@ -302,6 +303,7 @@
     document.getElementById('fullFeedTitle').textContent = title;
     document.getElementById('resetFilterBtn').classList.remove('hidden');
     renderFullFeed(filtered);
+    document.getElementById('fullFeedTitle').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   (async function start() {

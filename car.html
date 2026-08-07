@@ -66,7 +66,6 @@
   let currentUserId = null;
   let isFav = false;
 
-  const CONDITION_LABELS = { new: 'Нове', used: 'Б/у', imported: 'Пригон' };
   const TRANSMISSION_LABELS2 = { manual: 'Механіка', automatic: 'Автомат', variator: 'Варіатор' };
   const FUEL_LABELS2 = { petrol: 'Бензин', diesel: 'Дизель', hybrid: 'Гібрид', gas: 'Газ', electric: 'Електро' };
   const PAYMENT_LABELS = { cash: 'Готівка', credit: 'Кредит', leasing: 'Лізинг', installment: 'Розстрочка', transfer: 'Переказ на рахунок', tradein: 'Трейд-ін' };
@@ -112,7 +111,6 @@
       ['Кузов', car.body_type || '—'],
       ['Колір', car.color || '—'],
       ['Дверей', car.doors || '—'],
-      ['Власників', car.owners_count || '—'],
       ['Регіон', car.region || '—'],
       ['Оплата', PAYMENT_LABELS[car.payment_type] || '—']
     ];

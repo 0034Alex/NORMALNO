@@ -156,13 +156,7 @@
     <option value="4">4</option>
     <option value="5">5</option>
   </select>
-  <select id="ownersCount">
-    <option value="">Кількість власників</option>
-    <option value="1">1</option>
-    <option value="2">2</option>
-    <option value="3">3</option>
-    <option value="4">4+</option>
-  </select>
+
 </div>
 
 <div class="check-row">
@@ -335,7 +329,6 @@
       color: document.getElementById('color').value,
       power_hp: parseInt(document.getElementById('powerHp').value) || null,
       doors: parseInt(document.getElementById('doors').value) || null,
-      owners_count: parseInt(document.getElementById('ownersCount').value) || null,
       exchange_possible: document.getElementById('exchangePossible').checked,
       customs_cleared: document.getElementById('customsCleared').checked,
       is_urgent: document.getElementById('isUrgent').checked,

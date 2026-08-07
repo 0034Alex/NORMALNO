@@ -140,16 +140,6 @@
   <label><input type="checkbox" class="fCurrencyCb" value="EUR"> € EUR</label>
   <label><input type="checkbox" class="fCurrencyCb" value="UAH"> грн UAH</label>
 </div>
-<select id="fPaymentType">
-  <option value="">Тип оплати — всі</option>
-  <option value="cash">Готівка</option>
-  <option value="credit">Кредит</option>
-  <option value="leasing">Лізинг</option>
-  <option value="installment">Розстрочка</option>
-  <option value="transfer">Переказ на рахунок</option>
-  <option value="tradein">Трейд-ін</option>
-</select>
-
 <h3>Характеристики</h3>
 <select id="fFuel">
   <option value="">Тип палива — всі</option>
@@ -190,14 +180,6 @@
   <option value="4">4</option>
   <option value="5">5</option>
 </select>
-<select id="fOwnersCount">
-  <option value="">Кількість власників — всі</option>
-  <option value="1">1</option>
-  <option value="2">2</option>
-  <option value="3">3</option>
-  <option value="4">4+</option>
-</select>
-
 <div class="check-row">
   <input type="checkbox" id="fExchangePossible">
   <label for="fExchangePossible">Тільки з можливістю обміну</label>
@@ -340,13 +322,11 @@
       transportType: document.getElementById('fTransportType').value,
       bodyType: document.getElementById('fBodyType').value,
       driveType: document.getElementById('fDriveType').value,
-      paymentType: document.getElementById('fPaymentType').value,
       engineFrom: document.getElementById('fEngineFrom').value,
       engineTo: document.getElementById('fEngineTo').value,
       powerFrom: document.getElementById('fPowerFrom').value,
       powerTo: document.getElementById('fPowerTo').value,
       doors: document.getElementById('fDoors').value,
-      ownersCount: document.getElementById('fOwnersCount').value,
       exchangePossible: document.getElementById('fExchangePossible').checked,
       customsCleared: document.getElementById('fCustomsCleared').checked,
       sort: document.getElementById('fSort').value
@@ -372,13 +352,11 @@
       if (f.transportType && car.transport_type !== f.transportType) return false;
       if (f.bodyType && car.body_type !== f.bodyType) return false;
       if (f.driveType && car.drive_type !== f.driveType) return false;
-      if (f.paymentType && car.payment_type !== f.paymentType) return false;
       if (f.engineFrom && (car.engine_volume || 0) < parseFloat(f.engineFrom)) return false;
       if (f.engineTo && (car.engine_volume || 0) > parseFloat(f.engineTo)) return false;
       if (f.powerFrom && (car.power_hp || 0) < parseInt(f.powerFrom)) return false;
       if (f.powerTo && (car.power_hp || 0) > parseInt(f.powerTo)) return false;
       if (f.doors && car.doors !== parseInt(f.doors)) return false;
-      if (f.ownersCount && car.owners_count !== parseInt(f.ownersCount)) return false;
       if (f.exchangePossible && !car.exchange_possible) return false;
       if (f.customsCleared && !car.customs_cleared) return false;
       return true;
@@ -411,9 +389,10 @@
       return;
     }
     resultsEl.innerHTML = filtered.map(car => renderCarCard(car, currentUserId, favoritedIds)).join('');
+    resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  document.querySelectorAll('#fCondition, #fRegion, #fPaymentType, #fFuel, #fTransmission, #fDriveType, #fDoors, #fOwnersCount, #fSort, #fColor, #fYearFrom, #fYearTo, #fPriceFrom, #fPriceTo, #fMileageFrom, #fMileageTo, #fEngineFrom, #fEngineTo, #fPowerFrom, #fPowerTo, #fExchangePossible, #fCustomsCleared')
+  document.querySelectorAll('#fCondition, #fRegion, #fFuel, #fTransmission, #fDriveType, #fDoors, #fSort, #fColor, #fYearFrom, #fYearTo, #fPriceFrom, #fPriceTo, #fMileageFrom, #fMileageTo, #fEngineFrom, #fEngineTo, #fPowerFrom, #fPowerTo, #fExchangePossible, #fCustomsCleared')
     .forEach(el => el.addEventListener('input', updateCount));
   document.querySelectorAll('.fCurrencyCb').forEach(el => el.addEventListener('change', updateCount));
 
