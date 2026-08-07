@@ -31,6 +31,11 @@
   }
   .msg { text-align: center; margin-top: 12px; font-size: 14px; }
   .back { color: #FF7A00; text-decoration: none; font-size: 14px; display: inline-block; margin-bottom: 10px; }
+  .listing-toggle { display: flex; gap: 8px; margin-bottom: 16px; }
+  .toggle-btn { flex: 1; text-align: center; padding: 12px; border: 2px solid #eee; border-radius: 10px; cursor: pointer; font-weight: bold; color: #999; font-size: 14px; }
+  .toggle-btn.active { border-color: #8E00FF; background: #f5e6ff; color: #8E00FF; }
+  .hidden { display: none; }
+  .hint { font-size: 12px; color: #999; margin: -4px 0 12px; }
 </style>
 </head>
 <body>
@@ -39,6 +44,29 @@
 <div class="logo">Продати авто</div>
 
 <div class="status-panel" id="statusPanel">Завантаження статусу...</div>
+
+<div class="listing-toggle">
+  <div class="toggle-btn active" id="toggleSale" onclick="setListingType('sale')">Продати авто</div>
+  <div class="toggle-btn" id="toggleAuction" onclick="setListingType('auction')">Аукціон</div>
+</div>
+
+<div id="auctionFields" class="hidden">
+  <h2>Умови аукціону</h2>
+  <input type="number" id="startPrice" placeholder="Стартова ціна">
+  <div class="check-row">
+    <input type="checkbox" id="hasReserve" onchange="document.getElementById('reservePrice').classList.toggle('hidden', !this.checked)">
+    <label for="hasReserve">Встановити резервну ціну (мінімум, за який готові продати)</label>
+  </div>
+  <input type="number" id="reservePrice" placeholder="Резервна ціна" class="hidden">
+  <input type="number" id="buyoutPrice" placeholder="Блиц-ціна (Купити зараз) — необов'язково">
+  <select id="auctionDuration">
+    <option value="3">Тривалість: 3 дні</option>
+    <option value="5">Тривалість: 5 днів</option>
+    <option value="7">Тривалість: 7 днів</option>
+  </select>
+  <input type="datetime-local" id="auctionStartsAt">
+  <div class="hint">Не заповните дату початку — торги стартують одразу після публікації.</div>
+</div>
 
 <h2>Тип</h2>
 <select id="condition">
@@ -156,6 +184,15 @@
   const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwenZncXlqdHFvZnRoYnBrZHNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMTEwNjEsImV4cCI6MjEwMTU4NzA2MX0.jbbpKpHaD6S9SJMIbxcwb12ggBCv44J_-s4OQ8ESNfA';
   const sb = window.supabase.createClient(supabaseUrl, supabaseKey);
 
+  let listingType = 'sale';
+
+  function setListingType(type) {
+    listingType = type;
+    document.getElementById('toggleSale').classList.toggle('active', type === 'sale');
+    document.getElementById('toggleAuction').classList.toggle('active', type === 'auction');
+    document.getElementById('auctionFields').classList.toggle('hidden', type !== 'auction');
+  }
+
   populateBrandSelect(document.getElementById('brand'));
   populateRegionSelect(document.getElementById('region'), 'Регіон — оберіть');
 
@@ -220,7 +257,7 @@
       return;
     }
 
-    const { error } = await sb.from('cars').insert({
+    const insertData = {
       user_id: session.user.id,
       brand: brand,
       model: model,
@@ -244,8 +281,33 @@
       doors: parseInt(document.getElementById('doors').value) || null,
       owners_count: parseInt(document.getElementById('ownersCount').value) || null,
       exchange_possible: document.getElementById('exchangePossible').checked,
-      customs_cleared: document.getElementById('customsCleared').checked
-    });
+      customs_cleared: document.getElementById('customsCleared').checked,
+      listing_type: listingType
+    };
+
+    if (listingType === 'auction') {
+      const startPrice = document.getElementById('startPrice').value;
+      if (!startPrice) {
+        msg.textContent = "Вкажіть стартову ціну аукціону";
+        msg.style.color = 'red';
+        return;
+      }
+      const duration = parseInt(document.getElementById('auctionDuration').value);
+      const startsAtInput = document.getElementById('auctionStartsAt').value;
+      const startsAt = startsAtInput ? new Date(startsAtInput) : new Date();
+      const endsAt = new Date(startsAt.getTime() + duration * 24 * 60 * 60 * 1000);
+
+      insertData.start_price = parseFloat(startPrice);
+      insertData.reserve_price = document.getElementById('hasReserve').checked
+        ? parseFloat(document.getElementById('reservePrice').value) || null
+        : null;
+      insertData.buyout_price = parseFloat(document.getElementById('buyoutPrice').value) || null;
+      insertData.auction_duration_days = duration;
+      insertData.auction_starts_at = startsAt.toISOString();
+      insertData.auction_ends_at = endsAt.toISOString();
+    }
+
+    const { error } = await sb.from('cars').insert(insertData);
 
     if (error) {
       msg.textContent = error.message;

@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NORMALNO — Лот</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; background: #fff; margin: 0; padding: 20px; max-width: 480px; margin-left: auto; margin-right: auto; }
+  .back { color: #FF7A00; text-decoration: none; font-size: 14px; display: inline-block; margin-bottom: 10px; }
+
+  .photo { position: relative; width: 100%; aspect-ratio: 16/10; background: #f2f2f2; border-radius: 14px; overflow: hidden; margin-bottom: 14px; }
+  .photo img { width: 100%; height: 100%; object-fit: cover; }
+  .noimg { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 50px; color: #ccc; }
+  .badge-condition { position: absolute; top: 12px; left: 12px; background: #8E00FF; color: #fff; font-size: 12px; font-weight: bold; padding: 6px 12px; border-radius: 20px; }
+  .badge-timer { position: absolute; top: 12px; right: 12px; background: rgba(0,0,0,0.65); color: #fff; font-size: 14px; font-weight: bold; padding: 6px 12px; border-radius: 20px; }
+  .badge-timer.urgent { background: #cc0000; }
+
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .subline { color: #999; font-size: 13px; margin-bottom: 16px; }
+
+  .bid-block { border: 1px solid #eee; border-radius: 14px; padding: 16px; margin-bottom: 16px; }
+  .bid-row { display: flex; justify-content: space-between; padding: 8px 0; border-top: 1px solid #f5f5f5; font-size: 14px; }
+  .bid-row:first-child { border-top: none; }
+  .bid-row b { color: #111; }
+  .bid-row .accent { color: #8E00FF; font-weight: bold; font-size: 18px; }
+
+  .status-msg { text-align: center; padding: 12px; border-radius: 10px; font-size: 13px; font-weight: bold; margin-bottom: 12px; }
+  .status-msg.awaiting { background: #fff4e0; color: #cc7a00; }
+  .status-msg.reserve { background: #fff0f0; color: #cc0000; }
+  .status-msg.reservemet { background: #eafbe9; color: #1a8f2a; }
+  .status-msg.sold { background: #eafbe9; color: #1a8f2a; }
+
+  .bid-form { display: flex; gap: 8px; margin-top: 10px; }
+  .bid-form input { flex: 1; padding: 14px; border: 1px solid #ddd; border-radius: 10px; font-size: 15px; }
+  .bid-form button { background: #8E00FF; color: #fff; border: none; border-radius: 10px; padding: 0 20px; font-weight: bold; font-size: 15px; cursor: pointer; }
+  .buyout-btn { width: 100%; margin-top: 10px; padding: 14px; background: #FF7A00; color: #fff; border: none; border-radius: 10px; font-weight: bold; font-size: 15px; cursor: pointer; }
+
+  .msg { text-align: center; margin-top: 10px; font-size: 13px; }
+  .extend-toast {
+    position: fixed; top: 16px; left: 16px; right: 16px; background: #8E00FF; color: #fff;
+    padding: 12px; border-radius: 10px; text-align: center; font-size: 13px; font-weight: bold;
+    display: none; z-index: 50;
+  }
+  .description { font-size: 14px; color: #444; line-height: 1.5; white-space: pre-wrap; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+
+<div class="extend-toast" id="extendToast">Ставка зроблена! Аукціон продовжено на 3 хвилини</div>
+
+<a href="auction.html" class="back">&larr; До аукціону</a>
+
+<div class="photo" id="photoWrap">
+  <div class="noimg">🚗</div>
+</div>
+
+<h1 id="title">Завантаження...</h1>
+<div class="subline" id="subline"></div>
+
+<div id="statusArea"></div>
+
+<div class="bid-block">
+  <div class="bid-row"><span>Поточна ставка</span><span class="accent" id="currentBid">—</span></div>
+  <div class="bid-row"><span>Лідирує</span><b id="leaderName">—</b></div>
+  <div class="bid-row"><span>Мінімум для перебивки</span><b id="minNext">—</b></div>
+  <div class="bid-row"><span>Продавець</span><b id="sellerName">—</b></div>
+  <div class="bid-row"><span>Зроблено ставок</span><b id="bidCount">0</b></div>
+
+  <div class="bid-form" id="bidForm">
+    <input type="number" id="bidAmount" placeholder="Ваша ставка">
+    <button onclick="placeBid()">ПОСТАВИТИ</button>
+  </div>
+  <button class="buyout-btn hidden" id="buyoutBtn" onclick="buyout()">Купити зараз</button>
+  <div class="msg" id="bidMsg"></div>
+</div>
+
+<div class="description" id="description"></div>
+
+<script>
+  const supabaseUrl = 'https://ipzvgqyjtqofthbpkdsd.supabase.co';
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwenZncXlqdHFvZnRoYnBrZHNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMTEwNjEsImV4cCI6MjEwMTU4NzA2MX0.jbbpKpHaD6S9SJMIbxcwb12ggBCv44J_-s4OQ8ESNfA';
+  const sb = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+  const params = new URLSearchParams(window.location.search);
+  const carId = params.get('id');
+
+  const CONDITION_LABELS = { new: 'Нове', used: 'Б/у', imported: 'Пригон' };
+  let car = null;
+  let currentUserId = null;
+  let timerInterval = null;
+
+  function getBidStep(amount) {
+    if (amount < 5000) return 50;
+    if (amount < 15000) return 100;
+    if (amount < 30000) return 200;
+    return 500;
+  }
+
+  function lotStatus(c) {
+    const now = new Date();
+    const starts = new Date(c.auction_starts_at);
+    const ends = new Date(c.auction_ends_at);
+    if (now < starts) return 'awaiting';
+    if (now < ends) return 'active';
+    if (c.reserve_price && (c.current_bid || 0) < c.reserve_price) return 'reserve_not_met';
+    return 'sold';
+  }
+
+  function render() {
+    document.getElementById('title').textContent = `${car.brand} ${car.model}, ${car.year}`;
+    document.getElementById('subline').textContent = `${car.mileage ? Number(car.mileage).toLocaleString('uk-UA') + ' км · ' : ''}${car.region || ''}`;
+    document.getElementById('description').textContent = car.description || '';
+
+    const photoWrap = document.getElementById('photoWrap');
+    photoWrap.innerHTML = (car.photo_url ? `<img src="${car.photo_url}">` : `<div class="noimg">🚗</div>`) +
+      `<div class="badge-condition">${CONDITION_LABELS[car.condition] || 'Стан невідомий'}</div>` +
+      `<div class="badge-timer" id="timerBadge"></div>`;
+
+    const status = lotStatus(car);
+    const statusArea = document.getElementById('statusArea');
+    let statusHtml = '';
+    if (status === 'awaiting') statusHtml = `<div class="status-msg awaiting">Торги ще не почались</div>`;
+    else if (status === 'reserve_not_met') statusHtml = `<div class="status-msg reserve">Резерв не пройдено — угода не відбулась</div>`;
+    else if (status === 'sold') statusHtml = `<div class="status-msg sold">Торги завершено — лот продано</div>`;
+    else if (car.reserve_price) {
+      const met = (car.current_bid || 0) >= car.reserve_price;
+      statusHtml = met ? `<div class="status-msg reservemet">Резерв пройдено</div>` : `<div class="status-msg reserve">Резерв не пройдено</div>`;
+    }
+    statusArea.innerHTML = statusHtml;
+
+    const bid = car.current_bid || car.start_price || 0;
+    document.getElementById('currentBid').textContent = `${Number(bid).toLocaleString('uk-UA')} ${car.currency}`;
+    document.getElementById('leaderName').textContent = car.current_bid_user_id ? 'учасник #' + car.current_bid_user_id.slice(0, 6) : '—';
+    document.getElementById('minNext').textContent = `${Number(bid + getBidStep(bid)).toLocaleString('uk-UA')} ${car.currency}`;
+    document.getElementById('sellerName').textContent = car.user_id ? 'продавець #' + car.user_id.slice(0, 6) : '—';
+    document.getElementById('bidCount').textContent = car.bid_count || 0;
+
+    const bidForm = document.getElementById('bidForm');
+    const buyoutBtn = document.getElementById('buyoutBtn');
+    if (status !== 'active') {
+      bidForm.classList.add('hidden');
+      buyoutBtn.classList.add('hidden');
+    } else {
+      bidForm.classList.remove('hidden');
+      document.getElementById('bidAmount').placeholder = `Від ${Number(bid + getBidStep(bid)).toLocaleString('uk-UA')}`;
+      if (car.buyout_price) {
+        buyoutBtn.classList.remove('hidden');
+        buyoutBtn.textContent = `Купити зараз за ${Number(car.buyout_price).toLocaleString('uk-UA')} ${car.currency}`;
+      } else {
+        buyoutBtn.classList.add('hidden');
+      }
+    }
+
+    updateTimer();
+  }
+
+  function updateTimer() {
+    const badge = document.getElementById('timerBadge');
+    if (!badge) return;
+    const status = lotStatus(car);
+    const now = new Date();
+    const target = status === 'awaiting' ? new Date(car.auction_starts_at) : new Date(car.auction_ends_at);
+    const diff = target - now;
+
+    if (diff <= 0) {
+      badge.textContent = status === 'awaiting' ? 'От-от почнеться' : 'Завершено';
+      return;
+    }
+    const d = Math.floor(diff / 86400000);
+    const h = Math.floor((diff % 86400000) / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+    badge.textContent = (status === 'awaiting' ? 'Старт через ' : '') +
+      (d > 0 ? `${d}д ${h}г` : `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`);
+    badge.classList.toggle('urgent', status === 'active' && diff < 24 * 3600000);
+  }
+
+  async function loadCar() {
+    const { data, error } = await sb.from('cars').select('*').eq('id', carId).single();
+    if (error || !data) {
+      document.getElementById('title').textContent = 'Лот не знайдено';
+      return;
+    }
+    car = data;
+    render();
+  }
+
+  async function placeBid() {
+    const msgEl = document.getElementById('bidMsg');
+    const amountInput = document.getElementById('bidAmount');
+    const amount = parseFloat(amountInput.value);
+
+    if (!currentUserId) { window.location.href = 'register2.html'; return; }
+    if (!amount) { msgEl.textContent = 'Введіть суму ставки'; msgEl.style.color = 'red'; return; }
+
+    const { data, error } = await sb.rpc('place_bid', { p_car_id: parseInt(carId), p_amount: amount });
+
+    if (error) { msgEl.textContent = error.message; msgEl.style.color = 'red'; return; }
+    if (!data.success) { msgEl.textContent = data.error; msgEl.style.color = 'red'; return; }
+
+    msgEl.textContent = 'Ставка прийнята!';
+    msgEl.style.color = 'green';
+    amountInput.value = '';
+
+    const toast = document.getElementById('extendToast');
+    toast.style.display = 'block';
+    setTimeout(() => { toast.style.display = 'none'; }, 3000);
+
+    if (data.previous_leader) {
+      fetch('/api/notify-outbid', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          previousUserId: data.previous_leader,
+          carLabel: `${car.brand} ${car.model}, ${car.year}`,
+          newBid: data.new_bid,
+          currency: car.currency
+        })
+      }).catch(() => {});
+    }
+
+    await loadCar();
+  }
+
+  async function buyout() {
+    const msgEl = document.getElementById('bidMsg');
+    if (!currentUserId) { window.location.href = 'register2.html'; return; }
+
+    const { data, error } = await sb.rpc('buyout_auction', { p_car_id: parseInt(carId) });
+    if (error) { msgEl.textContent = error.message; msgEl.style.color = 'red'; return; }
+    if (!data.success) { msgEl.textContent = data.error; msgEl.style.color = 'red'; return; }
+
+    msgEl.textContent = 'Вітаємо, ви купили авто!';
+    msgEl.style.color = 'green';
+    await loadCar();
+  }
+
+  async function init() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) currentUserId = session.user.id;
+
+    await loadCar();
+
+    sb.channel('car-' + carId)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'cars', filter: `id=eq.${carId}` }, payload => {
+        car = payload.new;
+        render();
+      })
+      .subscribe();
+
+    timerInterval = setInterval(updateTimer, 1000);
+  }
+
+  init();
+</script>
+
+</body>
+</html>
