@@ -161,10 +161,6 @@
   let allLots = [];
   let currentChip = 'all';
 
-  const CONDITION_LABELS = { new: 'Нове', used: 'Б/у', imported: 'Пригон' };
-  const TRANSMISSION_LABELS = { manual: 'Механіка', automatic: 'Автомат', variator: 'Варіатор' };
-  const FUEL_LABELS = { petrol: 'Бензин', diesel: 'Дизель', hybrid: 'Гібрид', gas: 'Газ', electric: 'Електро' };
-
   function lotStatus(car) {
     const now = new Date();
     const starts = new Date(car.auction_starts_at);
