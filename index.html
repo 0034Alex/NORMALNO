@@ -151,6 +151,7 @@
     const { data: cars, error } = await sb
       .from('cars')
       .select('*')
+      .neq('listing_type', 'auction')
       .order('created_at', { ascending: false });
 
     if (error || !cars) {

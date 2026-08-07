@@ -246,7 +246,7 @@
       favoritedIds = new Set((favs || []).map(f => f.car_id));
     }
 
-    const { data: cars } = await sb.from('cars').select('*').order('created_at', { ascending: false });
+    const { data: cars } = await sb.from('cars').select('*').neq('listing_type', 'auction').order('created_at', { ascending: false });
     allCars = cars || [];
     updateCount();
   }

@@ -112,7 +112,7 @@
       return;
     }
 
-    const { data: cars, error } = await sb.from('cars').select('*').in('id', carIds);
+    const { data: cars, error } = await sb.from('cars').select('*').in('id', carIds).neq('listing_type', 'auction');
 
     if (error || !cars || cars.length === 0) {
       feed.innerHTML = '<div class="empty-feed">Ви ще нічого не додали в обране</div>';

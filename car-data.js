@@ -195,7 +195,7 @@ function renderCarCard(car, currentUserId, favoritedIds) {
       <div class="ncard-photo">
         ${car.photo_url ? `<img src="${car.photo_url}" onerror="this.style.display='none'">` : `<div class="ncard-noimg">🚗</div>`}
         <div class="ncard-watermark">NORMALNO</div>
-        <div class="ncard-heart" onclick="event.stopPropagation(); if(window.toggleFavorite) window.toggleFavorite('${car.id}')">${heartChar}</div>
+        <div class="ncard-heart" onclick="event.stopPropagation(); if(window.toggleFavorite) window.toggleFavorite(${car.id})">${heartChar}</div>
       </div>
       <div class="ncard-body">
         <div class="ncard-title">${car.brand} ${car.model}, ${car.year}</div>

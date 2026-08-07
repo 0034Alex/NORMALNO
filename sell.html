@@ -104,8 +104,10 @@
 
 <h2>Ціна та оплата</h2>
 <div class="row">
-  <input type="number" id="price" placeholder="Ціна">
-  <select id="currency">
+  <div id="priceFieldWrap" style="flex:1;">
+    <input type="number" id="price" placeholder="Ціна">
+  </div>
+  <select id="currency" style="flex:1;">
     <option value="USD">$</option>
     <option value="EUR">€</option>
     <option value="UAH">грн</option>
@@ -191,6 +193,7 @@
     document.getElementById('toggleSale').classList.toggle('active', type === 'sale');
     document.getElementById('toggleAuction').classList.toggle('active', type === 'auction');
     document.getElementById('auctionFields').classList.toggle('hidden', type !== 'auction');
+    document.getElementById('priceFieldWrap').classList.toggle('hidden', type === 'auction');
   }
 
   populateBrandSelect(document.getElementById('brand'));
@@ -251,8 +254,13 @@
     const year = document.getElementById('year').value;
     const price = document.getElementById('price').value;
 
-    if (!brand || !model || !year || !price) {
-      msg.textContent = "Заповніть хоча б марку, модель, рік і ціну";
+    if (!brand || !model || !year) {
+      msg.textContent = "Заповніть хоча б марку, модель і рік";
+      msg.style.color = 'red';
+      return;
+    }
+    if (listingType === 'sale' && !price) {
+      msg.textContent = "Вкажіть ціну";
       msg.style.color = 'red';
       return;
     }
@@ -262,7 +270,7 @@
       brand: brand,
       model: model,
       year: parseInt(year),
-      price: parseFloat(price),
+      price: listingType === 'sale' ? parseFloat(price) : null,
       currency: document.getElementById('currency').value,
       mileage: parseInt(document.getElementById('mileage').value) || null,
       fuel_type: document.getElementById('fuelType').value,
@@ -297,6 +305,7 @@
       const startsAt = startsAtInput ? new Date(startsAtInput) : new Date();
       const endsAt = new Date(startsAt.getTime() + duration * 24 * 60 * 60 * 1000);
 
+      insertData.price = parseFloat(startPrice);
       insertData.start_price = parseFloat(startPrice);
       insertData.reserve_price = document.getElementById('hasReserve').checked
         ? parseFloat(document.getElementById('reservePrice').value) || null
