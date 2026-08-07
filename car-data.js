@@ -20,11 +20,12 @@ const BODY_TYPES_BY_TRANSPORT = {
   motorhome: ["Інтегрований","Напівінтегрований","На базі фургона","Причіп-дача"]
 };
 
+/* ---------- Марки/моделі (NHTSA vPIC API) ---------- */
+
 let _brandsCache = null;
 
 async function fetchAllBrands() {
   if (_brandsCache) return _brandsCache;
-
   const types = ["car", "multipurpose passenger vehicle (mpv)", "truck"];
   const results = await Promise.all(types.map(t =>
     fetch(`https://vpic.nhtsa.dot.gov/api/vehicles/GetMakesForVehicleType/${encodeURIComponent(t)}?format=json`)
@@ -32,12 +33,8 @@ async function fetchAllBrands() {
       .then(d => d.Results || [])
       .catch(() => [])
   ));
-
   const namesSet = new Set();
-  results.flat().forEach(item => {
-    if (item.MakeName) namesSet.add(item.MakeName.trim());
-  });
-
+  results.flat().forEach(item => { if (item.MakeName) namesSet.add(item.MakeName.trim()); });
   _brandsCache = Array.from(namesSet).sort((a, b) => a.localeCompare(b));
   return _brandsCache;
 }
@@ -93,6 +90,75 @@ function populateBodyTypeSelect(selectEl, transportType, placeholder) {
   selectEl.disabled = types.length === 0;
 }
 
+/* ---------- Багатомовний пошук (укр/рос/англ, нечіткий) ---------- */
+
+const CYR_TO_LAT = {
+  'а':'a','б':'b','в':'v','г':'g','ґ':'g','д':'d','е':'e','є':'ie','ж':'zh','з':'z',
+  'и':'y','і':'i','ї':'i','й':'i','к':'k','л':'l','м':'m','н':'n','о':'o','п':'p',
+  'р':'r','с':'s','т':'t','у':'u','ф':'f','х':'h','ц':'ts','ч':'ch','ш':'sh','щ':'shch',
+  'ь':'','ъ':'','ы':'y','э':'e','ю':'iu','я':'ia'
+};
+
+const BRAND_ALIASES = {
+  "BMW": ["бмв"], "MERCEDES-BENZ": ["мерседес","мерс"], "VOLKSWAGEN": ["фольксваген","вольксваген","vw"],
+  "HYUNDAI": ["хюндай","хендай","хундай"], "KIA": ["киа","кіа"], "SKODA": ["шкода"], "RENAULT": ["рено"],
+  "NISSAN": ["ниссан","нісан"], "CHEVROLET": ["шевроле"], "HONDA": ["хонда"], "MAZDA": ["мазда"],
+  "OPEL": ["опель"], "PEUGEOT": ["пежо"], "MITSUBISHI": ["мітсубісі","митсубиси"], "VOLVO": ["вольво"],
+  "LEXUS": ["лексус"], "SUBARU": ["субару"], "SUZUKI": ["сузукі","сузуки"], "FIAT": ["фіат","фиат"],
+  "CITROEN": ["сітроен","ситроен"], "LAND ROVER": ["ленд ровер","лендровер"], "PORSCHE": ["порше"],
+  "JEEP": ["джип"], "TOYOTA": ["тойота","тайота"], "FORD": ["форд"], "AUDI": ["ауді","ауди"],
+  "CHRYSLER": ["крайслер"], "CADILLAC": ["кадилак","кадиллак"], "DODGE": ["додж"], "JAGUAR": ["ягуар","джагуар"],
+  "MASERATI": ["мазераті","мазерати"], "BENTLEY": ["бентлі","бентли"], "TESLA": ["тесла"],
+  "MINI": ["міні","мини"], "ACURA": ["акура"], "INFINITI": ["інфініті","инфинити"], "DACIA": ["дачія","дачия"]
+};
+
+function transliterate(text) {
+  return text.toLowerCase().split('').map(ch => CYR_TO_LAT[ch] !== undefined ? CYR_TO_LAT[ch] : ch).join('');
+}
+
+function normalizeSearch(text) {
+  return (text || '').toLowerCase().replace(/[\s\-]/g, '');
+}
+
+function matchesQuery(fieldValue, query) {
+  if (!query) return true;
+  if (!fieldValue) return false;
+  const qNorm = normalizeSearch(query);
+  const fNorm = normalizeSearch(fieldValue);
+  if (fNorm.includes(qNorm)) return true;
+  const qTranslit = normalizeSearch(transliterate(query));
+  if (fNorm.includes(qTranslit)) return true;
+  const aliasKey = Object.keys(BRAND_ALIASES).find(k => k === fieldValue.toUpperCase());
+  if (aliasKey) {
+    const hit = BRAND_ALIASES[aliasKey].some(alias => normalizeSearch(alias).includes(qNorm));
+    if (hit) return true;
+  }
+  return false;
+}
+
+async function suggestBrands(query, limit) {
+  const brands = await fetchAllBrands();
+  if (!query) return brands.slice(0, limit || 15);
+  return brands.filter(b => matchesQuery(b, query)).slice(0, limit || 15);
+}
+
+/* ---------- Статуси клієнта ---------- */
+
+const STATUS_TIERS = [
+  { min: 0,  max: 2,  name: 'Новачок',            freeQuota: 3,  extraPrice: 5 },
+  { min: 3,  max: 4,  name: 'Активний продавець',  freeQuota: 4,  extraPrice: 4 },
+  { min: 5,  max: 9,  name: 'Авто-бізнесмен',      freeQuota: 6,  extraPrice: 3 },
+  { min: 10, max: 19, name: 'Про-дилер',           freeQuota: 10, extraPrice: 2 },
+  { min: 20, max: Infinity, name: 'Автосалон',     freeQuota: null, extraPrice: null }
+];
+
+function getStatusForCount(soldCount) {
+  const n = soldCount || 0;
+  return STATUS_TIERS.find(t => n >= t.min && n <= t.max) || STATUS_TIERS[0];
+}
+
+/* ---------- Картка авто ---------- */
+
 function timeAgo(dateStr) {
   if (!dateStr) return '';
   const diffMs = Date.now() - new Date(dateStr).getTime();
@@ -110,7 +176,7 @@ const TRANSMISSION_LABELS = { manual: 'Механіка', automatic: 'Автом
 const FUEL_LABELS = { petrol: 'Бензин', diesel: 'Дизель', hybrid: 'Гібрид', gas: 'Газ', electric: 'Електро' };
 const CONDITION_LABELS = { new: 'Нове', used: 'Б/у', imported: 'Пригон' };
 
-function renderCarCard(car) {
+function renderCarCard(car, currentUserId) {
   const transmission = TRANSMISSION_LABELS[car.transmission] || '';
   const fuel = FUEL_LABELS[car.fuel_type] || '';
   const condition = CONDITION_LABELS[car.condition] || '';
@@ -119,9 +185,15 @@ function renderCarCard(car) {
   if (condition) badges.push(condition);
   if (car.exchange_possible) badges.push('Можливий обмін');
   if (car.customs_cleared) badges.push('Розмитнено');
+  if (car.sold) badges.push('Продано');
+
+  const isOwn = currentUserId && car.user_id === currentUserId;
+  const markSoldBtn = (isOwn && !car.sold)
+    ? `<button class="ncard-sold-btn" onclick="event.stopPropagation(); markCarSold('${car.id}')">Позначити як продано</button>`
+    : '';
 
   return `
-    <div class="ncard">
+    <div class="ncard ${car.sold ? 'ncard-sold' : ''}">
       <div class="ncard-photo">
         ${car.photo_url ? `<img src="${car.photo_url}" onerror="this.style.display='none'">` : `<div class="ncard-noimg">🚗</div>`}
         <div class="ncard-watermark">NORMALNO</div>
@@ -139,6 +211,7 @@ function renderCarCard(car) {
         </div>
         ${badges.length ? `<div class="ncard-badges">${badges.map(b => `<span class="ncard-badge">${b}</span>`).join('')}</div>` : ''}
         <div class="ncard-time">🕐 ${timeAgo(car.created_at)}</div>
+        ${markSoldBtn}
       </div>
     </div>
   `;

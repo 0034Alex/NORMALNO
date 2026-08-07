@@ -8,7 +8,7 @@
 <script src="car-data.js"></script>
 <style>
   * { box-sizing: border-box; }
-  body { font-family: Arial, sans-serif; background: #fff; margin: 0; padding: 20px; }
+  body { font-family: Arial, sans-serif; background: #fff; margin: 0; padding: 20px; padding-bottom: 90px; }
   .back { color: #FF7A00; text-decoration: none; font-size: 14px; display: inline-block; margin-bottom: 10px; }
   .logo { text-align: center; font-size: 20px; font-weight: bold; color: #8E00FF; margin-bottom: 20px; }
   h3 { font-size: 14px; color: #666; margin: 18px 0 8px; }
@@ -21,16 +21,34 @@
   .row > * { flex: 1; }
   .check-row { display: flex; align-items: center; gap: 8px; padding: 8px 2px; font-size: 14px; }
   .check-row input { width: auto; margin: 0; }
+  .currency-row { display: flex; gap: 16px; padding: 4px 2px 12px; }
+  .currency-row label { display: flex; align-items: center; gap: 6px; font-size: 14px; }
+  .currency-row input { width: auto; margin: 0; }
+
+  .autosuggest { position: relative; }
+  .suggest-list {
+    position: absolute; top: 100%; left: 0; right: 0; z-index: 20;
+    background: #fff; border: 1px solid #ddd; border-radius: 10px; max-height: 200px;
+    overflow-y: auto; margin-top: -6px; display: none;
+  }
+  .suggest-list.open { display: block; }
+  .suggest-item { padding: 10px 14px; font-size: 14px; cursor: pointer; }
+  .suggest-item:hover { background: #f5e6ff; }
+
+  .sticky-btn-wrap {
+    position: fixed; bottom: 12px; left: 16px; right: 16px; z-index: 30;
+  }
   button.main {
     width: 100%; padding: 15px; background: #FF7A00; color: white; border: none;
-    border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px;
+    border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.2);
   }
-  .count { text-align: center; color: #999; font-size: 13px; margin-top: 8px; }
 
   .results { margin-top: 20px; }
   .empty { text-align: center; color: #999; margin-top: 30px; }
 
   .ncard { border-radius: 14px; overflow: hidden; border: 1px solid #eee; margin-bottom: 16px; background: #fff; }
+  .ncard-sold { opacity: 0.6; }
   .ncard-photo { position: relative; width: 100%; aspect-ratio: 16/10; background: #f2f2f2; overflow: hidden; }
   .ncard-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .ncard-noimg { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 40px; color: #ccc; }
@@ -52,30 +70,19 @@
   .ncard-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
   .ncard-badge { background: #f5e6ff; color: #8E00FF; font-size: 11px; font-weight: bold; padding: 4px 10px; border-radius: 20px; }
   .ncard-time { color: #bbb; font-size: 11px; }
+  .ncard-sold-btn { margin-top: 8px; width: 100%; padding: 8px; background: #fff; border: 1px solid #8E00FF; color: #8E00FF; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; }
 
   @media (min-width: 700px) {
-    .feed, .results {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-      gap: 16px;
-    }
+    .results { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }
     .ncard { margin-bottom: 0; }
     .ncard-photo { aspect-ratio: 4/3; }
-    .ncard-title { font-size: 14px; }
-    .ncard-price { font-size: 16px; }
-    .ncard-specs { font-size: 11px; gap: 6px 10px; }
   }
-
-
 </style>
 </head>
 <body>
 
 <a href="index.html" class="back">&larr; Назад на головну</a>
 <div class="logo">Пошук за параметрами</div>
-
-<h3>Ключове слово</h3>
-<input type="text" id="fKeyword" placeholder="Пошук у описі оголошень">
 
 <h3>Тип</h3>
 <select id="fCondition">
@@ -102,8 +109,14 @@
 </select>
 
 <h3>Марка і модель</h3>
-<select id="fBrand" onchange="onFilterBrandChange()"></select>
-<select id="fModel" disabled></select>
+<div class="autosuggest">
+  <input type="text" id="fBrand" placeholder="Марка (напр. Toyota, тойота)" autocomplete="off">
+  <div class="suggest-list" id="brandSuggest"></div>
+</div>
+<div class="autosuggest">
+  <input type="text" id="fModel" placeholder="Модель" autocomplete="off">
+  <div class="suggest-list" id="modelSuggest"></div>
+</div>
 <input type="text" id="fColor" placeholder="Колір">
 
 <h3>Рік випуску</h3>
@@ -119,12 +132,11 @@
 <div class="row">
   <input type="number" id="fPriceFrom" placeholder="Від">
   <input type="number" id="fPriceTo" placeholder="До">
-  <select id="fCurrency">
-    <option value="">Валюта</option>
-    <option value="USD">$</option>
-    <option value="EUR">€</option>
-    <option value="UAH">грн</option>
-  </select>
+</div>
+<div class="currency-row">
+  <label><input type="checkbox" class="fCurrencyCb" value="USD"> $ USD</label>
+  <label><input type="checkbox" class="fCurrencyCb" value="EUR"> € EUR</label>
+  <label><input type="checkbox" class="fCurrencyCb" value="UAH"> грн UAH</label>
 </div>
 <select id="fPaymentType">
   <option value="">Тип оплати — всі</option>
@@ -202,116 +214,196 @@
   <option value="mileage_asc">Пробіг: спочатку менший</option>
 </select>
 
-<button class="main" onclick="search()">ПОКАЗАТИ</button>
-<div class="count" id="count"></div>
-
 <div class="results" id="results"></div>
+
+<div class="sticky-btn-wrap">
+  <button class="main" id="showBtn" onclick="showResults()">ПОКАЗАТИ</button>
+</div>
 
 <script>
   const supabaseUrl = 'https://ipzvgqyjtqofthbpkdsd.supabase.co';
   const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwenZncXlqdHFvZnRoYnBrZHNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMTEwNjEsImV4cCI6MjEwMTU4NzA2MX0.jbbpKpHaD6S9SJMIbxcwb12ggBCv44J_-s4OQ8ESNfA';
   const sb = window.supabase.createClient(supabaseUrl, supabaseKey);
 
+  let allCars = [];
+  let currentUserId = null;
+  let selectedBrand = '';
+
+  populateRegionSelect(document.getElementById('fRegion'), 'Регіон — всі');
+
   function onFilterTransportTypeChange() {
     const transportType = document.getElementById('fTransportType').value;
     populateBodyTypeSelect(document.getElementById('fBodyType'), transportType, 'Тип кузова — всі');
+    updateCount();
   }
 
-  populateBrandSelect(document.getElementById('fBrand'));
-  populateRegionSelect(document.getElementById('fRegion'), 'Регіон — всі');
+  async function init() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) currentUserId = session.user.id;
 
-  async function onFilterBrandChange() {
-    const brand = document.getElementById('fBrand').value;
-    await populateModelSelect(document.getElementById('fModel'), brand, 'Модель — всі');
+    const { data: cars } = await sb.from('cars').select('*').order('created_at', { ascending: false });
+    allCars = cars || [];
+    updateCount();
   }
 
-  async function search() {
-    const countEl = document.getElementById('count');
-    const resultsEl = document.getElementById('results');
-    countEl.textContent = 'Шукаємо...';
-    resultsEl.innerHTML = '';
+  /* ---- автопідказка марки ---- */
+  const brandInput = document.getElementById('fBrand');
+  const brandSuggest = document.getElementById('brandSuggest');
 
-    let query = sb.from('cars').select('*');
+  brandInput.addEventListener('input', async () => {
+    const q = brandInput.value.trim();
+    selectedBrand = '';
+    if (!q) { brandSuggest.classList.remove('open'); updateCount(); return; }
+    const matches = await suggestBrands(q, 12);
+    if (matches.length === 0) { brandSuggest.classList.remove('open'); updateCount(); return; }
+    brandSuggest.innerHTML = matches.map(b => `<div class="suggest-item" onclick="pickBrand('${b.replace(/'/g,"\\'")}')">${b}</div>`).join('');
+    brandSuggest.classList.add('open');
+    updateCount();
+  });
 
-    const keyword = document.getElementById('fKeyword').value.trim();
-    const brand = document.getElementById('fBrand').value;
-    const model = document.getElementById('fModel').value;
-    const color = document.getElementById('fColor').value.trim();
-    const yearFrom = document.getElementById('fYearFrom').value;
-    const yearTo = document.getElementById('fYearTo').value;
-    const priceFrom = document.getElementById('fPriceFrom').value;
-    const priceTo = document.getElementById('fPriceTo').value;
-    const currency = document.getElementById('fCurrency').value;
-    const mileageFrom = document.getElementById('fMileageFrom').value;
-    const mileageTo = document.getElementById('fMileageTo').value;
-    const fuel = document.getElementById('fFuel').value;
-    const transmission = document.getElementById('fTransmission').value;
-    const region = document.getElementById('fRegion').value;
-    const condition = document.getElementById('fCondition').value;
-    const transportType = document.getElementById('fTransportType').value;
-    const bodyType = document.getElementById('fBodyType').value;
-    const driveType = document.getElementById('fDriveType').value;
-    const paymentType = document.getElementById('fPaymentType').value;
-    const engineFrom = document.getElementById('fEngineFrom').value;
-    const engineTo = document.getElementById('fEngineTo').value;
-    const powerFrom = document.getElementById('fPowerFrom').value;
-    const powerTo = document.getElementById('fPowerTo').value;
-    const doors = document.getElementById('fDoors').value;
-    const ownersCount = document.getElementById('fOwnersCount').value;
-    const exchangePossible = document.getElementById('fExchangePossible').checked;
-    const customsCleared = document.getElementById('fCustomsCleared').checked;
-    const sort = document.getElementById('fSort').value;
+  function pickBrand(b) {
+    brandInput.value = b;
+    selectedBrand = b;
+    brandSuggest.classList.remove('open');
+    updateCount();
+  }
 
-    if (keyword) query = query.ilike('description', `%${keyword}%`);
-    if (brand) query = query.eq('brand', brand);
-    if (model) query = query.eq('model', model);
-    if (color) query = query.ilike('color', `%${color}%`);
-    if (yearFrom) query = query.gte('year', parseInt(yearFrom));
-    if (yearTo) query = query.lte('year', parseInt(yearTo));
-    if (priceFrom) query = query.gte('price', parseFloat(priceFrom));
-    if (priceTo) query = query.lte('price', parseFloat(priceTo));
-    if (currency) query = query.eq('currency', currency);
-    if (mileageFrom) query = query.gte('mileage', parseInt(mileageFrom));
-    if (mileageTo) query = query.lte('mileage', parseInt(mileageTo));
-    if (fuel) query = query.eq('fuel_type', fuel);
-    if (transmission) query = query.eq('transmission', transmission);
-    if (region) query = query.eq('region', region);
-    if (condition) query = query.eq('condition', condition);
-    if (transportType) query = query.eq('transport_type', transportType);
-    if (bodyType) query = query.eq('body_type', bodyType);
-    if (driveType) query = query.eq('drive_type', driveType);
-    if (paymentType) query = query.eq('payment_type', paymentType);
-    if (engineFrom) query = query.gte('engine_volume', parseFloat(engineFrom));
-    if (engineTo) query = query.lte('engine_volume', parseFloat(engineTo));
-    if (powerFrom) query = query.gte('power_hp', parseInt(powerFrom));
-    if (powerTo) query = query.lte('power_hp', parseInt(powerTo));
-    if (doors) query = query.eq('doors', parseInt(doors));
-    if (ownersCount) query = query.eq('owners_count', parseInt(ownersCount));
-    if (exchangePossible) query = query.eq('exchange_possible', true);
-    if (customsCleared) query = query.eq('customs_cleared', true);
+  /* ---- автопідказка моделі ---- */
+  const modelInput = document.getElementById('fModel');
+  const modelSuggest = document.getElementById('modelSuggest');
 
-    if (sort === 'price_asc') query = query.order('price', { ascending: true });
-    else if (sort === 'price_desc') query = query.order('price', { ascending: false });
-    else if (sort === 'year_desc') query = query.order('year', { ascending: false });
-    else if (sort === 'mileage_asc') query = query.order('mileage', { ascending: true });
-    else query = query.order('created_at', { ascending: false });
-
-    const { data: cars, error } = await query;
-
-    if (error) {
-      countEl.textContent = 'Помилка: ' + error.message;
-      return;
+  modelInput.addEventListener('input', async () => {
+    const q = modelInput.value.trim();
+    if (!q) { modelSuggest.classList.remove('open'); updateCount(); return; }
+    let candidates = [];
+    if (selectedBrand) {
+      candidates = await fetchModelsForBrand(selectedBrand);
+    } else {
+      candidates = Array.from(new Set(allCars.map(c => c.model).filter(Boolean)));
     }
+    const matches = candidates.filter(m => matchesQuery(m, q)).slice(0, 12);
+    if (matches.length === 0) { modelSuggest.classList.remove('open'); updateCount(); return; }
+    modelSuggest.innerHTML = matches.map(m => `<div class="suggest-item" onclick="pickModel('${m.replace(/'/g,"\\'")}')">${m}</div>`).join('');
+    modelSuggest.classList.add('open');
+    updateCount();
+  });
 
-    if (!cars || cars.length === 0) {
-      countEl.textContent = 'Знайдено: 0';
+  function pickModel(m) {
+    modelInput.value = m;
+    modelSuggest.classList.remove('open');
+    updateCount();
+  }
+
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.autosuggest')) {
+      brandSuggest.classList.remove('open');
+      modelSuggest.classList.remove('open');
+    }
+  });
+
+  /* ---- фільтрація ---- */
+  function getFilters() {
+    return {
+      brand: document.getElementById('fBrand').value.trim(),
+      model: document.getElementById('fModel').value.trim(),
+      color: document.getElementById('fColor').value.trim(),
+      yearFrom: document.getElementById('fYearFrom').value,
+      yearTo: document.getElementById('fYearTo').value,
+      priceFrom: document.getElementById('fPriceFrom').value,
+      priceTo: document.getElementById('fPriceTo').value,
+      currencies: Array.from(document.querySelectorAll('.fCurrencyCb:checked')).map(c => c.value),
+      mileageFrom: document.getElementById('fMileageFrom').value,
+      mileageTo: document.getElementById('fMileageTo').value,
+      fuel: document.getElementById('fFuel').value,
+      transmission: document.getElementById('fTransmission').value,
+      region: document.getElementById('fRegion').value,
+      condition: document.getElementById('fCondition').value,
+      transportType: document.getElementById('fTransportType').value,
+      bodyType: document.getElementById('fBodyType').value,
+      driveType: document.getElementById('fDriveType').value,
+      paymentType: document.getElementById('fPaymentType').value,
+      engineFrom: document.getElementById('fEngineFrom').value,
+      engineTo: document.getElementById('fEngineTo').value,
+      powerFrom: document.getElementById('fPowerFrom').value,
+      powerTo: document.getElementById('fPowerTo').value,
+      doors: document.getElementById('fDoors').value,
+      ownersCount: document.getElementById('fOwnersCount').value,
+      exchangePossible: document.getElementById('fExchangePossible').checked,
+      customsCleared: document.getElementById('fCustomsCleared').checked,
+      sort: document.getElementById('fSort').value
+    };
+  }
+
+  function applyFilters(cars, f) {
+    return cars.filter(car => {
+      if (f.brand && !matchesQuery(car.brand, f.brand)) return false;
+      if (f.model && !matchesQuery(car.model, f.model)) return false;
+      if (f.color && !matchesQuery(car.color, f.color)) return false;
+      if (f.yearFrom && car.year < parseInt(f.yearFrom)) return false;
+      if (f.yearTo && car.year > parseInt(f.yearTo)) return false;
+      if (f.priceFrom && car.price < parseFloat(f.priceFrom)) return false;
+      if (f.priceTo && car.price > parseFloat(f.priceTo)) return false;
+      if (f.currencies.length && !f.currencies.includes(car.currency)) return false;
+      if (f.mileageFrom && (car.mileage || 0) < parseInt(f.mileageFrom)) return false;
+      if (f.mileageTo && (car.mileage || 0) > parseInt(f.mileageTo)) return false;
+      if (f.fuel && car.fuel_type !== f.fuel) return false;
+      if (f.transmission && car.transmission !== f.transmission) return false;
+      if (f.region && car.region !== f.region) return false;
+      if (f.condition && car.condition !== f.condition) return false;
+      if (f.transportType && car.transport_type !== f.transportType) return false;
+      if (f.bodyType && car.body_type !== f.bodyType) return false;
+      if (f.driveType && car.drive_type !== f.driveType) return false;
+      if (f.paymentType && car.payment_type !== f.paymentType) return false;
+      if (f.engineFrom && (car.engine_volume || 0) < parseFloat(f.engineFrom)) return false;
+      if (f.engineTo && (car.engine_volume || 0) > parseFloat(f.engineTo)) return false;
+      if (f.powerFrom && (car.power_hp || 0) < parseInt(f.powerFrom)) return false;
+      if (f.powerTo && (car.power_hp || 0) > parseInt(f.powerTo)) return false;
+      if (f.doors && car.doors !== parseInt(f.doors)) return false;
+      if (f.ownersCount && car.owners_count !== parseInt(f.ownersCount)) return false;
+      if (f.exchangePossible && !car.exchange_possible) return false;
+      if (f.customsCleared && !car.customs_cleared) return false;
+      return true;
+    });
+  }
+
+  function sortCars(cars, sort) {
+    const arr = [...cars];
+    if (sort === 'price_asc') arr.sort((a, b) => a.price - b.price);
+    else if (sort === 'price_desc') arr.sort((a, b) => b.price - a.price);
+    else if (sort === 'year_desc') arr.sort((a, b) => b.year - a.year);
+    else if (sort === 'mileage_asc') arr.sort((a, b) => (a.mileage || 0) - (b.mileage || 0));
+    else arr.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    return arr;
+  }
+
+  function updateCount() {
+    const f = getFilters();
+    const filtered = applyFilters(allCars, f);
+    document.getElementById('showBtn').textContent = `ПОКАЗАТИ (${filtered.length})`;
+  }
+
+  function showResults() {
+    const f = getFilters();
+    const filtered = sortCars(applyFilters(allCars, f), f.sort);
+    const resultsEl = document.getElementById('results');
+
+    if (filtered.length === 0) {
       resultsEl.innerHTML = '<div class="empty">Нічого не знайдено за цими параметрами</div>';
       return;
     }
-
-    countEl.textContent = 'Знайдено: ' + cars.length;
-    resultsEl.innerHTML = cars.map(car => renderCarCard(car)).join('');
+    resultsEl.innerHTML = filtered.map(car => renderCarCard(car, currentUserId)).join('');
   }
+
+  async function markCarSold(carId) {
+    const { error } = await sb.from('cars').update({ sold: true }).eq('id', carId);
+    if (!error) { await init(); showResults(); }
+  }
+
+  document.querySelectorAll('#fCondition, #fRegion, #fPaymentType, #fFuel, #fTransmission, #fDriveType, #fDoors, #fOwnersCount, #fSort, #fColor, #fYearFrom, #fYearTo, #fPriceFrom, #fPriceTo, #fMileageFrom, #fMileageTo, #fEngineFrom, #fEngineTo, #fPowerFrom, #fPowerTo, #fExchangePossible, #fCustomsCleared')
+    .forEach(el => el.addEventListener('input', updateCount));
+  document.querySelectorAll('.fCurrencyCb').forEach(el => el.addEventListener('change', updateCount));
+
+  init();
 </script>
 
 </body>

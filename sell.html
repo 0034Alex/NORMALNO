@@ -9,7 +9,11 @@
 <style>
   * { box-sizing: border-box; }
   body { font-family: Arial, sans-serif; background: #ffffff; margin: 0; padding: 20px; padding-bottom: 60px; }
-  .logo { text-align: center; font-size: 22px; font-weight: bold; color: #8E00FF; margin-bottom: 20px; }
+  .logo { text-align: center; font-size: 22px; font-weight: bold; color: #8E00FF; margin-bottom: 16px; }
+  .status-panel {
+    background: #f5e6ff; border-radius: 12px; padding: 14px; margin-bottom: 20px; font-size: 13px; color: #555;
+  }
+  .status-panel b { color: #8E00FF; }
   h2 { font-size: 15px; color: #666; margin: 20px 0 8px; }
   input, select, textarea {
     width: 100%; padding: 14px; margin-bottom: 10px; border: 1px solid #ddd;
@@ -33,6 +37,8 @@
 
 <a href="index.html" class="back">&larr; Назад на головну</a>
 <div class="logo">Продати авто</div>
+
+<div class="status-panel" id="statusPanel">Завантаження статусу...</div>
 
 <h2>Тип</h2>
 <select id="condition">
@@ -150,17 +156,48 @@
   const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwenZncXlqdHFvZnRoYnBrZHNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMTEwNjEsImV4cCI6MjEwMTU4NzA2MX0.jbbpKpHaD6S9SJMIbxcwb12ggBCv44J_-s4OQ8ESNfA';
   const sb = window.supabase.createClient(supabaseUrl, supabaseKey);
 
+  populateBrandSelect(document.getElementById('brand'));
+  populateRegionSelect(document.getElementById('region'), 'Регіон — оберіть');
+
+  function onBrandChange() {
+    const brand = document.getElementById('brand').value;
+    populateModelSelect(document.getElementById('model'), brand, 'Модель — оберіть');
+  }
+
   function onTransportTypeChange() {
     const transportType = document.getElementById('transportType').value;
     populateBodyTypeSelect(document.getElementById('bodyType'), transportType, 'Тип кузова — оберіть');
   }
 
-  populateBrandSelect(document.getElementById('brand'));
-  populateRegionSelect(document.getElementById('region'), 'Регіон — оберіть');
+  async function loadStatusPanel() {
+    const panel = document.getElementById('statusPanel');
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { window.location.href = 'register2.html'; return; }
 
-  async function onBrandChange() {
-    const brand = document.getElementById('brand').value;
-    await populateModelSelect(document.getElementById('model'), brand, 'Модель — оберіть');
+    const { count: soldCount } = await sb
+      .from('cars').select('*', { count: 'exact', head: true })
+      .eq('user_id', session.user.id).eq('sold', true);
+
+    const status = getStatusForCount(soldCount || 0);
+
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
+    const { count: monthCount } = await sb
+      .from('cars').select('*', { count: 'exact', head: true })
+      .eq('user_id', session.user.id)
+      .gte('created_at', startOfMonth.toISOString());
+
+    const used = monthCount || 0;
+
+    if (status.name === 'Автосалон') {
+      panel.innerHTML = `Ваш статус: <b>${status.name}</b>. Індивідуальні пакети — зверніться до модератора.`;
+    } else {
+      const left = Math.max(status.freeQuota - used, 0);
+      panel.innerHTML = `Ваш статус: <b>${status.name}</b>. Використано ${used} з ${status.freeQuota} безкоштовних оголошень цього місяця` +
+        (left > 0 ? ` (залишилось ${left}).` : `. Наступне оголошення — <b>$${status.extraPrice}</b> (оплата поки не стягується).`);
+    }
   }
 
   async function submitCar() {
@@ -220,6 +257,8 @@
     msg.style.color = 'green';
     setTimeout(() => { window.location.href = 'index.html'; }, 1200);
   }
+
+  loadStatusPanel();
 </script>
 
 </body>
