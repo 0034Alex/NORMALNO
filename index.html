@@ -198,9 +198,6 @@
   let currentUserId = null;
   let favoritedIds = new Set();
 
-  const TRANSMISSION_LABELS = { manual: 'Механіка', automatic: 'Автомат', variator: 'Варіатор' };
-  const FUEL_LABELS = { petrol: 'Бензин', diesel: 'Дизель', hybrid: 'Гібрид', gas: 'Газ', electric: 'Електро' };
-
   async function checkUserAndLoadStatus() {
     const { data: { session } } = await sb.auth.getSession();
     if (!session) { window.location.href = 'register2.html'; return; }
