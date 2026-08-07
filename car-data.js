@@ -92,3 +92,54 @@ function populateBodyTypeSelect(selectEl, transportType, placeholder) {
     types.map(t => `<option value="${t}">${t}</option>`).join('');
   selectEl.disabled = types.length === 0;
 }
+
+function timeAgo(dateStr) {
+  if (!dateStr) return '';
+  const diffMs = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return 'щойно';
+  if (mins < 60) return mins + ' хв тому';
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return hours + ' год тому';
+  const days = Math.floor(hours / 24);
+  if (days === 1) return 'вчора';
+  return days + ' дн тому';
+}
+
+const TRANSMISSION_LABELS = { manual: 'Механіка', automatic: 'Автомат', variator: 'Варіатор' };
+const FUEL_LABELS = { petrol: 'Бензин', diesel: 'Дизель', hybrid: 'Гібрид', gas: 'Газ', electric: 'Електро' };
+const CONDITION_LABELS = { new: 'Нове', used: 'Б/у', imported: 'Пригон' };
+
+function renderCarCard(car) {
+  const transmission = TRANSMISSION_LABELS[car.transmission] || '';
+  const fuel = FUEL_LABELS[car.fuel_type] || '';
+  const condition = CONDITION_LABELS[car.condition] || '';
+
+  const badges = [];
+  if (condition) badges.push(condition);
+  if (car.exchange_possible) badges.push('Можливий обмін');
+  if (car.customs_cleared) badges.push('Розмитнено');
+
+  return `
+    <div class="ncard">
+      <div class="ncard-photo">
+        ${car.photo_url ? `<img src="${car.photo_url}" onerror="this.style.display='none'">` : `<div class="ncard-noimg">🚗</div>`}
+        <div class="ncard-watermark">NORMALNO</div>
+        <div class="ncard-heart">♡</div>
+      </div>
+      <div class="ncard-body">
+        <div class="ncard-title">${car.brand} ${car.model}, ${car.year}</div>
+        <div class="ncard-subtitle">${[fuel, car.engine_volume ? car.engine_volume + ' л' : '', transmission].filter(Boolean).join(' · ')}</div>
+        <div class="ncard-price">${Number(car.price).toLocaleString('uk-UA')} ${car.currency || ''}</div>
+        <div class="ncard-specs">
+          <span>🛣️ ${car.mileage ? Number(car.mileage).toLocaleString('uk-UA') + ' км' : '—'}</span>
+          <span>⚙️ ${transmission || '—'}</span>
+          <span>⛽ ${fuel || '—'}</span>
+          <span>📍 ${car.region || '—'}</span>
+        </div>
+        ${badges.length ? `<div class="ncard-badges">${badges.map(b => `<span class="ncard-badge">${b}</span>`).join('')}</div>` : ''}
+        <div class="ncard-time">🕐 ${timeAgo(car.created_at)}</div>
+      </div>
+    </div>
+  `;
+}

@@ -6,6 +6,7 @@
 <title>NORMALNO — Головна</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="car-data.js"></script>
 <style>
   * { box-sizing: border-box; }
   body { font-family: Arial, sans-serif; background: #ffffff; margin: 0; padding-bottom: 80px; }
@@ -20,15 +21,30 @@
 
   .feed { padding: 0 16px; text-align: left; }
   .empty-feed { text-align: center; color: #999; margin-top: 40px; }
-  .car-card {
-    border: 1px solid #eee; border-radius: 12px; padding: 12px;
-    margin-bottom: 12px; display: flex; gap: 12px;
+
+  .ncard { border-radius: 14px; overflow: hidden; border: 1px solid #eee; margin-bottom: 16px; background: #fff; }
+  .ncard-photo { position: relative; width: 100%; aspect-ratio: 16/10; background: #f2f2f2; overflow: hidden; }
+  .ncard-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .ncard-noimg { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 40px; color: #ccc; }
+  .ncard-watermark {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-25deg);
+    font-size: 20px; font-weight: bold; color: rgba(255,255,255,0.55);
+    text-shadow: 0 0 6px rgba(0,0,0,0.35); letter-spacing: 2px; pointer-events: none;
   }
-  .car-card img { width: 90px; height: 70px; object-fit: cover; border-radius: 8px; background: #f5f5f5; }
-  .car-card .info { flex: 1; }
-  .car-card .title { font-weight: bold; font-size: 15px; margin-bottom: 4px; }
-  .car-card .price { color: #8E00FF; font-weight: bold; font-size: 16px; margin-bottom: 4px; }
-  .car-card .details { color: #999; font-size: 12px; }
+  .ncard-heart {
+    position: absolute; top: 10px; right: 10px; width: 34px; height: 34px; border-radius: 50%;
+    background: rgba(255,255,255,0.9); display: flex; align-items: center; justify-content: center;
+    font-size: 18px; color: #8E00FF;
+  }
+  .ncard-body { padding: 12px 14px 14px; }
+  .ncard-title { font-weight: bold; font-size: 16px; margin-bottom: 2px; }
+  .ncard-subtitle { color: #999; font-size: 12px; margin-bottom: 6px; }
+  .ncard-price { color: #8E00FF; font-weight: bold; font-size: 18px; margin-bottom: 8px; }
+  .ncard-specs { display: flex; flex-wrap: wrap; gap: 10px; font-size: 12px; color: #555; margin-bottom: 8px; }
+  .ncard-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+  .ncard-badge { background: #f5e6ff; color: #8E00FF; font-size: 11px; font-weight: bold; padding: 4px 10px; border-radius: 20px; }
+  .ncard-time { color: #bbb; font-size: 11px; }
+
 
   .bottom-nav {
     position: fixed; bottom: 0; left: 0; right: 0;
@@ -56,7 +72,7 @@
 
 <div class="search-wrap">
   <input type="text" class="search-input" placeholder="Марка авто">
-  <button class="search-btn" onclick="window.location.href='search.html'">Пошук за параметрами</button>
+  <button class="search-btn" onclick="alert('Сторінка пошуку за параметрами буде додана далі')">Пошук за параметрами</button>
 </div>
 
 <div class="feed" id="feed"></div>
@@ -128,16 +144,7 @@
       return;
     }
 
-    feed.innerHTML = cars.map(car => `
-      <div class="car-card">
-        <img src="${car.photo_url || ''}" onerror="this.style.display='none'">
-        <div class="info">
-          <div class="title">${car.brand} ${car.model}, ${car.year}</div>
-          <div class="price">${car.price} ${car.currency}</div>
-          <div class="details">${car.mileage ? car.mileage + ' км' : ''} ${car.region ? '· ' + car.region : ''}</div>
-        </div>
-      </div>
-    `).join('');
+    feed.innerHTML = cars.map(car => renderCarCard(car)).join('');
   }
 
   checkUserAndLoadProfile();
