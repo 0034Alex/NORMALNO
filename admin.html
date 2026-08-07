@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NORMALNO — Адмінка</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; background: #fff; margin: 0; padding: 20px; }
+  .logo { font-size: 20px; font-weight: bold; color: #8E00FF; margin-bottom: 4px; }
+  .role-badge { display: inline-block; background: #f5e6ff; color: #8E00FF; font-size: 12px; font-weight: bold; padding: 4px 10px; border-radius: 20px; margin-bottom: 20px; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+  .tab { padding: 10px 16px; border-radius: 20px; border: 1px solid #ddd; cursor: pointer; font-size: 13px; color: #666; }
+  .tab.active { background: #8E00FF; color: #fff; border-color: #8E00FF; }
+  .lead-card { border: 1px solid #eee; border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+  .lead-type { font-size: 11px; font-weight: bold; color: #FF7A00; text-transform: uppercase; margin-bottom: 6px; }
+  .lead-name { font-weight: bold; font-size: 15px; margin-bottom: 4px; }
+  .lead-phone { color: #8E00FF; font-weight: bold; margin-bottom: 6px; }
+  .lead-details { font-size: 13px; color: #555; margin-bottom: 10px; white-space: pre-wrap; }
+  .lead-time { font-size: 11px; color: #bbb; margin-bottom: 10px; }
+  .status-row { display: flex; gap: 8px; }
+  .status-btn { flex: 1; padding: 8px; border-radius: 8px; border: 1px solid #ddd; background: #fff; font-size: 12px; cursor: pointer; }
+  .status-btn.active-new { background: #fff4e0; border-color: #cc7a00; color: #cc7a00; }
+  .status-btn.active-progress { background: #e0f0ff; border-color: #0066cc; color: #0066cc; }
+  .status-btn.active-closed { background: #eafbe9; border-color: #1a8f2a; color: #1a8f2a; }
+  .empty { text-align: center; color: #999; margin-top: 40px; }
+  .denied { text-align: center; margin-top: 60px; color: #999; }
+</style>
+</head>
+<body>
+
+<div id="content">Завантаження...</div>
+
+<script>
+  const supabaseUrl = 'https://ipzvgqyjtqofthbpkdsd.supabase.co';
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwenZncXlqdHFvZnRoYnBrZHNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMTEwNjEsImV4cCI6MjEwMTU4NzA2MX0.jbbpKpHaD6S9SJMIbxcwb12ggBCv44J_-s4OQ8ESNfA';
+  const sb = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+  let allLeads = [];
+  let currentFilter = 'all';
+
+  const TYPE_LABELS = { trade_in: 'Trade-in', car_selection: 'Підбір авто' };
+  const STATUS_LABELS = { new: 'Нова', in_progress: 'В роботі', closed: 'Закрита' };
+
+  function timeAgo(dateStr) {
+    const diffMs = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diffMs / 60000);
+    if (mins < 60) return mins + ' хв тому';
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return hours + ' год тому';
+    return Math.floor(hours / 24) + ' дн тому';
+  }
+
+  async function init() {
+    const { data: { session } } = await sb.auth.getSession();
+    const content = document.getElementById('content');
+
+    if (!session) {
+      window.location.href = 'register2.html';
+      return;
+    }
+
+    const { data: adminRow } = await sb.from('admin_users').select('role').eq('user_id', session.user.id).single();
+
+    if (!adminRow) {
+      content.innerHTML = '<div class="denied">У вас немає доступу до цього розділу</div>';
+      return;
+    }
+
+    content.innerHTML = `
+      <div class="logo">Адмін-панель</div>
+      <div class="role-badge">${adminRow.role === 'owner' ? 'Власник' : 'Менеджер'}</div>
+      <div class="tabs">
+        <div class="tab active" id="tabAll" onclick="setFilter('all')">Всі</div>
+        <div class="tab" id="tabNew" onclick="setFilter('new')">Нові</div>
+        <div class="tab" id="tabProgress" onclick="setFilter('in_progress')">В роботі</div>
+        <div class="tab" id="tabClosed" onclick="setFilter('closed')">Закриті</div>
+      </div>
+      <div id="leadsList"></div>
+    `;
+
+    await loadLeads();
+  }
+
+  async function loadLeads() {
+    const { data: leads } = await sb.from('leads').select('*').order('created_at', { ascending: false });
+    allLeads = leads || [];
+    render();
+  }
+
+  function setFilter(filter) {
+    currentFilter = filter;
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    ({ all: 'tabAll', new: 'tabNew', in_progress: 'tabProgress', closed: 'tabClosed' });
+    document.getElementById({ all: 'tabAll', new: 'tabNew', in_progress: 'tabProgress', closed: 'tabClosed' }[filter]).classList.add('active');
+    render();
+  }
+
+  function render() {
+    const list = document.getElementById('leadsList');
+    const filtered = currentFilter === 'all' ? allLeads : allLeads.filter(l => l.status === currentFilter);
+
+    if (filtered.length === 0) {
+      list.innerHTML = '<div class="empty">Заявок немає</div>';
+      return;
+    }
+
+    list.innerHTML = filtered.map(lead => `
+      <div class="lead-card">
+        <div class="lead-type">${TYPE_LABELS[lead.type] || lead.type}</div>
+        <div class="lead-name">${lead.name || '—'}</div>
+        <div class="lead-phone">${lead.phone || '—'}</div>
+        ${lead.budget ? `<div class="lead-details">Бюджет: ${lead.budget}</div>` : ''}
+        ${lead.payment_type ? `<div class="lead-details">Оплата: ${lead.payment_type}</div>` : ''}
+        ${lead.region ? `<div class="lead-details">Регіон: ${lead.region}</div>` : ''}
+        <div class="lead-details">${lead.details || ''}</div>
+        <div class="lead-time">${timeAgo(lead.created_at)}</div>
+        <div class="status-row">
+          <button class="status-btn ${lead.status === 'new' ? 'active-new' : ''}" onclick="updateStatus(${lead.id}, 'new')">Нова</button>
+          <button class="status-btn ${lead.status === 'in_progress' ? 'active-progress' : ''}" onclick="updateStatus(${lead.id}, 'in_progress')">В роботі</button>
+          <button class="status-btn ${lead.status === 'closed' ? 'active-closed' : ''}" onclick="updateStatus(${lead.id}, 'closed')">Закрита</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  async function updateStatus(leadId, status) {
+    await sb.from('leads').update({ status }).eq('id', leadId);
+    await loadLeads();
+  }
+
+  init();
+</script>
+
+</body>
+</html>

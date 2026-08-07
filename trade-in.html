@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NORMALNO — Trade-in</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="car-data.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; background: #fff; margin: 0; padding: 20px; }
+  .back { color: #FF7A00; text-decoration: none; font-size: 14px; display: inline-block; margin-bottom: 10px; }
+  .logo { text-align: center; font-size: 20px; font-weight: bold; color: #8E00FF; margin-bottom: 8px; }
+  .subtitle { text-align: center; color: #999; font-size: 13px; margin-bottom: 20px; }
+  input, select, textarea {
+    width: 100%; padding: 14px; margin-bottom: 10px; border: 1px solid #ddd;
+    border-radius: 10px; font-size: 15px; font-family: Arial, sans-serif;
+  }
+  textarea { min-height: 80px; resize: vertical; }
+  button.main {
+    width: 100%; padding: 15px; background: #8E00FF; color: white; border: none;
+    border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px;
+  }
+  .msg { text-align: center; margin-top: 12px; font-size: 14px; }
+</style>
+</head>
+<body>
+
+<a href="index.html" class="back">&larr; Назад на головну</a>
+<div class="logo">🔄 Обмін авто (Trade-in)</div>
+<div class="subtitle">Розкажіть про своє авто — наш менеджер зв'яжеться з вами</div>
+
+<input type="text" id="name" placeholder="Ваше ім'я">
+<input type="tel" id="phone" placeholder="Номер телефону">
+<select id="brand"></select>
+<select id="model" disabled></select>
+<div style="display:flex; gap:10px;">
+  <input type="number" id="year" placeholder="Рік випуску" style="flex:1;">
+  <input type="number" id="mileage" placeholder="Пробіг, км" style="flex:1;">
+</div>
+<select id="condition">
+  <option value="">Стан авто — оберіть</option>
+  <option value="new">Відмінний</option>
+  <option value="used">Хороший</option>
+  <option value="imported">Потребує ремонту</option>
+</select>
+<textarea id="comment" placeholder="Додаткові побажання (наприклад, яке авто хочете отримати натомість)"></textarea>
+
+<button class="main" onclick="submitLead()">Надіслати заявку</button>
+<div class="msg" id="msg"></div>
+
+<script>
+  const supabaseUrl = 'https://ipzvgqyjtqofthbpkdsd.supabase.co';
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwenZncXlqdHFvZnRoYnBrZHNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMTEwNjEsImV4cCI6MjEwMTU4NzA2MX0.jbbpKpHaD6S9SJMIbxcwb12ggBCv44J_-s4OQ8ESNfA';
+  const sb = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+  populateBrandSelect(document.getElementById('brand'));
+
+  document.getElementById('brand').addEventListener('change', async function() {
+    await populateModelSelect(document.getElementById('model'), this.value, 'Модель — оберіть');
+  });
+
+  async function submitLead() {
+    const msg = document.getElementById('msg');
+    const { data: { session } } = await sb.auth.getSession();
+
+    const name = document.getElementById('name').value;
+    const phone = document.getElementById('phone').value;
+
+    if (!name || !phone) {
+      msg.textContent = 'Заповніть ім\'я та телефон';
+      msg.style.color = 'red';
+      return;
+    }
+
+    const details = `Авто: ${document.getElementById('brand').value} ${document.getElementById('model').value}, ${document.getElementById('year').value || '—'} рік, ${document.getElementById('mileage').value || '—'} км. Стан: ${document.getElementById('condition').value || '—'}. Коментар: ${document.getElementById('comment').value || '—'}`;
+
+    const { error } = await sb.from('leads').insert({
+      type: 'trade_in',
+      user_id: session ? session.user.id : null,
+      name: name,
+      phone: phone,
+      details: details
+    });
+
+    if (error) {
+      msg.textContent = error.message;
+      msg.style.color = 'red';
+      return;
+    }
+
+    fetch('/api/notify-lead', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ leadType: 'trade_in', name, phone, summary: details })
+    }).catch(() => {});
+
+    msg.textContent = 'Дякуємо! Менеджер зв\'яжеться з вами найближчим часом.';
+    msg.style.color = 'green';
+  }
+</script>
+
+</body>
+</html>
