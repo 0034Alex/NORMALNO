@@ -113,15 +113,6 @@
     <option value="UAH">грн</option>
   </select>
 </div>
-<select id="paymentType">
-  <option value="">Тип оплати — оберіть</option>
-  <option value="cash">Готівка</option>
-  <option value="credit">Кредит</option>
-  <option value="leasing">Лізинг</option>
-  <option value="installment">Розстрочка</option>
-  <option value="transfer">Переказ на рахунок</option>
-  <option value="tradein">Трейд-ін</option>
-</select>
 
 <h2>Характеристики</h2>
 <select id="fuelType">
@@ -324,7 +315,6 @@
       transport_type: document.getElementById('transportType').value,
       drive_type: document.getElementById('driveType').value,
       engine_volume: parseFloat(document.getElementById('engineVolume').value) || null,
-      payment_type: document.getElementById('paymentType').value,
       condition: document.getElementById('condition').value,
       color: document.getElementById('color').value,
       power_hp: parseInt(document.getElementById('powerHp').value) || null,

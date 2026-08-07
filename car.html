@@ -105,14 +105,13 @@
       ['Пробіг', car.mileage ? Number(car.mileage).toLocaleString('uk-UA') + ' км' : '—'],
       ['Коробка', TRANSMISSION_LABELS2[car.transmission] || '—'],
       ['Паливо', FUEL_LABELS2[car.fuel_type] || '—'],
-      ['Об\\'єм двигуна', car.engine_volume ? car.engine_volume + ' л' : '—'],
+      ["Об'єм двигуна", car.engine_volume ? car.engine_volume + ' л' : '—'],
       ['Потужність', car.power_hp ? car.power_hp + ' к.с.' : '—'],
       ['Привід', DRIVE_LABELS[car.drive_type] || '—'],
       ['Кузов', car.body_type || '—'],
       ['Колір', car.color || '—'],
       ['Дверей', car.doors || '—'],
-      ['Регіон', car.region || '—'],
-      ['Оплата', PAYMENT_LABELS[car.payment_type] || '—']
+      ['Регіон', car.region || '—']
     ];
 
     const isOwn = currentUserId && car.user_id === currentUserId;
