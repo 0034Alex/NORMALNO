@@ -211,13 +211,22 @@
     favoritedIds = new Set((favs || []).map(f => f.car_id));
   }
 
+  function shuffle(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
   async function loadCars() {
     const { data: cars } = await sb.from('cars').select('*').neq('listing_type', 'auction').order('created_at', { ascending: false });
     allCars = cars || [];
-    renderHCards(allCars.slice(0, 12));
+    renderHCards(shuffle(allCars.filter(c => c.is_hot)));
     renderFullFeed(allCars);
   }
-  // hcards (Гарячі пропозиції) завжди показують топ-12 останніх, не залежать від фільтрів чипсів/пошуку
+  // hcards (Гарячі пропозиції) показують лише is_hot=true, у випадковому порядку
 
   function renderFullFeed(cars) {
     const el = document.getElementById('fullFeed');

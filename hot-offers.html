@@ -68,10 +68,10 @@
       favoritedIds = new Set((favs || []).map(f => f.car_id));
     }
 
-    let query = sb.from('cars').select('*').neq('listing_type', 'auction').order('created_at', { ascending: false });
-    
+    let query = sb.from('cars').select('*').neq('listing_type', 'auction').eq('is_hot', true);
 
-    const { data: cars } = await query;
+    const { data: rawCars } = await query;
+    const cars = rawCars ? [...rawCars].sort(() => Math.random() - 0.5) : rawCars;
     const feed = document.getElementById('feed');
 
     if (!cars || cars.length === 0) {
