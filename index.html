@@ -161,7 +161,6 @@
 <body>
 
 <div class="topbar">
-  <div class="status" id="statusBadge">...</div>
   <div class="logo">NORMALNO</div>
   <div class="install-badges">
     <div class="install-badge" id="installApple" onclick="showAppleInstructions()">
@@ -282,10 +281,6 @@
     const { data: { session } } = await sb.auth.getSession();
     if (!session) { window.location.href = 'register2.html'; return; }
     currentUserId = session.user.id;
-
-    const { count } = await sb.from('cars').select('*', { count: 'exact', head: true })
-      .eq('user_id', currentUserId).eq('sold', true);
-    document.getElementById('statusBadge').textContent = getStatusForCount(count || 0).name;
 
     const { data: favs } = await sb.from('favorites').select('car_id').eq('user_id', currentUserId);
     favoritedIds = new Set((favs || []).map(f => f.car_id));
