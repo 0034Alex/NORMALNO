@@ -98,7 +98,6 @@
   <div class="tab active" id="tabActive" onclick="setTab('active')">Активні</div>
   <div class="tab" id="tabMyBids" onclick="setTab('myBids')">Мої ставки</div>
   <div class="tab" id="tabFav" onclick="setTab('fav')">Обране</div>
-  <div class="tab" id="tabEnded" onclick="setTab('ended')">Завершені</div>
 </div>
 
 <div id="activeContent">
@@ -322,7 +321,7 @@
   }
 
   function setTab(tab) {
-    ['tabActive', 'tabMyBids', 'tabFav', 'tabEnded'].forEach(id => document.getElementById(id) && document.getElementById(id).classList.remove('active'));
+    ['tabActive', 'tabMyBids', 'tabFav'].forEach(id => document.getElementById(id) && document.getElementById(id).classList.remove('active'));
     document.getElementById('activeContent').classList.add('hidden');
     document.getElementById('myBidsContent').classList.add('hidden');
     document.getElementById('favContent').classList.add('hidden');
@@ -342,7 +341,6 @@
       document.getElementById('favContent').classList.remove('hidden');
       renderFavTab();
     } else if (tab === 'ended') {
-      document.getElementById('tabEnded').classList.add('active');
       document.getElementById('endedContent').classList.remove('hidden');
       renderEndedFull();
     } else if (tab === 'closingSoon') {
