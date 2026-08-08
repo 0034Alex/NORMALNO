@@ -23,5 +23,13 @@
   Розділ з відповідями на часті запитання наповнюється.
 </div>
 
+<script>
+  if (window.Telegram && window.Telegram.WebApp) {
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+    if (tg.disableVerticalSwipes) tg.disableVerticalSwipes();
+    if (tg.requestFullscreen) { try { tg.requestFullscreen(); } catch (e) {} }
+  }
+</script>
 </body>
 </html>

@@ -23,5 +23,13 @@
   NORMALNO — маркетплейс авто в лізинг.<br>Версія 1.0.0
 </div>
 
+<script>
+  if (window.Telegram && window.Telegram.WebApp) {
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+    if (tg.disableVerticalSwipes) tg.disableVerticalSwipes();
+    if (tg.requestFullscreen) { try { tg.requestFullscreen(); } catch (e) {} }
+  }
+</script>
 </body>
 </html>

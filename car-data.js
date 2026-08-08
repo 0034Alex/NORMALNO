@@ -275,3 +275,15 @@ function calcLeasing(priceUAH, months) {
 
   return { downPayment, monthlyPayment, totalPayment, financed };
 }
+
+/* ---------- Telegram Mini App: повноекранний режим ---------- */
+(function initTelegramFullscreen() {
+  if (window.Telegram && window.Telegram.WebApp) {
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+    if (tg.disableVerticalSwipes) tg.disableVerticalSwipes();
+    if (tg.requestFullscreen) {
+      try { tg.requestFullscreen(); } catch (e) {}
+    }
+  }
+})();
