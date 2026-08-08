@@ -42,6 +42,7 @@
   .apple-step { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-top: 1px solid #f5f5f5; font-size: 14px; }
   .apple-step:first-of-type { border-top: none; }
   .apple-step-num { background: #8E00FF; color: #fff; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; flex-shrink: 0; }
+  .share-icon-demo { display: inline-flex; vertical-align: middle; margin-left: 4px; }
 
   .search-wrap { padding: 0 16px; }
   .search-row { display: flex; gap: 8px; margin-bottom: 10px; }
@@ -164,7 +165,13 @@
   <div class="logo">NORMALNO</div>
   <div class="install-badges">
     <div class="install-badge" id="installApple" onclick="showAppleInstructions()">
-      <span class="install-icon"></span>
+      <span class="install-icon">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/>
+          <path d="M12 3v12"/>
+          <path d="M8 7l4-4 4 4"/>
+        </svg>
+      </span>
       <span class="install-text"><small>Завантажити</small>App Store</span>
     </div>
     <div class="install-badge" id="installAndroid" onclick="installAndroid()">
@@ -178,7 +185,16 @@
   <div class="modal-sheet">
     <button type="button" class="modal-close" onclick="closeAppleInstructions()">✕</button>
     <div style="font-size:17px; font-weight:bold; margin-bottom:14px;">Встановлення на iPhone</div>
-    <div class="apple-step"><span class="apple-step-num">1</span> Натисніть на значок <b>"Поділитись"</b> внизу екрана Safari <span style="font-size:18px;">⬆️</span></div>
+    <div class="apple-step">
+      <span class="apple-step-num">1</span> Натисніть на значок <b>"Поділитись"</b> внизу екрана Safari
+      <span class="share-icon-demo">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#8E00FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/>
+          <path d="M12 3v12"/>
+          <path d="M8 7l4-4 4 4"/>
+        </svg>
+      </span>
+    </div>
     <div class="apple-step"><span class="apple-step-num">2</span> Оберіть <b>"На екран «Домой»"</b> в списку, що з'явиться</div>
     <div class="apple-step"><span class="apple-step-num">3</span> Натисніть <b>"Додати"</b> — готово!</div>
     <div style="font-size:12px; color:#999; margin-top:14px;">Це обмеження самого Apple — сайти не можуть відкрити це меню автоматично.</div>
