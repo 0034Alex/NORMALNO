@@ -13,6 +13,10 @@
 
   .photo { position: relative; width: 100%; aspect-ratio: 16/10; background: #f2f2f2; border-radius: 14px; overflow: hidden; margin-bottom: 14px; }
   .photo img { width: 100%; height: 100%; object-fit: cover; }
+  .photo-scroll { display: flex; overflow-x: auto; width: 100%; height: 100%; scroll-snap-type: x mandatory; }
+  .photo-scroll img { flex: 0 0 100%; width: 100%; height: 100%; object-fit: cover; scroll-snap-align: start; }
+  .photo-dots { position: absolute; bottom: 12px; left: 0; right: 0; display: flex; justify-content: center; gap: 6px; pointer-events: none; }
+  .photo-dots span { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.7); box-shadow: 0 0 3px rgba(0,0,0,0.4); }
   .noimg { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 50px; color: #ccc; }
   .badge-condition { position: absolute; top: 12px; left: 12px; background: #8E00FF; color: #fff; font-size: 12px; font-weight: bold; padding: 6px 12px; border-radius: 20px; }
   .badge-timer { position: absolute; top: 12px; right: 12px; background: rgba(0,0,0,0.65); color: #fff; font-size: 14px; font-weight: bold; padding: 6px 12px; border-radius: 20px; }
@@ -34,8 +38,8 @@
   .status-msg.sold { background: #eafbe9; color: #1a8f2a; }
 
   .bid-form { display: flex; gap: 8px; margin-top: 10px; }
-  .bid-form input { flex: 1; padding: 14px; border: 1px solid #ddd; border-radius: 10px; font-size: 15px; }
-  .bid-form button { background: #8E00FF; color: #fff; border: none; border-radius: 10px; padding: 0 20px; font-weight: bold; font-size: 15px; cursor: pointer; }
+  .bid-form input { flex: 1; min-width: 0; padding: 14px; border: 1px solid #ddd; border-radius: 10px; font-size: 15px; box-sizing: border-box; }
+  .bid-form button { flex-shrink: 0; background: #8E00FF; color: #fff; border: none; border-radius: 10px; padding: 0 16px; font-weight: bold; font-size: 14px; cursor: pointer; }
   .buyout-btn { width: 100%; margin-top: 10px; padding: 14px; background: #FF7A00; color: #fff; border: none; border-radius: 10px; font-weight: bold; font-size: 15px; cursor: pointer; }
 
   .msg { text-align: center; margin-top: 10px; font-size: 13px; }
@@ -116,7 +120,12 @@
     document.getElementById('description').textContent = car.description || '';
 
     const photoWrap = document.getElementById('photoWrap');
-    photoWrap.innerHTML = (car.photo_url ? `<img src="${car.photo_url}">` : `<div class="noimg">🚗</div>`) +
+    const photos = carPhotos(car);
+    const photoHtml = photos.length
+      ? `<div class="photo-scroll">${photos.map(p => `<img src="${p}" onerror="this.style.display='none'">`).join('')}</div>` +
+        (photos.length > 1 ? `<div class="photo-dots">${photos.map(() => '<span></span>').join('')}</div>` : '')
+      : `<div class="noimg">🚗</div>`;
+    photoWrap.innerHTML = photoHtml +
       `<div class="badge-condition">${CONDITION_LABELS[car.condition] || 'Стан невідомий'}</div>` +
       `<div class="badge-timer" id="timerBadge"></div>`;
 
