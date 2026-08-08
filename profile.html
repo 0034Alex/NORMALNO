@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NORMALNO — Профіль</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="car-data.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; background: #fff; margin: 0; padding: 16px; padding-bottom: 90px; }
+  .title { font-size: 24px; font-weight: bold; color: #8E00FF; margin-bottom: 20px; }
+
+  .profile-head { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
+  .avatar { width: 64px; height: 64px; border-radius: 50%; background: #f5e6ff; color: #8E00FF; display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: bold; flex-shrink: 0; }
+  .profile-info { flex: 1; min-width: 0; }
+  .profile-name { font-size: 18px; font-weight: bold; margin-bottom: 4px; }
+  .profile-contact { font-size: 13px; color: #999; }
+
+  .status-panel { background: #f5e6ff; border-radius: 14px; padding: 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 14px; }
+  .status-text { flex: 1; }
+  .status-level { font-weight: bold; color: #8E00FF; font-size: 15px; margin-bottom: 2px; }
+  .status-hint { font-size: 12px; color: #666; margin-bottom: 8px; }
+  .status-bar { height: 6px; background: #e5cfff; border-radius: 4px; overflow: hidden; }
+  .status-bar-fill { height: 100%; background: #8E00FF; }
+  .status-hex { width: 44px; height: 44px; border-radius: 12px; background: #8E00FF; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px; flex-shrink: 0; }
+
+  .actions-title { font-size: 15px; font-weight: bold; margin-bottom: 12px; }
+  .actions-grid { display: flex; gap: 10px; margin-bottom: 24px; }
+  .action-btn { flex: 1; text-align: center; cursor: pointer; position: relative; }
+  .action-icon { width: 52px; height: 52px; border-radius: 16px; background: #f5e6ff; display: flex; align-items: center; justify-content: center; font-size: 22px; margin: 0 auto 6px; }
+  .action-label { font-size: 11px; font-weight: bold; color: #333; }
+  .action-badge { position: absolute; top: -4px; right: 10px; background: #8E00FF; color: #fff; font-size: 10px; font-weight: bold; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+
+  .section-box { border: 1px solid #eee; border-radius: 14px; margin-bottom: 16px; overflow: hidden; }
+  .section-title { font-size: 14px; font-weight: bold; padding: 14px 16px 8px; color: #333; }
+  .row-link { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-top: 1px solid #f5f5f5; cursor: pointer; }
+  .row-icon { font-size: 16px; color: #8E00FF; width: 20px; }
+  .row-label { flex: 1; font-size: 14px; }
+  .row-extra { font-size: 12px; color: #999; }
+  .row-arrow { color: #ccc; }
+
+  .logout-btn { width: 100%; padding: 14px; background: #fff0f0; color: #cc0000; border: none; border-radius: 12px; font-weight: bold; font-size: 14px; cursor: pointer; }
+
+  .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; display: flex; background: white; border-top: 1px solid #eee; padding: 8px 0; }
+  .nav-item { flex: 1; text-align: center; padding: 8px 0; cursor: pointer; color: #999; font-size: 11px; position: relative; }
+  .nav-item .icon { font-size: 20px; display: block; margin-bottom: 2px; }
+  .nav-item.active { color: #8E00FF; font-weight: bold; }
+  .nav-item.active::before { content: ''; position: absolute; top: -8px; left: 20%; right: 20%; height: 3px; background: #FF7A00; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="title">Профіль</div>
+
+<div class="profile-head">
+  <div class="avatar" id="avatarLetter">?</div>
+  <div class="profile-info">
+    <div class="profile-name" id="profileName">Завантаження...</div>
+    <div class="profile-contact" id="profileEmail"></div>
+    <div class="profile-contact" id="profilePhone"></div>
+  </div>
+</div>
+
+<div class="status-panel">
+  <div class="status-text">
+    <div class="status-level">Ваш рівень: <span id="statusName">...</span></div>
+    <div class="status-hint" id="statusHint">Розміщуйте авто, продавайте та підвищуйте рівень</div>
+    <div class="status-bar"><div class="status-bar-fill" id="statusBarFill" style="width:0%"></div></div>
+  </div>
+  <div class="status-hex" id="statusHex">1</div>
+</div>
+
+<div class="actions-title">Мої дії</div>
+<div class="actions-grid">
+  <div class="action-btn" onclick="window.location.href='auction.html?tab=myBids'">
+    <div class="action-icon">🔨</div>
+    <div class="action-label">Мої ставки</div>
+  </div>
+  <div class="action-btn" onclick="window.location.href='favorites.html'">
+    <div class="action-icon">❤️</div>
+    <div class="action-label">Обране</div>
+  </div>
+  <div class="action-btn" onclick="window.location.href='my-listings.html'">
+    <div class="action-icon">📋</div>
+    <div class="action-label">Мої оголошення</div>
+  </div>
+</div>
+
+<div class="section-box">
+  <div class="section-title">Особиста інформація</div>
+  <div class="row-link" onclick="window.location.href='personal-info.html'">
+    <span class="row-icon">👤</span><span class="row-label">Особисті дані</span><span class="row-arrow">›</span>
+  </div>
+  <div class="row-link" onclick="window.location.href='verification.html'">
+    <span class="row-icon">🛡️</span><span class="row-label">Верифікація</span><span class="row-arrow">›</span>
+  </div>
+  <div class="row-link" onclick="window.location.href='payment-methods.html'">
+    <span class="row-icon">💳</span><span class="row-label">Платіжні методи</span><span class="row-arrow">›</span>
+  </div>
+</div>
+
+<div class="section-box">
+  <div class="section-title">Допомога та підтримка</div>
+  <div class="row-link" onclick="window.location.href='support.html'">
+    <span class="row-icon">❓</span><span class="row-label">Підтримка</span><span class="row-arrow">›</span>
+  </div>
+  <div class="row-link" onclick="window.location.href='faq.html'">
+    <span class="row-icon">📖</span><span class="row-label">FAQ</span><span class="row-arrow">›</span>
+  </div>
+  <div class="row-link" onclick="window.location.href='about.html'">
+    <span class="row-icon">ℹ️</span><span class="row-label">Про додаток</span><span class="row-extra">v1.0.0</span><span class="row-arrow">›</span>
+  </div>
+</div>
+
+<button class="logout-btn" onclick="logout()">⏻ Вийти з акаунту</button>
+
+<div class="bottom-nav">
+  <div class="nav-item" onclick="window.location.href='index.html'"><span class="icon">🏠</span>Головна</div>
+  <div class="nav-item" onclick="window.location.href='auction.html'"><span class="icon">🔨</span>Аукціон</div>
+  <div class="nav-item" onclick="window.location.href='sell.html'"><span class="icon">➕</span>Продати</div>
+  <div class="nav-item" onclick="window.location.href='favorites.html'"><span class="icon">❤️</span>Обране</div>
+  <div class="nav-item active"><span class="icon">👤</span>Профіль</div>
+</div>
+
+<script>
+  const supabaseUrl = 'https://ipzvgqyjtqofthbpkdsd.supabase.co';
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwenZncXlqdHFvZnRoYnBrZHNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMTEwNjEsImV4cCI6MjEwMTU4NzA2MX0.jbbpKpHaD6S9SJMIbxcwb12ggBCv44J_-s4OQ8ESNfA';
+  const sb = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+  async function load() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { window.location.href = 'register2.html'; return; }
+
+    const { data: profile } = await sb.from('profiles').select('name, phone, telegram_username').eq('user_id', session.user.id).maybeSingle();
+
+    const displayName = (profile && profile.name) ? profile.name : ((profile && profile.telegram_username) ? '@' + profile.telegram_username : 'Без імені');
+    document.getElementById('profileName').textContent = displayName;
+    document.getElementById('avatarLetter').textContent = displayName.charAt(0).toUpperCase();
+    document.getElementById('profileEmail').textContent = session.user.email || '';
+    document.getElementById('profilePhone').textContent = (profile && profile.phone) ? profile.phone : '';
+
+    const { count } = await sb.from('cars').select('*', { count: 'exact', head: true }).eq('user_id', session.user.id).eq('sold', true);
+    const soldCount = count || 0;
+    const status = getStatusForCount(soldCount);
+    document.getElementById('statusName').textContent = status.name;
+    document.getElementById('statusHex').textContent = STATUS_TIERS.indexOf(status) + 1;
+
+    if (status.max === Infinity) {
+      document.getElementById('statusHint').textContent = 'Максимальний рівень досягнуто!';
+      document.getElementById('statusBarFill').style.width = '100%';
+    } else {
+      const nextThreshold = status.max + 1;
+      const progress = Math.min(100, Math.round((soldCount / nextThreshold) * 100));
+      document.getElementById('statusHint').textContent = `Продайте ще ${Math.max(nextThreshold - soldCount, 0)} авто до наступного рівня`;
+      document.getElementById('statusBarFill').style.width = progress + '%';
+    }
+
+    const { count: bidsCount } = await sb.from('bids').select('*', { count: 'exact', head: true }).eq('user_id', session.user.id);
+    const { count: favCount } = await sb.from('favorites').select('*', { count: 'exact', head: true }).eq('user_id', session.user.id);
+  }
+
+  async function logout() {
+    await sb.auth.signOut();
+    window.location.href = 'register2.html';
+  }
+
+  load();
+</script>
+
+</body>
+</html>

@@ -89,6 +89,7 @@
   const carId = params.get('id');
 
   let car = null;
+  const leaderNamesCache = {};
   let currentUserId = null;
   let timerInterval = null;
 
@@ -134,7 +135,14 @@
     const bid = car.current_bid || car.start_price || 0;
     const uah = convertToUAH(bid, car.currency);
     document.getElementById('currentBid').textContent = `${Number(bid).toLocaleString('uk-UA')} ${car.currency}` + (uah ? ` (≈${uah.toLocaleString('uk-UA')} грн)` : '');
-    document.getElementById('leaderName').textContent = car.current_bid_user_id ? 'учасник #' + car.current_bid_user_id.slice(0, 6) : '—';
+    document.getElementById('leaderName').textContent = car.current_bid_user_id ? (leaderNamesCache[car.current_bid_user_id] || 'учасник') : '—';
+    if (car.current_bid_user_id && !leaderNamesCache[car.current_bid_user_id]) {
+      sb.from('profiles').select('name, telegram_username').eq('user_id', car.current_bid_user_id).maybeSingle().then(({ data: p }) => {
+        leaderNamesCache[car.current_bid_user_id] = (p && p.name) ? p.name : ((p && p.telegram_username) ? '@' + p.telegram_username : 'учасник');
+        const el = document.getElementById('leaderName');
+        if (el) el.textContent = leaderNamesCache[car.current_bid_user_id];
+      });
+    }
     document.getElementById('minNext').textContent = `${Number(bid + getBidStep(bid)).toLocaleString('uk-UA')} ${car.currency}`;
     document.getElementById('sellerName').textContent = car.user_id ? 'продавець #' + car.user_id.slice(0, 6) : '—';
     document.getElementById('bidCount').textContent = car.bid_count || 0;

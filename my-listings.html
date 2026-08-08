@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NORMALNO — Мої оголошення</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="car-data.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; background: #fff; margin: 0; padding: 20px; padding-bottom: 40px; }
+  .back { color: #FF7A00; text-decoration: none; font-size: 14px; display: inline-block; margin-bottom: 10px; }
+  .logo { font-size: 20px; font-weight: bold; color: #8E00FF; margin-bottom: 20px; }
+  .empty { text-align: center; color: #999; margin-top: 40px; }
+
+  .listing-card { border: 1px solid #eee; border-radius: 14px; padding: 12px; margin-bottom: 14px; display: flex; gap: 12px; }
+  .listing-photo { width: 80px; height: 80px; border-radius: 10px; overflow: hidden; background: #f2f2f2; flex-shrink: 0; }
+  .listing-photo img { width: 100%; height: 100%; object-fit: cover; }
+  .listing-noimg { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #ccc; }
+  .listing-info { flex: 1; min-width: 0; cursor: pointer; }
+  .listing-title { font-weight: bold; font-size: 14px; margin-bottom: 4px; }
+  .listing-price { color: #8E00FF; font-weight: bold; font-size: 15px; margin-bottom: 4px; }
+  .listing-badges { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
+  .listing-badge { font-size: 10px; font-weight: bold; padding: 3px 8px; border-radius: 10px; }
+  .badge-auction { background: #f5e6ff; color: #8E00FF; }
+  .badge-sold { background: #eafbe9; color: #1a8f2a; }
+  .sold-btn { width: 100%; padding: 8px; background: #fff; border: 1px solid #8E00FF; color: #8E00FF; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<a href="profile.html" class="back">&larr; Назад до профілю</a>
+<div class="logo">Мої оголошення</div>
+
+<div id="list">Завантаження...</div>
+
+<script>
+  const supabaseUrl = 'https://ipzvgqyjtqofthbpkdsd.supabase.co';
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwenZncXlqdHFvZnRoYnBrZHNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMTEwNjEsImV4cCI6MjEwMTU4NzA2MX0.jbbpKpHaD6S9SJMIbxcwb12ggBCv44J_-s4OQ8ESNfA';
+  const sb = window.supabase.createClient(supabaseUrl, supabaseKey);
+  let sessionUserId = null;
+
+  async function load() {
+    await ensureRatesLoaded();
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { window.location.href = 'register2.html'; return; }
+    sessionUserId = session.user.id;
+
+    const { data: cars } = await sb.from('cars').select('*').eq('user_id', sessionUserId).order('created_at', { ascending: false });
+    render(cars || []);
+  }
+
+  function render(cars) {
+    const list = document.getElementById('list');
+    if (cars.length === 0) {
+      list.innerHTML = '<div class="empty">У вас ще немає оголошень</div>';
+      return;
+    }
+
+    list.innerHTML = cars.map(car => {
+      const photos = carPhotos(car, 1);
+      const isAuction = car.listing_type === 'auction';
+      const price = isAuction ? (car.current_bid || car.start_price || 0) : (car.price || 0);
+      const uah = convertToUAH(price, car.currency);
+
+      return `
+        <div class="listing-card">
+          <div class="listing-photo">
+            ${photos[0] ? `<img src="${photos[0]}" onerror="this.style.display='none'">` : `<div class="listing-noimg">🚗</div>`}
+          </div>
+          <div style="flex:1;">
+            <div class="listing-info" onclick="window.location.href='${isAuction ? 'lot.html' : 'car.html'}?id=${car.id}'">
+              <div class="listing-title">${car.brand} ${car.model}, ${car.year}</div>
+              <div class="listing-price">${Number(price).toLocaleString('uk-UA')} ${car.currency || ''}${uah ? ` <span style="color:#999;font-weight:normal;font-size:11px;">(≈${uah.toLocaleString('uk-UA')} грн)</span>` : ''}</div>
+              <div class="listing-badges">
+                ${isAuction ? '<span class="listing-badge badge-auction">Аукціон</span>' : ''}
+                ${car.sold ? '<span class="listing-badge badge-sold">Продано</span>' : ''}
+              </div>
+            </div>
+            ${!car.sold ? `<button class="sold-btn" onclick="markSold(${car.id})">Позначити як продано</button>` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  async function markSold(carId) {
+    await sb.from('cars').update({ sold: true }).eq('id', carId);
+    load();
+  }
+
+  load();
+</script>
+
+</body>
+</html>

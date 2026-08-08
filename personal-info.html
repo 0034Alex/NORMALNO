@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NORMALNO — Особисті дані</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; background: #fff; margin: 0; padding: 20px; }
+  .back { color: #FF7A00; text-decoration: none; font-size: 14px; display: inline-block; margin-bottom: 10px; }
+  .logo { font-size: 20px; font-weight: bold; color: #8E00FF; margin-bottom: 20px; }
+  label { font-size: 12px; color: #999; display: block; margin-bottom: 4px; }
+  input { width: 100%; padding: 14px; margin-bottom: 16px; border: 1px solid #ddd; border-radius: 10px; font-size: 15px; }
+  input:disabled { background: #f7f7f7; color: #999; }
+  button.main { width: 100%; padding: 15px; background: #8E00FF; color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; }
+  .msg { text-align: center; margin-top: 12px; font-size: 14px; }
+</style>
+</head>
+<body>
+
+<a href="profile.html" class="back">&larr; Назад до профілю</a>
+<div class="logo">Особисті дані</div>
+
+<label>Ім'я</label>
+<input type="text" id="name" placeholder="Ваше ім'я або нікнейм">
+
+<label>Email</label>
+<input type="email" id="email" disabled>
+
+<label>Номер телефону</label>
+<input type="tel" id="phone" placeholder="Номер телефону">
+
+<button class="main" onclick="save()">Зберегти</button>
+<div class="msg" id="msg"></div>
+
+<script>
+  const supabaseUrl = 'https://ipzvgqyjtqofthbpkdsd.supabase.co';
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwenZncXlqdHFvZnRoYnBrZHNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMTEwNjEsImV4cCI6MjEwMTU4NzA2MX0.jbbpKpHaD6S9SJMIbxcwb12ggBCv44J_-s4OQ8ESNfA';
+  const sb = window.supabase.createClient(supabaseUrl, supabaseKey);
+  let sessionUserId = null;
+
+  async function load() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { window.location.href = 'register2.html'; return; }
+    sessionUserId = session.user.id;
+
+    document.getElementById('email').value = session.user.email || '';
+
+    const { data: profile } = await sb.from('profiles').select('name, phone').eq('user_id', sessionUserId).maybeSingle();
+    if (profile) {
+      document.getElementById('name').value = profile.name || '';
+      document.getElementById('phone').value = profile.phone || '';
+    }
+  }
+
+  async function save() {
+    const msg = document.getElementById('msg');
+    const { error } = await sb.from('profiles').update({
+      name: document.getElementById('name').value,
+      phone: document.getElementById('phone').value
+    }).eq('user_id', sessionUserId);
+
+    if (error) { msg.textContent = error.message; msg.style.color = 'red'; return; }
+    msg.textContent = 'Збережено!';
+    msg.style.color = 'green';
+  }
+
+  load();
+</script>
+
+</body>
+</html>
