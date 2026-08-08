@@ -279,6 +279,10 @@ function calcLeasing(priceUAH, months) {
 /* ---------- Telegram Mini App: повноекранний режим ---------- */
 (function initTelegramFullscreen() {
   if (window.Telegram && window.Telegram.WebApp) {
-    try { window.Telegram.WebApp.expand(); } catch (e) {}
+    const tg = window.Telegram.WebApp;
+    try { tg.expand(); } catch (e) {}
+    if (tg.isVersionAtLeast && tg.isVersionAtLeast('7.7') && tg.disableVerticalSwipes) {
+      try { tg.disableVerticalSwipes(); } catch (e) {}
+    }
   }
 })();

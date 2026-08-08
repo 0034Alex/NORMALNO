@@ -39,6 +39,10 @@
   .big-heart { position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; border-radius: 50%; background: rgba(255,255,255,0.9); display: flex; align-items: center; justify-content: center; font-size: 14px; color: #8E00FF; }
   .big-badge { position: absolute; bottom: 8px; left: 8px; background: #FF7A00; color: #fff; font-size: 10px; font-weight: bold; padding: 4px 8px; border-radius: 6px; }
   .big-timer { position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.65); color: #fff; font-size: 10px; font-weight: bold; padding: 4px 8px; border-radius: 6px; }
+  .big-photo-scroll { display: flex; overflow-x: auto; width: 100%; height: 100%; scroll-snap-type: x mandatory; }
+  .big-photo-scroll img { flex: 0 0 100%; width: 100%; height: 100%; object-fit: cover; scroll-snap-align: start; }
+  .big-dots { position: absolute; top: 8px; left: 0; right: 0; display: flex; justify-content: center; gap: 5px; pointer-events: none; }
+  .big-dots span { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.7); box-shadow: 0 0 2px rgba(0,0,0,0.4); }
   .big-body { padding: 10px 12px; }
   .big-title { font-weight: bold; font-size: 14px; margin-bottom: 2px; }
   .big-specs { color: #999; font-size: 11px; margin-bottom: 6px; }
@@ -93,6 +97,7 @@
 <div class="tabs">
   <div class="tab active" id="tabActive" onclick="setTab('active')">Активні</div>
   <div class="tab" id="tabMyBids" onclick="setTab('myBids')">Мої ставки</div>
+  <div class="tab" id="tabFav" onclick="setTab('fav')">Обране</div>
   <div class="tab" id="tabEnded" onclick="setTab('ended')">Завершені</div>
 </div>
 
@@ -139,6 +144,7 @@
 </div>
 
 <div id="myBidsContent" class="hidden"></div>
+<div id="favContent" class="hidden"></div>
 <div id="endedContent" class="hidden"></div>
 <div id="closingSoonContent" class="hidden"></div>
 <div id="endingSoonContent" class="hidden"></div>
@@ -198,15 +204,21 @@
       favoritedIds.add(carId);
     }
     renderAll();
+    if (!document.getElementById('favContent').classList.contains('hidden')) renderFavTab();
   };
 
   function goLot(id) { window.location.href = 'lot.html?id=' + id; }
 
   function renderBigCard(car) {
+    const photos = carPhotos(car, 4);
+    const photoHtml = photos.length
+      ? `<div class="big-photo-scroll">${photos.map(p => `<img src="${p}" onerror="this.style.display='none'">`).join('')}</div>` +
+        (photos.length > 1 ? `<div class="big-dots">${photos.map(() => '<span></span>').join('')}</div>` : '')
+      : `<div class="big-noimg">🚗</div>`;
     return `
       <div class="big-card" onclick="goLot(${car.id})">
         <div class="big-photo">
-          ${car.photo_url ? `<img src="${car.photo_url}" onerror="this.style.display='none'">` : `<div class="big-noimg">🚗</div>`}
+          ${photoHtml}
           ${heartHtml(car.id, 'big-heart')}
           <div class="big-badge">ТОРГИ ІДУТЬ</div>
           <div class="big-timer">${formatCountdown(timeLeftMs(car))}</div>
@@ -228,7 +240,7 @@
     return `
       <div class="row-card" onclick="goLot(${car.id})">
         <div class="row-photo">
-          ${car.photo_url ? `<img src="${car.photo_url}" onerror="this.style.display='none'">` : ''}
+          ${carPhotos(car, 1)[0] ? `<img src="${carPhotos(car, 1)[0]}" onerror="this.style.display='none'">` : ''}
           ${heartHtml(car.id, 'row-heart')}
         </div>
         <div class="row-info">
@@ -255,7 +267,7 @@
     return `
       <div class="small-card" onclick="goLot(${car.id})">
         <div class="small-photo">
-          ${car.photo_url ? `<img src="${car.photo_url}" onerror="this.style.display='none'">` : ''}
+          ${carPhotos(car, 1)[0] ? `<img src="${carPhotos(car, 1)[0]}" onerror="this.style.display='none'">` : ''}
           ${heartHtml(car.id, 'small-heart')}
         </div>
         <div class="small-body">
@@ -310,9 +322,10 @@
   }
 
   function setTab(tab) {
-    ['tabActive', 'tabMyBids', 'tabEnded'].forEach(id => document.getElementById(id) && document.getElementById(id).classList.remove('active'));
+    ['tabActive', 'tabMyBids', 'tabFav', 'tabEnded'].forEach(id => document.getElementById(id) && document.getElementById(id).classList.remove('active'));
     document.getElementById('activeContent').classList.add('hidden');
     document.getElementById('myBidsContent').classList.add('hidden');
+    document.getElementById('favContent').classList.add('hidden');
     document.getElementById('endedContent').classList.add('hidden');
     document.getElementById('closingSoonContent').classList.add('hidden');
     document.getElementById('endingSoonContent').classList.add('hidden');
@@ -324,6 +337,10 @@
       document.getElementById('tabMyBids').classList.add('active');
       document.getElementById('myBidsContent').classList.remove('hidden');
       renderMyBids();
+    } else if (tab === 'fav') {
+      document.getElementById('tabFav').classList.add('active');
+      document.getElementById('favContent').classList.remove('hidden');
+      renderFavTab();
     } else if (tab === 'ended') {
       document.getElementById('tabEnded').classList.add('active');
       document.getElementById('endedContent').classList.remove('hidden');
@@ -335,6 +352,11 @@
       document.getElementById('endingSoonContent').classList.remove('hidden');
       renderFullList('endingSoonContent', allLots.filter(c => lotStatus(c) === 'active' && timeLeftMs(c) >= 3 * 3600000 && timeLeftMs(c) < 24 * 3600000), '🟠 Скоро завершаться', 'active');
     }
+  }
+
+  function renderFavTab() {
+    const favLots = allLots.filter(c => favoritedIds.has(c.id));
+    renderFullList('favContent', favLots, '⭐ Обране', 'active');
   }
 
   function renderFullList(containerId, cars, title, mode) {
