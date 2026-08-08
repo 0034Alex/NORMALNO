@@ -56,10 +56,11 @@
 
   async function save() {
     const msg = document.getElementById('msg');
-    const { error } = await sb.from('profiles').update({
+    const { error } = await sb.from('profiles').upsert({
+      user_id: sessionUserId,
       name: document.getElementById('name').value,
       phone: document.getElementById('phone').value
-    }).eq('user_id', sessionUserId);
+    }, { onConflict: 'user_id' });
 
     if (error) { msg.textContent = error.message; msg.style.color = 'red'; return; }
     msg.textContent = 'Збережено!';

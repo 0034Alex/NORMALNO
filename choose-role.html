@@ -17,6 +17,7 @@
 <body>
 
 <div class="logo">Останній крок</div>
+<input type="text" id="name" placeholder="Ваше ім'я">
 <input type="tel" id="phone" placeholder="Номер телефону">
 <button class="main" onclick="saveProfile()">Продовжити</button>
 <div class="msg" id="msg"></div>
@@ -31,10 +32,11 @@
     const { data: { session } } = await sb.auth.getSession();
     if (!session) { window.location.href = 'register2.html'; return; }
 
-    const phone = document.getElementById('phone').value;
-    if (!phone) { msg.textContent = 'Введіть номер телефону'; msg.style.color = 'red'; return; }
+    const name = document.getElementById('name').value.trim();
+    const phone = document.getElementById('phone').value.trim();
+    if (!name || !phone) { msg.textContent = "Введіть ім'я і номер телефону"; msg.style.color = 'red'; return; }
 
-    const { error } = await sb.from('profiles').update({ phone }).eq('user_id', session.user.id);
+    const { error } = await sb.from('profiles').update({ name, phone }).eq('user_id', session.user.id);
 
     if (error) { msg.textContent = error.message; msg.style.color = 'red'; return; }
     window.location.href = 'index.html';

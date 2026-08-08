@@ -55,10 +55,15 @@
         return;
       }
 
-      const { error } = await sb.auth.signInWithPassword({ email: result.email, password: result.password });
+      const { data: sessionData, error } = await sb.auth.signInWithPassword({ email: result.email, password: result.password });
       if (error) {
         showError();
         return;
+      }
+
+      const photoUrl = tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.photo_url;
+      if (photoUrl && sessionData && sessionData.user) {
+        await sb.from('profiles').update({ avatar_url: photoUrl }).eq('user_id', sessionData.user.id);
       }
 
       window.location.href = result.isNewUser ? 'choose-role.html' : 'index.html';

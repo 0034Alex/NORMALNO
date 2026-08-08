@@ -47,6 +47,18 @@
   .nav-item .icon { font-size: 20px; display: block; margin-bottom: 2px; }
   .nav-item.active { color: #8E00FF; font-weight: bold; }
   .nav-item.active::before { content: ''; position: absolute; top: -8px; left: 20%; right: 20%; height: 3px; background: #FF7A00; border-radius: 3px; }
+
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(3px);
+    display: flex; align-items: flex-end; justify-content: center; z-index: 100;
+  }
+  .modal-overlay.hidden { display: none; }
+  .modal-sheet { background: #fff; width: 100%; max-width: 520px; border-radius: 20px 20px 0 0; padding: 20px; max-height: 75vh; overflow-y: auto; }
+  .modal-close { float: right; font-size: 18px; color: #999; cursor: pointer; background: none; border: none; padding: 4px 8px; }
+  .level-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-top: 1px solid #f5f5f5; font-size: 13px; }
+  .level-row.current { background: #f5e6ff; border-radius: 8px; padding: 10px 8px; margin: 2px -8px; }
+  .level-name { font-weight: bold; }
+  .level-cond { color: #999; font-size: 11px; }
 </style>
 </head>
 <body>
@@ -64,26 +76,35 @@
 
 <div class="status-panel">
   <div class="status-text">
-    <div class="status-level">Ваш рівень: <span id="statusName">...</span></div>
+    <div class="status-level">Ваш рівень: <span id="statusName">...</span> <span onclick="openLevelInfo()" style="cursor:pointer; color:#8E00FF; font-size:13px;">ⓘ</span></div>
     <div class="status-hint" id="statusHint">Розміщуйте авто, продавайте та підвищуйте рівень</div>
     <div class="status-bar"><div class="status-bar-fill" id="statusBarFill" style="width:0%"></div></div>
   </div>
   <div class="status-hex" id="statusHex">1</div>
 </div>
 
+<div class="modal-overlay hidden" id="levelModal" onclick="if(event.target===this) closeLevelInfo()">
+  <div class="modal-sheet">
+    <button type="button" class="modal-close" onclick="closeLevelInfo()">✕</button>
+    <div style="font-size:17px; font-weight:bold; margin-bottom:6px;">Рівні продавця</div>
+    <div style="font-size:13px; color:#666; margin-bottom:16px;">Чим більше авто ви успішно продали через платформу — тим вищий ваш рівень. Вищий рівень дає більше безкоштовних оголошень на місяць і дешевшу ціну за оголошення понад ліміт.</div>
+    <div id="levelTable"></div>
+  </div>
+</div>
+
 <div class="actions-title">Мої дії</div>
 <div class="actions-grid">
-  <div class="action-btn" onclick="window.location.href='auction.html?tab=myBids'">
-    <div class="action-icon">🔨</div>
-    <div class="action-label">Мої ставки</div>
-  </div>
-  <div class="action-btn" onclick="window.location.href='favorites.html'">
-    <div class="action-icon">❤️</div>
-    <div class="action-label">Обране</div>
-  </div>
   <div class="action-btn" onclick="window.location.href='my-listings.html'">
     <div class="action-icon">📋</div>
     <div class="action-label">Мої оголошення</div>
+  </div>
+  <div class="action-btn" onclick="window.location.href='my-auctions.html'">
+    <div class="action-icon">🔨</div>
+    <div class="action-label">Мої аукціони</div>
+  </div>
+  <div class="action-btn" onclick="window.location.href='my-bids.html'">
+    <div class="action-icon">💰</div>
+    <div class="action-label">Мої ставки</div>
   </div>
 </div>
 
@@ -132,11 +153,16 @@
     const { data: { session } } = await sb.auth.getSession();
     if (!session) { window.location.href = 'register2.html'; return; }
 
-    const { data: profile } = await sb.from('profiles').select('name, phone, telegram_username').eq('user_id', session.user.id).maybeSingle();
+    const { data: profile } = await sb.from('profiles').select('name, phone, telegram_username, avatar_url').eq('user_id', session.user.id).maybeSingle();
 
     const displayName = (profile && profile.name) ? profile.name : ((profile && profile.telegram_username) ? '@' + profile.telegram_username : 'Без імені');
     document.getElementById('profileName').textContent = displayName;
-    document.getElementById('avatarLetter').textContent = displayName.charAt(0).toUpperCase();
+
+    if (profile && profile.avatar_url) {
+      document.getElementById('avatarLetter').innerHTML = `<img src="${profile.avatar_url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+    } else {
+      document.getElementById('avatarLetter').textContent = displayName.charAt(0).toUpperCase();
+    }
     document.getElementById('profileEmail').textContent = session.user.email || '';
     document.getElementById('profilePhone').textContent = (profile && profile.phone) ? profile.phone : '';
 
@@ -145,6 +171,24 @@
     const status = getStatusForCount(soldCount);
     document.getElementById('statusName').textContent = status.name;
     document.getElementById('statusHex').textContent = STATUS_TIERS.indexOf(status) + 1;
+
+    document.getElementById('levelTable').innerHTML = STATUS_TIERS.map(t => {
+      const range = t.max === Infinity ? `${t.min}+ авто` : `${t.min}-${t.max} авто`;
+      const quota = t.freeQuota ? `${t.freeQuota} безкоштовних оголошень/міс` : 'Індивідуальні умови';
+      const price = t.extraPrice ? `$${t.extraPrice} за оголошення понад ліміт` : 'За домовленістю';
+      return `
+        <div class="level-row ${t.name === status.name ? 'current' : ''}">
+          <div>
+            <div class="level-name">${t.name}${t.name === status.name ? ' (ваш рівень)' : ''}</div>
+            <div class="level-cond">Продано: ${range}</div>
+          </div>
+          <div style="text-align:right;">
+            <div>${quota}</div>
+            <div class="level-cond">${price}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
 
     if (status.max === Infinity) {
       document.getElementById('statusHint').textContent = 'Максимальний рівень досягнуто!';
@@ -159,6 +203,13 @@
     const { count: bidsCount } = await sb.from('bids').select('*', { count: 'exact', head: true }).eq('user_id', session.user.id);
     const { count: favCount } = await sb.from('favorites').select('*', { count: 'exact', head: true }).eq('user_id', session.user.id);
   }
+
+  window.openLevelInfo = function() {
+    document.getElementById('levelModal').classList.remove('hidden');
+  };
+  window.closeLevelInfo = function() {
+    document.getElementById('levelModal').classList.add('hidden');
+  };
 
   async function logout() {
     await sb.auth.signOut();

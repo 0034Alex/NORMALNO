@@ -30,7 +30,7 @@
 </div>
 
 <div id="registerForm">
-  <input type="text" id="regTelegram" placeholder="Telegram нікнейм" readonly>
+  <input type="text" id="regName" placeholder="Ваше ім'я">
   <input type="tel" id="regPhone" placeholder="Номер телефону">
   <input type="email" id="regEmail" placeholder="Email">
   <input type="password" id="regPassword" placeholder="Придумайте пароль">
@@ -39,7 +39,7 @@
 </div>
 
 <div id="loginForm" class="hidden">
-  <input type="email" id="loginEmail" placeholder="Email">
+  <input type="text" id="loginIdentifier" placeholder="Email або номер телефону">
   <input type="password" id="loginPassword" placeholder="Пароль">
   <button class="main" onclick="login()">Увійти</button>
   <div class="forgot" onclick="forgotPassword()">Забули пароль?</div>
@@ -58,19 +58,15 @@
     document.getElementById('loginForm').classList.toggle('hidden', tab !== 'login');
   }
 
-  if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe.user) {
-    document.getElementById('regTelegram').value = window.Telegram.WebApp.initDataUnsafe.user.username || '';
-  }
-
   async function register() {
-    const phone = document.getElementById('regPhone').value;
-    const email = document.getElementById('regEmail').value;
+    const name = document.getElementById('regName').value.trim();
+    const phone = document.getElementById('regPhone').value.trim();
+    const email = document.getElementById('regEmail').value.trim();
     const password = document.getElementById('regPassword').value;
-    const telegram = document.getElementById('regTelegram').value;
     const msg = document.getElementById('regMsg');
 
-    if (!phone || !email || !password) {
-      msg.textContent = 'Заповніть всі поля';
+    if (!name || !phone || !email || !password) {
+      msg.textContent = "Заповніть ім'я, телефон, email і пароль";
       msg.style.color = 'red';
       return;
     }
@@ -84,7 +80,7 @@
 
     await sb.from('profiles').insert({
       user_id: data.user.id,
-      telegram_username: telegram,
+      name: name,
       phone: phone
     });
 
@@ -92,12 +88,35 @@
     msg.style.color = 'green';
   }
 
+  async function resolveEmail(identifier) {
+    if (identifier.includes('@')) return { email: identifier };
+    const resp = await fetch('/api/resolve-login-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identifier })
+    });
+    return await resp.json();
+  }
+
   async function login() {
-    const email = document.getElementById('loginEmail').value;
+    const identifier = document.getElementById('loginIdentifier').value.trim();
     const password = document.getElementById('loginPassword').value;
     const msg = document.getElementById('loginMsg');
 
-    const { error } = await sb.auth.signInWithPassword({ email, password });
+    if (!identifier || !password) {
+      msg.textContent = 'Введіть email/телефон і пароль';
+      msg.style.color = 'red';
+      return;
+    }
+
+    const resolved = await resolveEmail(identifier);
+    if (resolved.error || !resolved.email) {
+      msg.textContent = resolved.error || 'Користувача не знайдено';
+      msg.style.color = 'red';
+      return;
+    }
+
+    const { error } = await sb.auth.signInWithPassword({ email: resolved.email, password });
     if (error) {
       msg.textContent = error.message;
       msg.style.color = 'red';
@@ -107,12 +126,17 @@
   }
 
   async function forgotPassword() {
-    const email = document.getElementById('loginEmail').value;
-    if (!email) {
-      alert('Спочатку введіть email вище');
+    const identifier = document.getElementById('loginIdentifier').value.trim();
+    if (!identifier) {
+      alert('Спочатку введіть email або номер телефону вище');
       return;
     }
-    await sb.auth.resetPasswordForEmail(email);
+    const resolved = await resolveEmail(identifier);
+    if (resolved.error || !resolved.email) {
+      alert(resolved.error || 'Користувача не знайдено');
+      return;
+    }
+    await sb.auth.resetPasswordForEmail(resolved.email);
     alert('Лист для відновлення паролю надіслано на email');
   }
 </script>

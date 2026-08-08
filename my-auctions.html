@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NORMALNO — Мої оголошення</title>
+<title>NORMALNO — Мої аукціони</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="car-data.js"></script>
 <style>
@@ -30,7 +30,7 @@
 <body>
 
 <a href="profile.html" class="back">&larr; Назад до профілю</a>
-<div class="logo">Мої оголошення</div>
+<div class="logo">Мої аукціони</div>
 
 <div id="list">Завантаження...</div>
 
@@ -46,14 +46,14 @@
     if (!session) { window.location.href = 'register2.html'; return; }
     sessionUserId = session.user.id;
 
-    const { data: cars } = await sb.from('cars').select('*').eq('user_id', sessionUserId).neq('listing_type', 'auction').order('created_at', { ascending: false });
+    const { data: cars } = await sb.from('cars').select('*').eq('user_id', sessionUserId).eq('listing_type', 'auction').order('created_at', { ascending: false });
     render(cars || []);
   }
 
   function render(cars) {
     const list = document.getElementById('list');
     if (cars.length === 0) {
-      list.innerHTML = '<div class="empty">У вас ще немає оголошень</div>';
+      list.innerHTML = '<div class="empty">Ви ще не виставляли лоти на аукціон</div>';
       return;
     }
 
