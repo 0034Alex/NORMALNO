@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NORMALNO — Партнери</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; background: #fff; margin: 0; padding: 20px; padding-bottom: 80px; }
+  .logo { font-size: 20px; font-weight: bold; color: #8E00FF; margin-bottom: 20px; }
+  .placeholder { text-align: center; color: #999; margin-top: 60px; font-size: 14px; line-height: 1.6; }
+  .placeholder-icon { font-size: 40px; margin-bottom: 16px; }
+
+  .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; display: flex; background: white; border-top: 1px solid #eee; padding: 8px 0; }
+  .nav-item { flex: 1; text-align: center; padding: 8px 0; cursor: pointer; color: #999; font-size: 11px; position: relative; }
+  .nav-item .icon { font-size: 20px; display: block; margin-bottom: 2px; }
+  .nav-item.active { color: #8E00FF; font-weight: bold; }
+  .nav-item.active::before { content: ''; position: absolute; top: -8px; left: 20%; right: 20%; height: 3px; background: #FF7A00; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="logo">Партнери</div>
+
+<div class="placeholder">
+  <div class="placeholder-icon">🤝</div>
+  Розділ у розробці — скоро тут з'явиться інформація для партнерів.
+</div>
+
+<div class="bottom-nav">
+  <div class="nav-item" onclick="window.location.href='index.html'"><span class="icon">🏠</span>Головна</div>
+  <div class="nav-item" onclick="window.location.href='auction.html'"><span class="icon">🔨</span>Аукціон</div>
+  <div class="nav-item" onclick="window.location.href='sell.html'"><span class="icon">➕</span>Продати</div>
+  <div class="nav-item active"><span class="icon">🤝</span>Партнери</div>
+  <div class="nav-item" onclick="window.location.href='profile.html'"><span class="icon">👤</span>Профіль</div>
+</div>
+
+</body>
+</html>

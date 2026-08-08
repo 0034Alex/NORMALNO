@@ -88,6 +88,7 @@
   .hcard-specs { color: #999; font-size: 11px; margin-bottom: 4px; }
   .hcard-price { color: #8E00FF; font-weight: bold; font-size: 15px; margin-bottom: 2px; }
   .hcard-mileage { color: #999; font-size: 11px; }
+  .hcard-body .ncard-leasing { font-size: 9px; padding: 3px 6px; margin-bottom: 4px; }
 
   .promo-banner {
     margin: 0 16px 20px; background: #f5e6ff; border-radius: 14px; padding: 16px;
@@ -105,6 +106,8 @@
 
   .full-feed { padding: 0 16px; text-align: left; margin-bottom: 20px; }
   .size-toggle { display: flex; gap: 4px; }
+  .section-title-with-fav { display: flex; align-items: center; gap: 12px; }
+  .fav-link { font-size: 13px; font-weight: bold; color: #8E00FF; cursor: pointer; white-space: nowrap; }
   .size-btn { width: 30px; height: 30px; border-radius: 8px; background: #f7f7f7; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 15px; color: #999; }
   .size-btn.active { background: #f5e6ff; color: #8E00FF; }
   .full-feed.grid-small { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
@@ -140,6 +143,7 @@
   .ncard-subtitle { color: #999; font-size: 12px; margin-bottom: 6px; }
   .ncard-price { color: #8E00FF; font-weight: bold; font-size: 18px; margin-bottom: 8px; }
   .ncard-price-uah { color: #999; font-weight: normal; font-size: 12px; }
+  .ncard-leasing { font-size: 11px; color: #8E00FF; background: #f9f2ff; padding: 4px 8px; border-radius: 6px; margin-bottom: 8px; display: inline-block; }
   .ncard-specs { display: flex; flex-wrap: wrap; gap: 10px; font-size: 12px; color: #555; margin-bottom: 8px; }
   .ncard-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
   .ncard-badge { background: #f5e6ff; color: #8E00FF; font-size: 11px; font-weight: bold; padding: 4px 10px; border-radius: 20px; }
@@ -232,6 +236,24 @@
   </div>
 </div>
 
+<div class="promo-banner promo-banner-orange">
+  <div class="promo-text"><b>Розрахуй авто в лізинг!</b>Дізнайтесь щомісячний платіж за кілька секунд</div>
+  <button class="promo-btn promo-btn-orange" onclick="window.location.href='leasing-calculator.html'">Розрахувати</button>
+</div>
+
+<div class="section">
+  <div class="section-head">
+    <div class="section-title">Гарячі пропозиції 🔥</div>
+    <div class="section-link" onclick="window.location.href='hot-offers.html'">Всі</div>
+  </div>
+  <div class="hcards" id="feed">Завантаження...</div>
+</div>
+
+<div class="promo-banner">
+  <div class="promo-text"><b>Продай авто швидко та вигідно!</b>Розмістіть оголошення і отримайте покупців вже сьогодні</div>
+  <button class="promo-btn" onclick="window.location.href='sell.html'">+ Додати авто</button>
+</div>
+
 <div class="section">
   <div class="section-head">
     <div class="section-title">Популярні запити</div>
@@ -248,39 +270,24 @@
 
 <div class="section">
   <div class="section-head">
-    <div class="section-title">Гарячі пропозиції 🔥</div>
-    <div class="section-link" onclick="window.location.href='hot-offers.html'">Всі</div>
-  </div>
-  <div class="hcards" id="feed">Завантаження...</div>
-</div>
-
-<div class="promo-banner">
-  <div class="promo-text"><b>Продай авто швидко та вигідно!</b>Розмістіть оголошення і отримайте покупців вже сьогодні</div>
-  <button class="promo-btn" onclick="window.location.href='sell.html'">+ Додати авто</button>
-</div>
-
-<div class="promo-banner promo-banner-orange">
-  <div class="promo-text"><b>Розрахуй авто в лізинг!</b>Дізнайтесь щомісячний платіж за кілька секунд</div>
-  <button class="promo-btn promo-btn-orange" onclick="window.location.href='leasing-calculator.html'">Розрахувати</button>
-</div>
-
-<div class="section">
-  <div class="section-head">
-    <div class="section-title" id="fullFeedTitle">Всі оголошення</div>
+    <div class="section-title-with-fav">
+      <span class="fav-link" onclick="window.location.href='favorites.html'">❤️ Обране</span>
+      <span class="section-title" id="fullFeedTitle">Всі оголошення</span>
+    </div>
     <div class="size-toggle">
-      <span class="size-btn active" id="sizeBig" onclick="setGridSize('big')" title="Великі картки">▭</span>
-      <span class="size-btn" id="sizeSmall" onclick="setGridSize('small')" title="Дрібні картки">▦</span>
+      <span class="size-btn" id="sizeBig" onclick="setGridSize('big')" title="Великі картки">▭</span>
+      <span class="size-btn active" id="sizeSmall" onclick="setGridSize('small')" title="Дрібні картки">▦</span>
     </div>
   </div>
   <div class="section-reset hidden" id="resetFilterBtn" onclick="showAll()">← Показати всі авто</div>
 </div>
-<div class="full-feed" id="fullFeed">Завантаження...</div>
+<div class="full-feed grid-small" id="fullFeed">Завантаження...</div>
 
 <div class="bottom-nav">
   <div class="nav-item active"><span class="icon">🏠</span>Головна</div>
   <div class="nav-item" onclick="window.location.href='auction.html'"><span class="icon">🔨</span>Аукціон</div>
   <div class="nav-item" onclick="window.location.href='sell.html'"><span class="icon">➕</span>Продати</div>
-  <div class="nav-item" onclick="window.location.href='favorites.html'"><span class="icon">❤️</span>Обране</div>
+  <div class="nav-item" onclick="window.location.href='partners.html'"><span class="icon">🤝</span>Партнери</div>
   <div class="nav-item" onclick="window.location.href='profile.html'"><span class="icon">👤</span>Профіль</div>
 </div>
 
@@ -347,6 +354,7 @@
             <div class="hcard-title">${car.brand} ${car.model}, ${car.year}</div>
             <div class="hcard-specs">${[FUEL_LABELS[car.fuel_type], car.engine_volume ? car.engine_volume + ' л' : '', TRANSMISSION_LABELS[car.transmission]].filter(Boolean).join(' · ')}</div>
             <div class="hcard-price">${Number(car.price || 0).toLocaleString('uk-UA')} ${car.currency || ''}${(() => { const uah = convertToUAH(car.price, car.currency); return uah ? ` <span style="color:#999;font-weight:normal;font-size:10px;">(≈${uah.toLocaleString('uk-UA')})</span>` : ''; })()}</div>
+            ${leasingLineHtml(car)}
             <div class="hcard-mileage">🛣️ ${car.mileage ? Number(car.mileage).toLocaleString('uk-UA') + ' км' : '—'}</div>
           </div>
         </div>
@@ -431,7 +439,7 @@
 
   (async function start() {
     const savedSize = localStorage.getItem('normalno_grid_size');
-    if (savedSize === 'small') setGridSize('small');
+    if (savedSize === 'big') setGridSize('big');
     await checkUserAndLoadStatus();
     await loadCars();
   })();

@@ -181,6 +181,14 @@ function carPhotos(car, limit) {
   return limit ? arr.slice(0, limit) : arr;
 }
 
+function leasingLineHtml(car) {
+  if (!car.price) return '';
+  const priceUAH = car.currency === 'UAH' ? car.price : convertToUAH(car.price, car.currency);
+  if (!priceUAH) return '';
+  const result = calcLeasing(priceUAH, 36);
+  return `<div class="ncard-leasing">💳 Лізинг: аванс від ${result.downPayment.toLocaleString('uk-UA')} грн, платіж від ${result.monthlyPayment.toLocaleString('uk-UA')} грн/міс</div>`;
+}
+
 function renderCarCard(car, currentUserId, favoritedIds) {
   const transmission = TRANSMISSION_LABELS[car.transmission] || '';
   const fuel = FUEL_LABELS[car.fuel_type] || '';
@@ -212,6 +220,7 @@ function renderCarCard(car, currentUserId, favoritedIds) {
         <div class="ncard-title">${car.brand} ${car.model}, ${car.year}</div>
         <div class="ncard-subtitle">${[fuel, car.engine_volume ? car.engine_volume + ' л' : '', transmission].filter(Boolean).join(' · ')}</div>
         <div class="ncard-price">${Number(car.price).toLocaleString('uk-UA')} ${car.currency || ''}${(() => { const uah = convertToUAH(car.price, car.currency); return uah ? ` <span class="ncard-price-uah">(≈ ${uah.toLocaleString('uk-UA')} грн)</span>` : ''; })()}</div>
+        ${leasingLineHtml(car)}
         <div class="ncard-specs">
           <span>🛣️ ${car.mileage ? Number(car.mileage).toLocaleString('uk-UA') + ' км' : '—'}</span>
           <span>⚙️ ${transmission || '—'}</span>
