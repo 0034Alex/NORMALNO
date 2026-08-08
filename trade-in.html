@@ -52,19 +52,27 @@
 <script>
   if (window.Telegram && window.Telegram.WebApp) {
     const tg = window.Telegram.WebApp;
-    tg.expand();
-    if (tg.disableVerticalSwipes) tg.disableVerticalSwipes();
+    try { tg.expand(); } catch (e) {}
+
+    if (tg.isVersionAtLeast && tg.isVersionAtLeast('7.7') && tg.disableVerticalSwipes) {
+      try { tg.disableVerticalSwipes(); } catch (e) {}
+    }
 
     function applyTgSafeArea() {
       const inset = tg.contentSafeAreaInset || tg.safeAreaInset || {};
       document.body.style.paddingTop = (inset.top || 0) + 'px';
     }
     if (tg.onEvent) {
-      tg.onEvent('contentSafeAreaChanged', applyTgSafeArea);
-      tg.onEvent('safeAreaChanged', applyTgSafeArea);
-      tg.onEvent('fullscreenChanged', applyTgSafeArea);
+      try {
+        tg.onEvent('contentSafeAreaChanged', applyTgSafeArea);
+        tg.onEvent('safeAreaChanged', applyTgSafeArea);
+        tg.onEvent('fullscreenChanged', applyTgSafeArea);
+      } catch (e) {}
     }
-    if (tg.requestFullscreen) { try { tg.requestFullscreen(); } catch (e) {} }
+
+    if (tg.isVersionAtLeast && tg.isVersionAtLeast('8.0') && tg.requestFullscreen) {
+      try { tg.requestFullscreen(); } catch (e) {}
+    }
     applyTgSafeArea();
     setTimeout(applyTgSafeArea, 300);
   }
