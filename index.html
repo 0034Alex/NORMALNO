@@ -106,8 +106,11 @@
 
   .full-feed { padding: 0 16px; text-align: left; margin-bottom: 20px; }
   .size-toggle { display: flex; gap: 4px; }
-  .section-title-with-fav { display: flex; align-items: center; gap: 12px; }
-  .fav-link { font-size: 13px; font-weight: bold; color: #8E00FF; cursor: pointer; white-space: nowrap; }
+  .title-with-toggle { display: flex; align-items: center; gap: 12px; }
+  .fav-link {
+    font-size: 12px; font-weight: bold; color: #FF7A00; cursor: pointer; white-space: nowrap;
+    background: #fff0e0; padding: 6px 12px; border-radius: 20px;
+  }
   .size-btn { width: 30px; height: 30px; border-radius: 8px; background: #f7f7f7; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 15px; color: #999; }
   .size-btn.active { background: #f5e6ff; color: #8E00FF; }
   .full-feed.grid-small { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
@@ -219,20 +222,20 @@
     <div class="quick-label">Аукціони</div>
     <div class="quick-sub">Ставки на авто</div>
   </div>
-  <div class="quick-btn" onclick="window.location.href='urgent.html'">
-    <div class="quick-icon orange">🏷️</div>
-    <div class="quick-label">Термінові</div>
-    <div class="quick-sub">Гарячі пропозиції</div>
+  <div class="quick-btn" onclick="window.location.href='trade-in.html'">
+    <div class="quick-icon orange">🔄</div>
+    <div class="quick-label">Обмін</div>
+    <div class="quick-sub">Швидко та вигідно</div>
   </div>
   <div class="quick-btn" onclick="window.location.href='car-selection.html'">
     <div class="quick-icon purple">⭐</div>
     <div class="quick-label">Підбір авто</div>
     <div class="quick-sub">Допоможемо знайти</div>
   </div>
-  <div class="quick-btn" onclick="window.location.href='trade-in.html'">
-    <div class="quick-icon orange">🔄</div>
-    <div class="quick-label">Обмін</div>
-    <div class="quick-sub">Швидко та вигідно</div>
+  <div class="quick-btn" onclick="window.location.href='urgent.html'">
+    <div class="quick-icon orange">🏷️</div>
+    <div class="quick-label">Термінові</div>
+    <div class="quick-sub">Гарячі пропозиції</div>
   </div>
 </div>
 
@@ -270,13 +273,13 @@
 
 <div class="section">
   <div class="section-head">
-    <div class="section-title-with-fav">
-      <span class="fav-link" onclick="window.location.href='favorites.html'">❤️ Обране</span>
+    <span class="fav-link" onclick="window.location.href='favorites.html'">❤️ Обране</span>
+    <div class="title-with-toggle">
       <span class="section-title" id="fullFeedTitle">Всі оголошення</span>
-    </div>
-    <div class="size-toggle">
-      <span class="size-btn" id="sizeBig" onclick="setGridSize('big')" title="Великі картки">▭</span>
-      <span class="size-btn active" id="sizeSmall" onclick="setGridSize('small')" title="Дрібні картки">▦</span>
+      <div class="size-toggle">
+        <span class="size-btn" id="sizeBig" onclick="setGridSize('big')" title="Великі картки">▭</span>
+        <span class="size-btn active" id="sizeSmall" onclick="setGridSize('small')" title="Дрібні картки">▦</span>
+      </div>
     </div>
   </div>
   <div class="section-reset hidden" id="resetFilterBtn" onclick="showAll()">← Показати всі авто</div>

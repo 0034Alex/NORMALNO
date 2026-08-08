@@ -186,7 +186,7 @@ function leasingLineHtml(car) {
   const priceUAH = car.currency === 'UAH' ? car.price : convertToUAH(car.price, car.currency);
   if (!priceUAH) return '';
   const result = calcLeasing(priceUAH, 36);
-  return `<div class="ncard-leasing">💳 Лізинг: аванс від ${result.downPayment.toLocaleString('uk-UA')} грн, платіж від ${result.monthlyPayment.toLocaleString('uk-UA')} грн/міс</div>`;
+  return `<div class="ncard-leasing">Лізинг: від ${result.monthlyPayment.toLocaleString('uk-UA')} грн/міс</div>`;
 }
 
 function renderCarCard(car, currentUserId, favoritedIds) {
