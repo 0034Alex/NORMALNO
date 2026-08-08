@@ -39,7 +39,19 @@
     const tg = window.Telegram.WebApp;
     tg.expand();
     if (tg.disableVerticalSwipes) tg.disableVerticalSwipes();
+
+    function applyTgSafeArea() {
+      const inset = tg.contentSafeAreaInset || tg.safeAreaInset || {};
+      document.body.style.paddingTop = (inset.top || 0) + 'px';
+    }
+    if (tg.onEvent) {
+      tg.onEvent('contentSafeAreaChanged', applyTgSafeArea);
+      tg.onEvent('safeAreaChanged', applyTgSafeArea);
+      tg.onEvent('fullscreenChanged', applyTgSafeArea);
+    }
     if (tg.requestFullscreen) { try { tg.requestFullscreen(); } catch (e) {} }
+    applyTgSafeArea();
+    setTimeout(applyTgSafeArea, 300);
   }
 
   const supabaseUrl = 'https://ipzvgqyjtqofthbpkdsd.supabase.co';
