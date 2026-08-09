@@ -3,38 +3,58 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="manifest" href="/manifest.json">
+<link rel="manifest" href="/admin-manifest.json">
 <meta name="theme-color" content="#8E00FF">
-<link rel="apple-touch-icon" href="/icons/icon-180.png">
-<link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32.png">
+<link rel="apple-touch-icon" href="/icons-admin/icon-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="NORMALNO">
-
-<title>NORMALNO — Адмінка</title>
+<meta name="apple-mobile-web-app-title" content="Adminka">
+<title>Adminka NORMALNO</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="car-data.js"></script>
 <style>
   * { box-sizing: border-box; }
-  body { font-family: Arial, sans-serif; background: #fff; margin: 0; padding: 20px; }
-  .logo { font-size: 20px; font-weight: bold; color: #8E00FF; margin-bottom: 4px; }
-  .role-badge { display: inline-block; background: #f5e6ff; color: #8E00FF; font-size: 12px; font-weight: bold; padding: 4px 10px; border-radius: 20px; margin-bottom: 20px; }
-  .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
-  .tab { padding: 10px 16px; border-radius: 20px; border: 1px solid #ddd; cursor: pointer; font-size: 13px; color: #666; }
+  body { font-family: Arial, sans-serif; background: #fff; color: #222; margin: 0; padding: 16px; padding-bottom: 90px; }
+  .logo { font-size: 20px; font-weight: bold; color: #222; }
+  .logo span { color: #8E00FF; }
+  .role-badge { display: inline-block; background: #f5e6ff; border: 1px solid #8E00FF; color: #8E00FF; font-size: 12px; font-weight: bold; padding: 4px 10px; border-radius: 20px; margin-bottom: 16px; }
+  .tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 16px; }
+  .tab { flex-shrink: 0; padding: 9px 14px; border-radius: 20px; border: 1px solid #ddd; cursor: pointer; font-size: 13px; color: #666; white-space: nowrap; }
   .tab.active { background: #8E00FF; color: #fff; border-color: #8E00FF; }
-  .lead-card { border: 1px solid #eee; border-radius: 12px; padding: 14px; margin-bottom: 12px; }
-  .lead-type { font-size: 11px; font-weight: bold; color: #FF7A00; text-transform: uppercase; margin-bottom: 6px; }
-  .lead-name { font-weight: bold; font-size: 15px; margin-bottom: 4px; }
-  .lead-phone { color: #8E00FF; font-weight: bold; margin-bottom: 6px; }
-  .lead-details { font-size: 13px; color: #555; margin-bottom: 10px; white-space: pre-wrap; }
-  .lead-time { font-size: 11px; color: #bbb; margin-bottom: 10px; }
-  .status-row { display: flex; gap: 8px; }
-  .status-btn { flex: 1; padding: 8px; border-radius: 8px; border: 1px solid #ddd; background: #fff; font-size: 12px; cursor: pointer; }
+  .card { background: #fff; border: 1px solid #eee; border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+  .card-type { font-size: 11px; font-weight: bold; color: #FF7A00; text-transform: uppercase; margin-bottom: 6px; }
+  .card-title { font-weight: bold; font-size: 15px; margin-bottom: 4px; color: #222; }
+  .card-sub { color: #8E00FF; font-weight: bold; margin-bottom: 6px; }
+  .card-details { font-size: 13px; color: #666; margin-bottom: 10px; white-space: pre-wrap; line-height: 1.5; }
+  .card-time { font-size: 11px; color: #999; margin-bottom: 10px; }
+  .status-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .status-btn { flex: 1; min-width: 80px; padding: 8px; border-radius: 8px; border: 1px solid #ddd; background: #f7f7f7; color: #666; font-size: 12px; cursor: pointer; }
   .status-btn.active-new { background: #fff4e0; border-color: #cc7a00; color: #cc7a00; }
   .status-btn.active-progress { background: #e0f0ff; border-color: #0066cc; color: #0066cc; }
   .status-btn.active-closed { background: #eafbe9; border-color: #1a8f2a; color: #1a8f2a; }
-  .empty { text-align: center; color: #999; margin-top: 40px; }
-  .denied { text-align: center; margin-top: 60px; color: #999; }
+  .empty { text-align: center; color: #999; padding: 30px; }
+  .denied { text-align: center; margin-top: 60px; color: #999; padding: 0 20px; }
+
+  input, select, textarea { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 10px; font-size: 14px; background: #fff; color: #222; font-family: Arial, sans-serif; }
+  textarea { min-height: 90px; resize: vertical; }
+  button.action-btn { padding: 12px 18px; background: #8E00FF; color: #fff; border: none; border-radius: 10px; font-weight: bold; font-size: 14px; cursor: pointer; }
+
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stat-box { background: #f9f2ff; border: 1px solid #eee; border-radius: 12px; padding: 16px; text-align: center; }
+  .stat-num { font-size: 26px; font-weight: bold; color: #8E00FF; }
+  .stat-label { font-size: 11px; color: #666; margin-top: 4px; }
+
+  .staff-card { background: #fff; border: 1px solid #eee; border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+  .staff-name { font-weight: bold; color: #222; margin-bottom: 2px; }
+  .staff-phone { color: #666; font-size: 12px; margin-bottom: 10px; }
+  .perm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 10px 0; }
+  .perm-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #444; }
+  .perm-item input { width: auto; margin: 0; }
+
   .hidden { display: none; }
+  .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; display: flex; background: white; border-top: 1px solid #eee; padding: 8px 0; }
+  .nav-item { flex: 1; text-align: center; padding: 8px 0; cursor: pointer; color: #999; font-size: 10px; }
+  .nav-item.active { color: #8E00FF; font-weight: bold; }
+  .nav-item .icon { font-size: 18px; display: block; margin-bottom: 2px; }
 </style>
 </head>
 <body>
@@ -42,23 +62,32 @@
 <div id="content">Завантаження...</div>
 
 <script>
-  if (window.Telegram && window.Telegram.WebApp) {
-    const tg = window.Telegram.WebApp;
-    try { tg.expand(); } catch (e) {}
-    if (tg.isVersionAtLeast && tg.isVersionAtLeast('7.7') && tg.disableVerticalSwipes) {
-      try { tg.disableVerticalSwipes(); } catch (e) {}
-    }
-  }
-
   const supabaseUrl = 'https://ipzvgqyjtqofthbpkdsd.supabase.co';
   const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwenZncXlqdHFvZnRoYnBrZHNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMTEwNjEsImV4cCI6MjEwMTU4NzA2MX0.jbbpKpHaD6S9SJMIbxcwb12ggBCv44J_-s4OQ8ESNfA';
   const sb = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-  let allLeads = [];
-  let currentFilter = 'all';
+  const ALL_PERMS = [
+    { key: 'leads_tradein', label: 'Заявки: Обмін' },
+    { key: 'leads_carselection', label: 'Заявки: Підбір' },
+    { key: 'leads_leasing', label: 'Заявки: Лізинг' },
+    { key: 'partners', label: 'Партнери' },
+    { key: 'listings', label: 'Оголошення' },
+    { key: 'auction', label: 'Аукціон' },
+    { key: 'users', label: 'Користувачі' },
+    { key: 'broadcast', label: 'Розсилка' },
+    { key: 'stats', label: 'Статистика' },
+    { key: 'content', label: 'Контент' }
+  ];
+  const ROLE_LABELS = { owner: 'Власник', administrator: 'Адміністратор', manager: 'Менеджер', accountant: 'Бухгалтер', pending: 'Очікує призначення' };
 
-  const TYPE_LABELS = { trade_in: 'Trade-in', car_selection: 'Підбір авто', leasing: 'Розрахунок лізингу', partner: 'Заявка партнера' };
-  const STATUS_LABELS = { new: 'Нова', in_progress: 'В роботі', closed: 'Закрита' };
+  let myRole = null;
+  let myPerms = [];
+  let currentUserId = null;
+
+  function hasPerm(key) {
+    if (myRole === 'owner' || myRole === 'administrator') return true;
+    return myPerms.includes(key);
+  }
 
   function timeAgo(dateStr) {
     const diffMs = Date.now() - new Date(dateStr).getTime();
@@ -73,195 +102,370 @@
     const { data: { session } } = await sb.auth.getSession();
     const content = document.getElementById('content');
 
-    if (!session) {
-      window.location.href = 'register2.html';
+    if (!session) { window.location.href = 'admin-register.html'; return; }
+    currentUserId = session.user.id;
+
+    const { data: adminRow } = await sb.from('admin_users').select('role, permissions').eq('user_id', currentUserId).maybeSingle();
+
+    if (!adminRow) {
+      content.innerHTML = '<div class="denied">У вас немає доступу до цього розділу.<br><br><a href="admin-register.html" style="color:#8E00FF;">Зареєструватися як співробітник</a></div>';
+      return;
+    }
+    myRole = adminRow.role;
+    myPerms = adminRow.permissions || [];
+
+    if (myRole === 'pending') {
+      content.innerHTML = '<div class="denied">🕓 Заявку подано.<br>Очікуйте, поки власник призначить вам роль і права доступу.</div>';
       return;
     }
 
-    const { data: adminRow } = await sb.from('admin_users').select('role').eq('user_id', session.user.id).single();
+    buildLayout();
+  }
 
-    if (!adminRow) {
-      content.innerHTML = '<div class="denied">У вас немає доступу до цього розділу</div>';
+  function buildLayout() {
+    const content = document.getElementById('content');
+    const tabs = [];
+    if (hasPerm('leads_tradein') || hasPerm('leads_carselection') || hasPerm('leads_leasing')) tabs.push(['leads', 'Заявки']);
+    if (hasPerm('partners')) tabs.push(['partners', 'Партнери']);
+    if (hasPerm('listings')) tabs.push(['listings', 'Оголошення']);
+    if (hasPerm('auction')) tabs.push(['auction', 'Аукціон']);
+    if (hasPerm('users')) tabs.push(['users', 'Користувачі']);
+    if (hasPerm('broadcast')) tabs.push(['broadcast', 'Розсилка']);
+    if (hasPerm('stats')) tabs.push(['stats', 'Статистика']);
+    if (hasPerm('content')) tabs.push(['content', 'Контент']);
+    if (myRole === 'owner') tabs.push(['staff', 'Персонал']);
+
+    if (tabs.length === 0) {
+      content.innerHTML = '<div class="denied">Вам поки не призначено жодних прав доступу.<br>Зверніться до власника.</div>';
       return;
     }
 
     content.innerHTML = `
-      <div class="logo">Адмін-панель</div>
-      <div class="role-badge">${adminRow.role === 'owner' ? 'Власник' : 'Менеджер'}</div>
-      <div class="tabs">
-        <div class="tab active" id="tabSectionLeads" onclick="setSection('leads')">Заявки</div>
-        <div class="tab" id="tabSectionPartners" onclick="setSection('partners')">Партнери</div>
-        <div class="tab" id="tabSectionBroadcast" onclick="setSection('broadcast')">Розсилка</div>
-      </div>
-
-      <div id="leadsSection">
-        <div class="tabs">
-          <div class="tab active" id="tabAll" onclick="setFilter('all')">Всі</div>
-          <div class="tab" id="tabNew" onclick="setFilter('new')">Нові</div>
-          <div class="tab" id="tabProgress" onclick="setFilter('in_progress')">В роботі</div>
-          <div class="tab" id="tabClosed" onclick="setFilter('closed')">Закриті</div>
-        </div>
-        <div id="leadsList"></div>
-      </div>
-
-      <div id="partnersSection" class="hidden">
-        <div class="tabs">
-          <div class="tab active" id="tabPartnersPending" onclick="setPartnerFilter('pending')">На розгляді</div>
-          <div class="tab" id="tabPartnersApproved" onclick="setPartnerFilter('approved')">Затверджені</div>
-        </div>
-        <div id="partnersList"></div>
-      </div>
-
-      <div id="broadcastSection" class="hidden">
-        <p style="font-size:13px; color:#666; margin-bottom:12px;">Push-сповіщення надійде всім користувачам, які увімкнули сповіщення в Профілі — навіть якщо застосунок закритий.</p>
-        <input type="text" id="broadcastTitle" placeholder="Заголовок (напр. 🎉 Вітаємо зі святом!)" style="width:100%; padding:14px; margin-bottom:10px; border:1px solid #ddd; border-radius:10px; font-size:15px; box-sizing:border-box;">
-        <textarea id="broadcastBody" placeholder="Текст повідомлення" style="width:100%; padding:14px; margin-bottom:10px; border:1px solid #ddd; border-radius:10px; font-size:15px; min-height:100px; box-sizing:border-box; font-family:Arial,sans-serif;"></textarea>
-        <button onclick="sendBroadcast()" style="width:100%; padding:14px; background:#8E00FF; color:#fff; border:none; border-radius:10px; font-weight:bold; font-size:15px; cursor:pointer;">Надіслати всім</button>
-        <div id="broadcastMsg" style="text-align:center; margin-top:12px; font-size:14px;"></div>
-      </div>
+      <div class="logo">Adminka <span>NORMALNO</span></div>
+      <div class="role-badge">${ROLE_LABELS[myRole] || myRole}</div>
+      <div class="tabs">${tabs.map((t, i) => `<div class="tab ${i === 0 ? 'active' : ''}" id="tab_${t[0]}" onclick="setSection('${t[0]}')">${t[1]}</div>`).join('')}</div>
+      <div id="sectionBody">Завантаження...</div>
+      <button onclick="logoutAdmin()" style="width:100%; padding:12px; background:#1a1a1a; border:1px solid #333; color:#999; border-radius:10px; margin-top:20px; cursor:pointer;">Вийти</button>
     `;
 
-    await loadLeads();
+    setSection(tabs[0][0]);
   }
 
-  function setSection(section) {
-    document.getElementById('tabSectionLeads').classList.toggle('active', section === 'leads');
-    document.getElementById('tabSectionPartners').classList.toggle('active', section === 'partners');
-    document.getElementById('tabSectionBroadcast').classList.toggle('active', section === 'broadcast');
-    document.getElementById('leadsSection').classList.toggle('hidden', section !== 'leads');
-    document.getElementById('partnersSection').classList.toggle('hidden', section !== 'partners');
-    document.getElementById('broadcastSection').classList.toggle('hidden', section !== 'broadcast');
-    if (section === 'partners') loadPartners();
+  window.logoutAdmin = async function() {
+    await sb.auth.signOut();
+    window.location.href = 'admin-register.html';
+  };
+
+  window.setSection = function(section) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    const tabEl = document.getElementById('tab_' + section);
+    if (tabEl) tabEl.classList.add('active');
+
+    const loaders = {
+      leads: loadLeadsSection, partners: loadPartnersSection, listings: loadListingsSection,
+      auction: loadAuctionSection, users: loadUsersSection, broadcast: loadBroadcastSection,
+      stats: loadStatsSection, content: loadContentSection, staff: loadStaffSection
+    };
+    if (loaders[section]) loaders[section]();
+  };
+
+  /* ---------- ЗАЯВКИ ---------- */
+  const TYPE_LABELS = { trade_in: 'Trade-in', car_selection: 'Підбір авто', leasing: 'Розрахунок лізингу', partner: 'Заявка партнера' };
+  const LEAD_TYPE_PERM = { trade_in: 'leads_tradein', car_selection: 'leads_carselection', leasing: 'leads_leasing' };
+  let allLeads = [];
+  let leadFilter = 'all';
+
+  async function loadLeadsSection() {
+    const body = document.getElementById('sectionBody');
+    body.innerHTML = `
+      <div class="tabs">
+        <div class="tab active" id="lf_all" onclick="setLeadFilter('all')">Всі</div>
+        <div class="tab" id="lf_new" onclick="setLeadFilter('new')">Нові</div>
+        <div class="tab" id="lf_in_progress" onclick="setLeadFilter('in_progress')">В роботі</div>
+        <div class="tab" id="lf_closed" onclick="setLeadFilter('closed')">Закриті</div>
+      </div>
+      <div id="leadsList">Завантаження...</div>
+    `;
+    const { data } = await sb.from('leads').select('*').order('created_at', { ascending: false });
+    allLeads = (data || []).filter(l => l.type === 'partner' ? false : (LEAD_TYPE_PERM[l.type] ? hasPerm(LEAD_TYPE_PERM[l.type]) : true));
+    renderLeads();
   }
 
-  window.sendBroadcast = async function() {
+  window.setLeadFilter = function(f) {
+    leadFilter = f;
+    ['all', 'new', 'in_progress', 'closed'].forEach(k => document.getElementById('lf_' + k).classList.toggle('active', k === f));
+    renderLeads();
+  };
+
+  function renderLeads() {
+    const list = document.getElementById('leadsList');
+    const filtered = leadFilter === 'all' ? allLeads : allLeads.filter(l => l.status === leadFilter);
+    if (filtered.length === 0) { list.innerHTML = '<div class="empty">Заявок немає</div>'; return; }
+
+    list.innerHTML = filtered.map(l => `
+      <div class="card">
+        <div class="card-type">${TYPE_LABELS[l.type] || l.type}</div>
+        <div class="card-title">${l.name || '—'}</div>
+        <div class="card-sub">${l.phone || '—'}</div>
+        <div class="card-details">${l.details || ''}</div>
+        <div class="card-time">${timeAgo(l.created_at)}</div>
+        <div class="status-row">
+          <button class="status-btn ${l.status === 'new' ? 'active-new' : ''}" onclick="updateLeadStatus(${l.id}, 'new')">Нова</button>
+          <button class="status-btn ${l.status === 'in_progress' ? 'active-progress' : ''}" onclick="updateLeadStatus(${l.id}, 'in_progress')">В роботі</button>
+          <button class="status-btn ${l.status === 'closed' ? 'active-closed' : ''}" onclick="updateLeadStatus(${l.id}, 'closed')">Закрита</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  window.updateLeadStatus = async function(id, status) {
+    await sb.from('leads').update({ status }).eq('id', id);
+    loadLeadsSection();
+  };
+
+  /* ---------- ПАРТНЕРИ ---------- */
+  let allPartnersAdmin = [];
+  let partnerFilter = 'pending';
+
+  async function loadPartnersSection() {
+    const body = document.getElementById('sectionBody');
+    body.innerHTML = `
+      <div class="tabs">
+        <div class="tab active" id="pf_pending" onclick="setPartnerFilter('pending')">На розгляді</div>
+        <div class="tab" id="pf_approved" onclick="setPartnerFilter('approved')">Затверджені</div>
+      </div>
+      <div id="partnersList">Завантаження...</div>
+    `;
+    const { data } = await sb.from('partners').select('*').order('created_at', { ascending: false });
+    allPartnersAdmin = data || [];
+    renderPartnersAdmin();
+  }
+
+  window.setPartnerFilter = function(f) {
+    partnerFilter = f;
+    ['pending', 'approved'].forEach(k => document.getElementById('pf_' + k).classList.toggle('active', k === f));
+    renderPartnersAdmin();
+  };
+
+  function renderPartnersAdmin() {
+    const list = document.getElementById('partnersList');
+    const filtered = allPartnersAdmin.filter(p => p.status === partnerFilter);
+    if (filtered.length === 0) { list.innerHTML = '<div class="empty">Немає заявок</div>'; return; }
+
+    list.innerHTML = filtered.map(p => `
+      <div class="card">
+        <div class="card-type">${p.category}</div>
+        <div class="card-title">${p.name}</div>
+        <div class="card-sub">${p.phone || '—'}</div>
+        <div class="card-details">Контакт: ${p.contact_person || '—'}\nEmail: ${p.email || '—'}\nАдреса: ${p.address || '—'}\n${p.description || ''}</div>
+        <div class="card-time">${timeAgo(p.created_at)}</div>
+        <div class="status-row">
+          ${p.status === 'pending' ? `<button class="status-btn active-closed" onclick="approvePartnerAdmin(${p.id})">✓ Затвердити</button>` : ''}
+          ${p.status === 'approved' ? `<button class="status-btn active-new" onclick="rejectPartnerAdmin(${p.id})">Повернути на розгляд</button>` : ''}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  window.approvePartnerAdmin = async function(id) { await sb.from('partners').update({ status: 'approved' }).eq('id', id); loadPartnersSection(); };
+  window.rejectPartnerAdmin = async function(id) { await sb.from('partners').update({ status: 'pending' }).eq('id', id); loadPartnersSection(); };
+
+  /* ---------- ОГОЛОШЕННЯ ---------- */
+  async function loadListingsSection() {
+    const body = document.getElementById('sectionBody');
+    body.innerHTML = '<div id="listingsList">Завантаження...</div>';
+    const { data } = await sb.from('cars').select('*').eq('archived', false).order('created_at', { ascending: false }).limit(100);
+    const list = document.getElementById('listingsList');
+    if (!data || data.length === 0) { list.innerHTML = '<div class="empty">Немає активних оголошень</div>'; return; }
+
+    list.innerHTML = data.map(c => `
+      <div class="card">
+        <div class="card-type">${c.listing_type === 'auction' ? 'Аукціон' : 'Продаж'}</div>
+        <div class="card-title">${c.brand} ${c.model}, ${c.year}</div>
+        <div class="card-sub">${Number(c.price || c.start_price || 0).toLocaleString('uk-UA')} ${c.currency || ''}</div>
+        <div class="card-details">${c.region || '—'} · ${c.is_urgent ? '🏷️ Термінове ' : ''}${c.is_hot ? '🔥 Гаряче' : ''}</div>
+        <div class="card-time">${timeAgo(c.created_at)}</div>
+        <div class="status-row">
+          <button class="status-btn" onclick="window.open('car.html?id=${c.id}', '_blank')">Переглянути</button>
+          <button class="status-btn active-new" onclick="unpublishListing(${c.id})">Зняти з публікації</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  window.unpublishListing = async function(id) {
+    if (!confirm('Зняти це оголошення з публікації? Воно перейде в архів власника.')) return;
+    await sb.from('cars').update({ archived: true, archived_at: new Date().toISOString() }).eq('id', id);
+    loadListingsSection();
+  };
+
+  /* ---------- АУКЦІОН ---------- */
+  async function loadAuctionSection() {
+    const body = document.getElementById('sectionBody');
+    body.innerHTML = '<div id="auctionAdminList">Завантаження...</div>';
+    const { data } = await sb.from('cars').select('*').eq('listing_type', 'auction').eq('archived', false).order('auction_ends_at', { ascending: true });
+    const list = document.getElementById('auctionAdminList');
+    if (!data || data.length === 0) { list.innerHTML = '<div class="empty">Немає активних лотів</div>'; return; }
+
+    list.innerHTML = data.map(c => `
+      <div class="card">
+        <div class="card-type">Лот · ${c.bid_count || 0} ставок</div>
+        <div class="card-title">${c.brand} ${c.model}, ${c.year}</div>
+        <div class="card-sub">${Number(c.current_bid || c.start_price || 0).toLocaleString('uk-UA')} ${c.currency}</div>
+        <div class="card-details">Завершення: ${new Date(c.auction_ends_at).toLocaleString('uk-UA')}</div>
+        <div class="status-row">
+          <button class="status-btn" onclick="window.open('lot.html?id=${c.id}', '_blank')">Переглянути</button>
+          <button class="status-btn active-new" onclick="cancelLot(${c.id})">Скасувати лот</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  window.cancelLot = async function(id) {
+    if (!confirm('Скасувати цей лот? Це незворотньо.')) return;
+    await sb.from('cars').update({ archived: true, archived_at: new Date().toISOString() }).eq('id', id);
+    loadAuctionSection();
+  };
+
+  /* ---------- КОРИСТУВАЧІ ---------- */
+  async function loadUsersSection() {
+    const body = document.getElementById('sectionBody');
+    body.innerHTML = '<div id="usersList">Завантаження...</div>';
+    const { data } = await sb.from('profiles').select('*').order('created_at', { ascending: false }).limit(200);
+    const list = document.getElementById('usersList');
+    if (!data || data.length === 0) { list.innerHTML = '<div class="empty">Немає користувачів</div>'; return; }
+
+    list.innerHTML = data.map(u => `
+      <div class="card">
+        <div class="card-title">${u.name || 'Без імені'}${u.blocked ? ' 🚫' : ''}</div>
+        <div class="card-details">📞 ${u.phone || '—'}\n📱 Telegram: ${u.telegram_username ? '@' + u.telegram_username : '—'}</div>
+        <div class="status-row">
+          <button class="status-btn ${u.blocked ? 'active-new' : ''}" onclick="toggleBlockUser('${u.user_id}', ${!u.blocked})">${u.blocked ? 'Розблокувати' : 'Заблокувати'}</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  window.toggleBlockUser = async function(userId, block) {
+    await sb.from('profiles').update({ blocked: block }).eq('user_id', userId);
+    loadUsersSection();
+  };
+
+  /* ---------- РОЗСИЛКА ---------- */
+  function loadBroadcastSection() {
+    const body = document.getElementById('sectionBody');
+    body.innerHTML = `
+      <p style="font-size:13px; color:#999; margin-bottom:12px;">Push-сповіщення надійде всім користувачам, які увімкнули сповіщення — навіть якщо застосунок закритий.</p>
+      <input type="text" id="broadcastTitle" placeholder="Заголовок (напр. 🎉 Вітаємо зі святом!)">
+      <textarea id="broadcastBody" placeholder="Текст повідомлення"></textarea>
+      <button class="action-btn" style="width:100%;" onclick="sendBroadcastAdmin()">Надіслати всім</button>
+      <div id="broadcastMsg" style="text-align:center; margin-top:12px; font-size:14px;"></div>
+    `;
+  }
+
+  window.sendBroadcastAdmin = async function() {
     const title = document.getElementById('broadcastTitle').value.trim();
     const body = document.getElementById('broadcastBody').value.trim();
     const msg = document.getElementById('broadcastMsg');
-
-    if (!title || !body) {
-      msg.textContent = 'Заповніть заголовок і текст';
-      msg.style.color = 'red';
-      return;
-    }
+    if (!title || !body) { msg.textContent = 'Заповніть заголовок і текст'; msg.style.color = '#ff6b6b'; return; }
 
     msg.textContent = 'Надсилаємо...';
     msg.style.color = '#8E00FF';
-
     const resp = await fetch('/api/broadcast-push', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, body })
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title, body })
     });
     const data = await resp.json();
-
-    if (data.error) {
-      msg.textContent = data.error;
-      msg.style.color = 'red';
-      return;
-    }
-
+    if (data.error) { msg.textContent = data.error; msg.style.color = '#ff6b6b'; return; }
     msg.textContent = `Надіслано ${data.sent || 0} користувачам!`;
-    msg.style.color = 'green';
+    msg.style.color = '#4ade80';
     document.getElementById('broadcastTitle').value = '';
     document.getElementById('broadcastBody').value = '';
   };
 
-  let allPartnersAdmin = [];
-  let currentPartnerFilter = 'pending';
+  /* ---------- СТАТИСТИКА ---------- */
+  async function loadStatsSection() {
+    const body = document.getElementById('sectionBody');
+    body.innerHTML = '<div class="empty">Рахуємо...</div>';
 
-  async function loadPartners() {
-    const { data } = await sb.from('partners').select('*').order('created_at', { ascending: false });
-    allPartnersAdmin = data || [];
-    renderPartners();
-  }
+    const [{ count: totalActive }, { count: soldPlatform }, { count: soldOther }, { count: activeAuctions }, { count: totalUsers }, { count: totalPartners }] = await Promise.all([
+      sb.from('cars').select('*', { count: 'exact', head: true }).eq('archived', false),
+      sb.from('cars').select('*', { count: 'exact', head: true }).eq('sold', true).eq('sold_via', 'platform'),
+      sb.from('cars').select('*', { count: 'exact', head: true }).eq('sold', true).neq('sold_via', 'platform'),
+      sb.from('cars').select('*', { count: 'exact', head: true }).eq('listing_type', 'auction').eq('archived', false),
+      sb.from('profiles').select('*', { count: 'exact', head: true }),
+      sb.from('partners').select('*', { count: 'exact', head: true }).eq('status', 'approved')
+    ]);
 
-  function setPartnerFilter(filter) {
-    currentPartnerFilter = filter;
-    document.getElementById('tabPartnersPending').classList.toggle('active', filter === 'pending');
-    document.getElementById('tabPartnersApproved').classList.toggle('active', filter === 'approved');
-    renderPartners();
-  }
-
-  function renderPartners() {
-    const list = document.getElementById('partnersList');
-    const filtered = allPartnersAdmin.filter(p => p.status === currentPartnerFilter);
-
-    if (filtered.length === 0) {
-      list.innerHTML = '<div class="empty">Немає заявок</div>';
-      return;
-    }
-
-    list.innerHTML = filtered.map(p => `
-      <div class="lead-card">
-        <div class="lead-type">${p.category}</div>
-        <div class="lead-name">${p.name}</div>
-        <div class="lead-phone">${p.phone || '—'}</div>
-        <div class="lead-details">Контакт: ${p.contact_person || '—'}<br>Email: ${p.email || '—'}<br>Сайт: ${p.website || '—'}<br>Адреса: ${p.address || '—'}<br>Графік: ${(p.work_days && p.work_days.length ? p.work_days.join(',') : 'щодня')} ${p.work_from || ''}-${p.work_to || ''}<br>Фото: ${(p.photos || []).length}<br>${p.description || ''}</div>
-        <div class="lead-time">${timeAgo(p.created_at)}</div>
-        <div class="status-row">
-          ${p.status === 'pending' ? `<button class="status-btn active-closed" onclick="approvePartner(${p.id})">✓ Затвердити</button>` : ''}
-          ${p.status === 'approved' ? `<button class="status-btn active-new" onclick="rejectPartner(${p.id})">Повернути на розгляд</button>` : ''}
-        </div>
+    body.innerHTML = `
+      <div class="stats-grid">
+        <div class="stat-box"><div class="stat-num">${totalActive || 0}</div><div class="stat-label">Активних оголошень</div></div>
+        <div class="stat-box"><div class="stat-num">${activeAuctions || 0}</div><div class="stat-label">Активних лотів</div></div>
+        <div class="stat-box"><div class="stat-num">${soldPlatform || 0}</div><div class="stat-label">Продано через NORMALNO</div></div>
+        <div class="stat-box"><div class="stat-num">${soldOther || 0}</div><div class="stat-label">Продано самостійно</div></div>
+        <div class="stat-box"><div class="stat-num">${totalUsers || 0}</div><div class="stat-label">Користувачів</div></div>
+        <div class="stat-box"><div class="stat-num">${totalPartners || 0}</div><div class="stat-label">Партнерів</div></div>
       </div>
-    `).join('');
+      <p style="font-size:12px; color:#666; margin-top:16px; text-align:center;">Фінансова статистика зʼявиться після підключення платежів.</p>
+    `;
   }
 
-  async function approvePartner(id) {
-    await sb.from('partners').update({ status: 'approved' }).eq('id', id);
-    await loadPartners();
-  }
-  async function rejectPartner(id) {
-    await sb.from('partners').update({ status: 'pending' }).eq('id', id);
-    await loadPartners();
+  /* ---------- КОНТЕНТ (заглушка) ---------- */
+  function loadContentSection() {
+    document.getElementById('sectionBody').innerHTML = '<div class="empty">🚧 Редагування контенту сторінок (FAQ, Підтримка) в розробці.</div>';
   }
 
-  async function loadLeads() {
-    const { data: leads } = await sb.from('leads').select('*').order('created_at', { ascending: false });
-    allLeads = leads || [];
-    render();
-  }
+  /* ---------- ПЕРСОНАЛ (тільки власник) ---------- */
+  async function loadStaffSection() {
+    const body = document.getElementById('sectionBody');
+    body.innerHTML = '<div id="staffList">Завантаження...</div>';
 
-  function setFilter(filter) {
-    currentFilter = filter;
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    ({ all: 'tabAll', new: 'tabNew', in_progress: 'tabProgress', closed: 'tabClosed' });
-    document.getElementById({ all: 'tabAll', new: 'tabNew', in_progress: 'tabProgress', closed: 'tabClosed' }[filter]).classList.add('active');
-    render();
-  }
+    const { data: staff } = await sb.from('admin_users').select('*').order('created_at', { ascending: false });
+    const userIds = (staff || []).map(s => s.user_id);
+    const { data: profs } = userIds.length ? await sb.from('profiles').select('user_id, name, phone').in('user_id', userIds) : { data: [] };
+    const profMap = {};
+    (profs || []).forEach(p => profMap[p.user_id] = p);
 
-  function render() {
-    const list = document.getElementById('leadsList');
-    const filtered = currentFilter === 'all' ? allLeads : allLeads.filter(l => l.status === currentFilter);
+    const list = document.getElementById('staffList');
+    if (!staff || staff.length === 0) { list.innerHTML = '<div class="empty">Персоналу ще немає</div>'; return; }
 
-    if (filtered.length === 0) {
-      list.innerHTML = '<div class="empty">Заявок немає</div>';
-      return;
-    }
-
-    list.innerHTML = filtered.map(lead => `
-      <div class="lead-card">
-        <div class="lead-type">${TYPE_LABELS[lead.type] || lead.type}</div>
-        <div class="lead-name">${lead.name || '—'}</div>
-        <div class="lead-phone">${lead.phone || '—'}</div>
-        ${lead.budget ? `<div class="lead-details">Бюджет: ${lead.budget}</div>` : ''}
-        ${lead.payment_type ? `<div class="lead-details">Оплата: ${lead.payment_type}</div>` : ''}
-        ${lead.region ? `<div class="lead-details">Регіон: ${lead.region}</div>` : ''}
-        <div class="lead-details">${lead.details || ''}</div>
-        <div class="lead-time">${timeAgo(lead.created_at)}</div>
-        <div class="status-row">
-          <button class="status-btn ${lead.status === 'new' ? 'active-new' : ''}" onclick="updateStatus(${lead.id}, 'new')">Нова</button>
-          <button class="status-btn ${lead.status === 'in_progress' ? 'active-progress' : ''}" onclick="updateStatus(${lead.id}, 'in_progress')">В роботі</button>
-          <button class="status-btn ${lead.status === 'closed' ? 'active-closed' : ''}" onclick="updateStatus(${lead.id}, 'closed')">Закрита</button>
+    list.innerHTML = staff.map(s => {
+      const prof = profMap[s.user_id] || {};
+      const perms = s.permissions || [];
+      return `
+        <div class="staff-card">
+          <div class="staff-name">${prof.name || 'Без імені'}</div>
+          <div class="staff-phone">${prof.phone || '—'}</div>
+          <select id="role_${s.id}" onchange="onRoleChange(${s.id})">
+            ${Object.keys(ROLE_LABELS).map(r => `<option value="${r}" ${s.role === r ? 'selected' : ''}>${ROLE_LABELS[r]}</option>`).join('')}
+          </select>
+          <div class="perm-grid" id="perms_${s.id}" style="${s.role === 'manager' || s.role === 'accountant' ? '' : 'display:none;'}">
+            ${ALL_PERMS.map(p => `
+              <label class="perm-item">
+                <input type="checkbox" value="${p.key}" ${perms.includes(p.key) ? 'checked' : ''}>
+                ${p.label}
+              </label>
+            `).join('')}
+          </div>
+          <button class="action-btn" style="width:100%; margin-top:8px;" onclick="saveStaff(${s.id})">Зберегти</button>
         </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
   }
 
-  async function updateStatus(leadId, status) {
-    await sb.from('leads').update({ status }).eq('id', leadId);
-    await loadLeads();
-  }
+  window.onRoleChange = function(id) {
+    const role = document.getElementById('role_' + id).value;
+    const permsBox = document.getElementById('perms_' + id);
+    permsBox.style.display = (role === 'manager' || role === 'accountant') ? '' : 'none';
+  };
+
+  window.saveStaff = async function(id) {
+    const role = document.getElementById('role_' + id).value;
+    const checkboxes = document.querySelectorAll(`#perms_${id} input[type=checkbox]:checked`);
+    const permissions = Array.from(checkboxes).map(cb => cb.value);
+
+    await sb.from('admin_users').update({ role, permissions }).eq('id', id);
+    alert('Збережено!');
+  };
 
   init();
 </script>

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="/admin-manifest.json">
+<meta name="theme-color" content="#8E00FF">
+<link rel="apple-touch-icon" href="/icons-admin/icon-180.png">
+<title>Adminka NORMALNO — Вхід</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; background: #fff; margin: 0; padding: 20px; color: #222; }
+  .logo { text-align: center; font-size: 26px; font-weight: bold; color: #222; margin: 30px 0 4px; }
+  .logo span { color: #8E00FF; }
+  .subtitle { text-align: center; color: #999; font-size: 13px; margin-bottom: 30px; }
+  .tabs { display: flex; margin-bottom: 20px; border-bottom: 2px solid #eee; }
+  .tab { flex: 1; text-align: center; padding: 12px; cursor: pointer; color: #999; font-weight: bold; }
+  .tab.active { color: #8E00FF; border-bottom: 3px solid #FF7A00; }
+  input { width: 100%; padding: 14px; margin-bottom: 12px; border: 1px solid #ddd; border-radius: 10px; font-size: 15px; background: #fff; color: #222; }
+  input::placeholder { color: #999; }
+  button.main { width: 100%; padding: 15px; background: #8E00FF; color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; }
+  .hidden { display: none; }
+  .msg { text-align: center; margin-top: 12px; font-size: 14px; }
+</style>
+</head>
+<body>
+
+<div class="logo">Adminka <span>NORMALNO</span></div>
+<div class="subtitle">Вхід для персоналу компанії</div>
+
+<div class="tabs">
+  <div class="tab active" id="tabRegister" onclick="showTab('register')">Реєстрація</div>
+  <div class="tab" id="tabLogin" onclick="showTab('login')">Вхід</div>
+</div>
+
+<div id="registerForm">
+  <input type="text" id="regName" placeholder="Ваше ім'я">
+  <input type="tel" id="regPhone" placeholder="Номер телефону">
+  <input type="email" id="regEmail" placeholder="Email">
+  <input type="password" id="regPassword" placeholder="Придумайте пароль">
+  <button class="main" onclick="register()">Зареєструватися</button>
+  <div class="msg" id="regMsg"></div>
+</div>
+
+<div id="loginForm" class="hidden">
+  <input type="text" id="loginIdentifier" placeholder="Email">
+  <input type="password" id="loginPassword" placeholder="Пароль">
+  <button class="main" onclick="login()">Увійти</button>
+  <div class="msg" id="loginMsg"></div>
+</div>
+
+<script>
+  const supabaseUrl = 'https://ipzvgqyjtqofthbpkdsd.supabase.co';
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwenZncXlqdHFvZnRoYnBrZHNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMTEwNjEsImV4cCI6MjEwMTU4NzA2MX0.jbbpKpHaD6S9SJMIbxcwb12ggBCv44J_-s4OQ8ESNfA';
+  const sb = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+  function showTab(tab) {
+    document.getElementById('tabRegister').classList.toggle('active', tab === 'register');
+    document.getElementById('tabLogin').classList.toggle('active', tab === 'login');
+    document.getElementById('registerForm').classList.toggle('hidden', tab !== 'register');
+    document.getElementById('loginForm').classList.toggle('hidden', tab !== 'login');
+  }
+
+  async function register() {
+    const name = document.getElementById('regName').value.trim();
+    const phone = document.getElementById('regPhone').value.trim();
+    const email = document.getElementById('regEmail').value.trim();
+    const password = document.getElementById('regPassword').value;
+    const msg = document.getElementById('regMsg');
+
+    if (!name || !phone || !email || !password) {
+      msg.textContent = "Заповніть всі поля";
+      msg.style.color = '#ff6b6b';
+      return;
+    }
+
+    const { data, error } = await sb.auth.signUp({ email, password });
+    if (error) {
+      msg.textContent = error.message;
+      msg.style.color = '#ff6b6b';
+      return;
+    }
+
+    await sb.from('profiles').insert({ user_id: data.user.id, name, phone });
+    await sb.from('admin_users').insert({ user_id: data.user.id, role: 'pending', permissions: [] });
+
+    msg.textContent = 'Реєстрація успішна! Очікуйте, поки власник призначить вам роль.';
+    msg.style.color = '#4ade80';
+  }
+
+  async function login() {
+    const email = document.getElementById('loginIdentifier').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const msg = document.getElementById('loginMsg');
+
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) {
+      msg.textContent = error.message;
+      msg.style.color = '#ff6b6b';
+      return;
+    }
+    window.location.href = 'admin.html';
+  }
+</script>
+
+</body>
+</html>

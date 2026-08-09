@@ -454,7 +454,34 @@ async function isPushSubscribed() {
   return !!sub;
 }
 
-async function subscribeToPush(sbClient, userId) {
+async function unsubscribeFromPush(sbClient) {
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if (sub) {
+      const endpoint = sub.endpoint;
+      await sub.unsubscribe();
+      if (sbClient) await sbClient.from('push_subscriptions').delete().eq('endpoint', endpoint);
+    }
+    return true;
+  } catch (e) {
+    console.error('Push unsubscribe error:', e);
+    return false;
+  }
+}
+
+async function autoRequestPushOnInstall(sbClient, userId) {
+  try {
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    if (!isStandalone) return;
+    if (!('Notification' in window)) return;
+    if (localStorage.getItem('normalno_push_prompted')) return;
+    localStorage.setItem('normalno_push_prompted', '1');
+    if (Notification.permission === 'default') {
+      await subscribeToPush(sbClient, userId);
+    }
+  } catch (e) {}
+}
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
     alert('Ваш браузер не підтримує push-сповіщення');
     return false;

@@ -49,8 +49,14 @@
   .row-arrow { color: #ccc; }
 
   .logout-btn { width: 100%; padding: 14px; background: #fff0f0; color: #cc0000; border: none; border-radius: 12px; font-weight: bold; font-size: 14px; cursor: pointer; }
-  .notify-btn { width: 100%; padding: 14px; background: #f5e6ff; color: #8E00FF; border: none; border-radius: 12px; font-weight: bold; font-size: 14px; cursor: pointer; margin-bottom: 12px; }
-  .notify-btn.enabled { background: #eafbe9; color: #1a8f2a; }
+  .notify-row { display: flex; align-items: center; justify-content: space-between; padding: 14px; background: #f5e6ff; border-radius: 12px; margin-bottom: 12px; }
+  .notify-label { font-size: 14px; font-weight: bold; color: #333; }
+  .toggle-switch { position: relative; width: 46px; height: 26px; flex-shrink: 0; }
+  .toggle-switch input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider { position: absolute; cursor: pointer; inset: 0; background: #ccc; border-radius: 26px; transition: 0.2s; }
+  .toggle-slider::before { content: ""; position: absolute; height: 20px; width: 20px; left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: 0.2s; }
+  .toggle-switch input:checked + .toggle-slider { background: #8E00FF; }
+  .toggle-switch input:checked + .toggle-slider::before { transform: translateX(20px); }
 
   .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; display: flex; background: white; border-top: 1px solid #eee; padding: 8px 0; }
   .nav-item { flex: 1; text-align: center; padding: 8px 0; cursor: pointer; color: #999; font-size: 11px; position: relative; }
@@ -152,7 +158,13 @@
   </div>
 </div>
 
-<button class="notify-btn" id="notifyBtn" onclick="enablePush()">🔔 Увімкнути сповіщення</button>
+<div class="notify-row">
+  <span class="notify-label">🔔 Push-сповіщення</span>
+  <label class="toggle-switch">
+    <input type="checkbox" id="notifyToggle" onchange="togglePush(this.checked)">
+    <span class="toggle-slider"></span>
+  </label>
+</div>
 <button class="logout-btn" onclick="logout()">⏻ Вийти з акаунту</button>
 
 <div class="bottom-nav">
@@ -235,27 +247,22 @@
     window.location.href = 'register2.html';
   }
 
-  window.enablePush = async function() {
+  window.togglePush = async function(checked) {
     const { data: { session } } = await sb.auth.getSession();
     if (!session) return;
-    const btn = document.getElementById('notifyBtn');
-    btn.textContent = 'Вмикаємо...';
-    const ok = await subscribeToPush(sb, session.user.id);
-    if (ok) {
-      btn.textContent = '✓ Сповіщення увімкнено';
-      btn.classList.add('enabled');
+    const toggle = document.getElementById('notifyToggle');
+
+    if (checked) {
+      const ok = await subscribeToPush(sb, session.user.id);
+      if (!ok) toggle.checked = false;
     } else {
-      btn.textContent = '🔔 Увімкнути сповіщення';
+      await unsubscribeFromPush(sb);
     }
   };
 
   async function checkPushStatus() {
     const subscribed = await isPushSubscribed();
-    if (subscribed) {
-      const btn = document.getElementById('notifyBtn');
-      btn.textContent = '✓ Сповіщення увімкнено';
-      btn.classList.add('enabled');
-    }
+    document.getElementById('notifyToggle').checked = subscribed;
   }
   checkPushStatus();
 
