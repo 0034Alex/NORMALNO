@@ -9,6 +9,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
   * { box-sizing: border-box; }
+  html, body { overflow-x: hidden; max-width: 100vw; }
   body { font-family: Arial, sans-serif; background: #fff; margin: 0; padding: 16px; padding-bottom: 90px; }
   .logo { font-size: 22px; font-weight: bold; color: #8E00FF; margin-bottom: 16px; }
 
@@ -78,10 +79,10 @@
   .partner-logo { width: 64px; height: 64px; border-radius: 12px; background: #f5e6ff; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; overflow: hidden; }
   .partner-logo img { width: 100%; height: 100%; object-fit: cover; }
   .partner-info { flex: 1; min-width: 0; }
-  .partner-name { font-weight: bold; font-size: 15px; margin-bottom: 2px; }
+  .partner-name { font-weight: bold; font-size: 15px; margin-bottom: 2px; overflow-wrap: break-word; }
   .partner-category { display: inline-block; background: #f5e6ff; color: #8E00FF; font-size: 11px; font-weight: bold; padding: 2px 8px; border-radius: 8px; margin-bottom: 6px; }
-  .partner-desc { font-size: 12px; color: #666; margin-bottom: 8px; line-height: 1.3; }
-  .partner-meta { font-size: 11px; color: #666; margin-bottom: 4px; }
+  .partner-desc { font-size: 12px; color: #666; margin-bottom: 8px; line-height: 1.3; overflow-wrap: break-word; }
+  .partner-meta { font-size: 11px; color: #666; margin-bottom: 4px; overflow-wrap: break-word; word-break: break-all; }
   .partner-meta a { color: #8E00FF; }
   .status-open { color: #1a8f2a; font-weight: bold; }
   .status-closed { color: #cc0000; font-weight: bold; }
@@ -131,11 +132,6 @@
 
 <div class="search-row">
   <input type="text" class="search-input" id="searchInput" placeholder="Знайти партнера..." oninput="renderAll()">
-</div>
-<div class="map-link" onclick="toggleFullMap()" style="margin-bottom:16px;">🗺️ Показати всіх партнерів на карті</div>
-
-<div class="full-map-wrap" id="fullMapWrap">
-  <div id="fullMap"></div>
 </div>
 
 <div class="promo-banner-orange">
@@ -231,27 +227,6 @@
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
     L.marker([OFFICE.lat, OFFICE.lng], { icon: purpleIcon() }).addTo(map);
   }
-
-  /* ---------- Повна карта ---------- */
-  window.toggleFullMap = function() {
-    const wrap = document.getElementById('fullMapWrap');
-    wrap.classList.toggle('open');
-    if (wrap.classList.contains('open') && !fullMapInstance) {
-      setTimeout(() => {
-        fullMapInstance = L.map('fullMap').setView([OFFICE.lat, OFFICE.lng], 11);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(fullMapInstance);
-        L.marker([OFFICE.lat, OFFICE.lng], { icon: orangeIcon() }).addTo(fullMapInstance)
-          .bindPopup(`<b>${OFFICE.name}</b><br><button onclick="openRouteMenu(${OFFICE.lat},${OFFICE.lng},'${OFFICE.name}')" style="margin-top:6px;background:#8E00FF;color:#fff;border:none;border-radius:6px;padding:6px 10px;font-size:12px;cursor:pointer;">Прокласти маршрут</button>`);
-
-        allPartners.filter(p => p.lat && p.lng).forEach(p => {
-          L.marker([p.lat, p.lng], { icon: purpleIcon() }).addTo(fullMapInstance)
-            .bindPopup(`<b>${p.name}</b><br>${p.category}<br><button onclick="openRouteMenu(${p.lat},${p.lng},'${p.name.replace(/'/g,"")}')" style="margin-top:6px;background:#8E00FF;color:#fff;border:none;border-radius:6px;padding:6px 10px;font-size:12px;cursor:pointer;">Прокласти маршрут</button>`);
-        });
-      }, 100);
-    } else if (fullMapInstance) {
-      setTimeout(() => fullMapInstance.invalidateSize(), 100);
-    }
-  };
 
   /* ---------- Категорії ---------- */
   function renderCategories() {
