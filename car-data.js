@@ -482,6 +482,7 @@ async function autoRequestPushOnInstall(sbClient, userId) {
     }
   } catch (e) {}
 }
+async function subscribeToPush(sbClient, userId) {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
     alert('Ваш браузер не підтримує push-сповіщення');
     return false;
