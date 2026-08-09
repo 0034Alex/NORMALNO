@@ -153,7 +153,7 @@
         <div class="lead-type">${p.category}</div>
         <div class="lead-name">${p.name}</div>
         <div class="lead-phone">${p.phone || '—'}</div>
-        <div class="lead-details">Контакт: ${p.contact_person || '—'}<br>Email: ${p.email || '—'}<br>Сайт: ${p.website || '—'}<br>Адреса: ${p.address || '—'}<br>Графік: ${p.working_hours || '—'}<br>Фото: ${(p.photos || []).length}<br>${p.description || ''}</div>
+        <div class="lead-details">Контакт: ${p.contact_person || '—'}<br>Email: ${p.email || '—'}<br>Сайт: ${p.website || '—'}<br>Адреса: ${p.address || '—'}<br>Графік: ${(p.work_days && p.work_days.length ? p.work_days.join(',') : 'щодня')} ${p.work_from || ''}-${p.work_to || ''}<br>Фото: ${(p.photos || []).length}<br>${p.description || ''}</div>
         <div class="lead-time">${timeAgo(p.created_at)}</div>
         <div class="status-row">
           ${p.status === 'pending' ? `<button class="status-btn active-closed" onclick="approvePartner(${p.id})">✓ Затвердити</button>` : ''}

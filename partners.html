@@ -21,7 +21,7 @@
   .office-address { font-size: 11px; color: #555; margin-bottom: 2px; }
   .office-phone { font-size: 11px; color: #555; }
   .office-route-btn {
-    background: #FF7A00; color: #fff; text-decoration: none; border: none; border-radius: 8px;
+    background: #fff0e0; color: #FF7A00; text-decoration: none; border: none; border-radius: 8px;
     padding: 10px 14px; font-weight: bold; font-size: 12px; cursor: pointer; white-space: nowrap; flex-shrink: 0;
   }
 
@@ -42,10 +42,20 @@
   .section-title { font-size: 16px; font-weight: bold; margin-bottom: 12px; }
   .category-grid { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 24px; }
   .category-tile { flex-shrink: 0; width: 76px; text-align: center; cursor: pointer; }
-  .category-circle { width: 56px; height: 56px; border-radius: 50%; background: #f5e6ff; display: flex; align-items: center; justify-content: center; font-size: 22px; margin: 0 auto 6px; }
-  .category-tile.active .category-circle { background: #8E00FF; }
+  .category-circle { width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; margin: 0 auto 6px; }
+  .category-circle.c-purple { background: #f5e6ff; }
+  .category-circle.c-orange { background: #fff0e0; }
+  .category-tile.active .category-circle.c-purple { background: #8E00FF; }
+  .category-tile.active .category-circle.c-orange { background: #FF7A00; }
   .category-label { font-size: 11px; font-weight: bold; color: #333; white-space: nowrap; }
   .category-count { font-size: 10px; color: #999; }
+
+  .size-toggle { display: flex; gap: 4px; }
+  .size-btn { width: 30px; height: 30px; border-radius: 8px; background: #f7f7f7; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 15px; color: #999; }
+  .size-btn.active { background: #f5e6ff; color: #8E00FF; }
+  .partners-list.grid-small { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .partners-list.grid-small .partner-row-card { flex-direction: column; }
+  .partners-list.grid-small .partner-logo { width: 100%; height: 90px; border-radius: 10px; }
 
   /* Партнери поруч */
   .section-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
@@ -71,6 +81,10 @@
   .partner-name { font-weight: bold; font-size: 15px; margin-bottom: 2px; }
   .partner-category { display: inline-block; background: #f5e6ff; color: #8E00FF; font-size: 11px; font-weight: bold; padding: 2px 8px; border-radius: 8px; margin-bottom: 6px; }
   .partner-desc { font-size: 12px; color: #666; margin-bottom: 8px; line-height: 1.3; }
+  .partner-meta { font-size: 11px; color: #666; margin-bottom: 4px; }
+  .partner-meta a { color: #8E00FF; }
+  .status-open { color: #1a8f2a; font-weight: bold; }
+  .status-closed { color: #cc0000; font-weight: bold; }
   .partner-actions { display: flex; gap: 6px; }
   .partner-btn { flex: 1; text-align: center; padding: 8px; border-radius: 8px; font-size: 12px; font-weight: bold; text-decoration: none; border: none; cursor: pointer; }
   .btn-call { background: #f5e6ff; color: #8E00FF; }
@@ -118,6 +132,11 @@
 <div class="search-row">
   <input type="text" class="search-input" id="searchInput" placeholder="Знайти партнера..." oninput="renderAll()">
 </div>
+<div class="map-link" onclick="toggleFullMap()" style="margin-bottom:16px;">🗺️ Показати всіх партнерів на карті</div>
+
+<div class="full-map-wrap" id="fullMapWrap">
+  <div id="fullMap"></div>
+</div>
 
 <div class="promo-banner-orange">
   <div class="promo-text"><b>Станьте партнером NORMALNO</b>Розмістіть свої послуги на платформі</div>
@@ -127,18 +146,15 @@
 <div class="section-title">Категорії</div>
 <div class="category-grid" id="categoryGrid"></div>
 
-<div class="section-head">
-  <div class="section-title" style="margin-bottom:0;">Партнери поруч</div>
-  <div class="map-link" onclick="toggleFullMap()">🗺️ Показати на карті</div>
-</div>
-<div id="nearbySection"><div class="geo-hint">Завантаження геолокації...</div></div>
-
-<div class="full-map-wrap" id="fullMapWrap">
-  <div id="fullMap"></div>
-</div>
-
 <div class="section-title">Всі партнери</div>
-<div id="list">Завантаження...</div>
+<div class="section-head">
+  <span></span>
+  <div class="size-toggle">
+    <span class="size-btn" id="sizeBig" onclick="setGridSize('big')" title="Список">☰</span>
+    <span class="size-btn active" id="sizeSmall" onclick="setGridSize('small')" title="Сітка">▦</span>
+  </div>
+</div>
+<div id="list" class="partners-list grid-small">Завантаження...</div>
 
 <div class="route-modal-overlay hidden" id="routeModal" onclick="if(event.target===this) closeRouteMenu()">
   <div class="route-modal-sheet">
@@ -164,17 +180,17 @@
   const sb = window.supabase.createClient(supabaseUrl, supabaseKey);
 
   const CATEGORIES = [
-    { key: 'Автосалон', label: 'Автосалони', icon: '🚗' },
-    { key: 'СТО', label: 'СТО', icon: '🔧' },
-    { key: 'Автомийка', label: 'Автомийки', icon: '💧' },
-    { key: 'Автопідбір', label: 'Автопідбір', icon: '🔍' },
-    { key: 'Детейлінг', label: 'Детейлінг', icon: '✨' },
-    { key: 'Запчастини', label: 'Запчастини', icon: '⚙️' }
+    { key: 'Автосалон', label: 'Автосалони', icon: '🚗', color: 'purple' },
+    { key: 'СТО', label: 'СТО', icon: '🔧', color: 'orange' },
+    { key: 'Автомийка', label: 'Автомийки', icon: '💧', color: 'purple' },
+    { key: 'Автопідбір', label: 'Автопідбір', icon: '🔍', color: 'orange' },
+    { key: 'Детейлінг', label: 'Детейлінг', icon: '✨', color: 'purple' },
+    { key: 'Запчастини', label: 'Запчастини', icon: '⚙️', color: 'orange' }
   ];
 
   let allPartners = [];
   let currentCategory = 'all';
-  let userLocation = null;
+  let currentGridSize = 'small';
   let fullMapInstance = null;
 
   const OFFICE = { lat: 50.446016, lng: 30.357536, name: "Головний офіс NORMALNO" };
@@ -243,7 +259,7 @@
     const allCount = allPartners.length;
     let html = `
       <div class="category-tile ${currentCategory === 'all' ? 'active' : ''}" onclick="setCategory('all')">
-        <div class="category-circle">🔲</div>
+        <div class="category-circle c-purple">⭐</div>
         <div class="category-label">Всі</div>
         <div class="category-count">${allCount}</div>
       </div>
@@ -252,7 +268,7 @@
       const count = allPartners.filter(p => p.category === c.key).length;
       html += `
         <div class="category-tile ${currentCategory === c.key ? 'active' : ''}" onclick="setCategory('${c.key}')">
-          <div class="category-circle">${c.icon}</div>
+          <div class="category-circle c-${c.color}">${c.icon}</div>
           <div class="category-label">${c.label}</div>
           <div class="category-count">${count}</div>
         </div>
@@ -267,60 +283,23 @@
     renderAll();
   };
 
-  /* ---------- Відстань (Haversine) ---------- */
-  function distanceKm(lat1, lng1, lat2, lng2) {
-    const R = 6371;
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLng = (lng2 - lng1) * Math.PI / 180;
-    const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLng/2)**2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  }
+  window.setGridSize = function(size) {
+    currentGridSize = size;
+    document.getElementById('list').classList.toggle('grid-small', size === 'small');
+    document.getElementById('sizeBig').classList.toggle('active', size === 'big');
+    document.getElementById('sizeSmall').classList.toggle('active', size === 'small');
+  };
 
-  function requestGeolocation() {
-    const section = document.getElementById('nearbySection');
-    if (!navigator.geolocation) {
-      section.innerHTML = '<div class="geo-hint">Геолокація не підтримується цим браузером</div>';
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        renderNearby();
-      },
-      () => {
-        section.innerHTML = '<div class="geo-hint">Щоб побачити партнерів поруч, дозвольте доступ до геолокації<br><button class="geo-btn" onclick="requestGeolocation()">Дозволити геолокацію</button></div>';
-      }
-    );
-  }
-
-  function renderNearby() {
-    const section = document.getElementById('nearbySection');
-    if (!userLocation) {
-      section.innerHTML = '<div class="geo-hint">Щоб побачити партнерів поруч, дозвольте доступ до геолокації<br><button class="geo-btn" onclick="requestGeolocation()">Дозволити геолокацію</button></div>';
-      return;
-    }
-    const withCoords = allPartners.filter(p => p.lat && p.lng).map(p => ({
-      ...p, distance: distanceKm(userLocation.lat, userLocation.lng, p.lat, p.lng)
-    })).sort((a, b) => a.distance - b.distance).slice(0, 8);
-
-    if (withCoords.length === 0) {
-      section.innerHTML = '<div class="empty">Поки немає партнерів поблизу</div>';
-      return;
-    }
-
-    section.innerHTML = `<div class="nearby-scroll">${withCoords.map(p => `
-      <div class="nearby-card">
-        <div class="nearby-photo">
-          ${p.photos && p.photos[0] ? `<img src="${p.photos[0]}" onerror="this.style.display='none'">` : `<div class="nearby-noimg">🏢</div>`}
-        </div>
-        <div class="nearby-body">
-          <div class="nearby-name">${p.name}</div>
-          <div class="nearby-cat">${p.category}</div>
-          <div class="nearby-dist">📍 ${p.distance.toFixed(1)} км від вас</div>
-          <button class="nearby-btn" onclick="document.getElementById('partner-${p.id}').scrollIntoView({behavior:'smooth', block:'center'})">Переглянути</button>
-        </div>
-      </div>
-    `).join('')}</div>`;
+  function isOpenNow(p) {
+    if (!p.work_from || !p.work_to) return null;
+    const days = (p.work_days && p.work_days.length) ? p.work_days : ['mon','tue','wed','thu','fri','sat','sun'];
+    const dayMap = ['sun','mon','tue','wed','thu','fri','sat'];
+    const now = new Date();
+    if (!days.includes(dayMap[now.getDay()])) return false;
+    const [fh, fm] = p.work_from.split(':').map(Number);
+    const [th, tm] = p.work_to.split(':').map(Number);
+    const nowMin = now.getHours() * 60 + now.getMinutes();
+    return nowMin >= (fh * 60 + fm) && nowMin <= (th * 60 + tm);
   }
 
   /* ---------- Всі партнери (список) ---------- */
@@ -328,7 +307,12 @@
     const query = document.getElementById('searchInput').value.trim().toLowerCase();
     let filtered = allPartners;
     if (currentCategory !== 'all') filtered = filtered.filter(p => p.category === currentCategory);
-    if (query) filtered = filtered.filter(p => p.name.toLowerCase().includes(query) || (p.description || '').toLowerCase().includes(query));
+    if (query) filtered = filtered.filter(p =>
+      p.name.toLowerCase().includes(query) ||
+      (p.description || '').toLowerCase().includes(query) ||
+      (p.category || '').toLowerCase().includes(query) ||
+      (p.address || '').toLowerCase().includes(query)
+    );
 
     const list = document.getElementById('list');
     if (filtered.length === 0) {
@@ -336,7 +320,13 @@
       return;
     }
 
-    list.innerHTML = filtered.map(p => `
+    list.innerHTML = filtered.map(p => {
+      const openStatus = isOpenNow(p);
+      const statusHtml = openStatus === null ? '' :
+        (openStatus ? '<span class="status-open">🟢 Відкрито зараз</span>' : '<span class="status-closed">🔴 Закрито</span>');
+      const hoursText = (p.work_from && p.work_to) ? `${p.work_from}–${p.work_to}` : '';
+
+      return `
       <div class="partner-row-card" id="partner-${p.id}">
         <div class="partner-logo">
           ${p.photos && p.photos[0] ? `<img src="${p.photos[0]}" onerror="this.style.display='none'">` : '🏢'}
@@ -345,13 +335,18 @@
           <div class="partner-name">${p.name}</div>
           <div class="partner-category">${p.category}</div>
           ${p.description ? `<div class="partner-desc">${p.description}</div>` : ''}
+          ${p.address ? `<div class="partner-meta">📍 ${p.address}</div>` : ''}
+          ${p.phone ? `<div class="partner-meta">📞 ${p.phone}</div>` : ''}
+          ${p.website ? `<div class="partner-meta">🌐 <a href="${p.website.startsWith('http') ? p.website : 'https://' + p.website}" target="_blank">${p.website}</a></div>` : ''}
+          ${hoursText ? `<div class="partner-meta">🕐 ${hoursText} ${statusHtml}</div>` : ''}
           <div class="partner-actions">
             ${p.phone ? `<a class="partner-btn btn-call" href="tel:${p.phone}">Подзвонити</a>` : ''}
             ${p.address ? `<button class="partner-btn btn-route" onclick="openRouteMenuByAddress('${p.address.replace(/'/g, "\\'")}')">Маршрут</button>` : ''}
           </div>
         </div>
       </div>
-    `).join('');
+    `;
+    }).join('');
   }
 
   function renderAll() {
@@ -363,12 +358,10 @@
     allPartners = data || [];
     renderCategories();
     renderAll();
-    renderNearby();
   }
 
   initOfficeMap();
   load();
-  requestGeolocation();
 </script>
 
 </body>

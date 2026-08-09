@@ -17,6 +17,10 @@
   }
   textarea { min-height: 80px; resize: vertical; }
   .hint { font-size: 11px; color: #999; margin: -6px 0 12px; }
+  .days-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 12px; }
+  .days-row label { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .row { display: flex; gap: 10px; }
+  .row input { flex: 1; }
   #photoPreview { display: flex; gap: 8px; margin-bottom: 10px; }
   #photoPreview img { width: 70px; height: 70px; object-fit: cover; border-radius: 8px; }
   button.main { width: 100%; padding: 15px; background: #8E00FF; color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; }
@@ -44,7 +48,20 @@
 <input type="email" id="email" placeholder="Email">
 <input type="url" id="website" placeholder="Сайт або сторінка в соцмережі (необов'язково)">
 <input type="text" id="address" placeholder="Адреса (місто, вулиця, номер будинку)">
-<input type="text" id="workingHours" placeholder="Графік роботи (напр. Пн-Пт 9:00-19:00)">
+<label style="font-size:13px; color:#666; display:block; margin-bottom:6px;">Графік роботи (не позначите дні — вважаємо що працюєте щодня)</label>
+<div class="days-row">
+  <label><input type="checkbox" class="workDay" value="mon"> Пн</label>
+  <label><input type="checkbox" class="workDay" value="tue"> Вт</label>
+  <label><input type="checkbox" class="workDay" value="wed"> Ср</label>
+  <label><input type="checkbox" class="workDay" value="thu"> Чт</label>
+  <label><input type="checkbox" class="workDay" value="fri"> Пт</label>
+  <label><input type="checkbox" class="workDay" value="sat"> Сб</label>
+  <label><input type="checkbox" class="workDay" value="sun"> Нд</label>
+</div>
+<div class="row">
+  <input type="time" id="workFrom" value="09:00">
+  <input type="time" id="workTo" value="19:00">
+</div>
 <textarea id="description" placeholder="Короткий опис послуг" maxlength="200"></textarea>
 <div class="hint">До 200 символів — щоб влізло в картку</div>
 
@@ -111,6 +128,8 @@
     msg.style.color = '#8E00FF';
     const photoUrls = await uploadPartnerPhotos(session.user.id);
 
+    const workDays = Array.from(document.querySelectorAll('.workDay:checked')).map(el => el.value);
+
     const { data: inserted, error } = await sb.from('partners').insert({
       name: name,
       category: category,
@@ -119,7 +138,9 @@
       email: document.getElementById('email').value.trim(),
       website: document.getElementById('website').value.trim(),
       address: address,
-      working_hours: document.getElementById('workingHours').value.trim(),
+      work_days: workDays,
+      work_from: document.getElementById('workFrom').value,
+      work_to: document.getElementById('workTo').value,
       description: document.getElementById('description').value.trim(),
       photos: photoUrls,
       status: 'pending'
@@ -150,8 +171,9 @@
       })
     }).catch(() => {});
 
-    msg.textContent = 'Дякуємо! Заявку надіслано на розгляд.';
+    msg.textContent = 'Дякуємо! Заявку надіслано на розгляд. Переходимо назад...';
     msg.style.color = 'green';
+    setTimeout(() => { window.location.href = 'partners.html'; }, 1500);
   }
 </script>
 
