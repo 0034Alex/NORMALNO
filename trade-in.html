@@ -40,8 +40,14 @@
 
 <input type="text" id="name" placeholder="Ваше ім'я">
 <input type="tel" id="phone" placeholder="Номер телефону">
-<select id="brand"></select>
-<select id="model" disabled></select>
+<div class="picker-field ph" id="brandField" onclick="openBrandPicker()">
+  <span class="picker-value" id="brandField_value">Марка — оберіть</span>
+  <span class="picker-arrow">▾</span>
+</div>
+<div class="picker-field ph disabled" id="modelField" onclick="openModelPicker()">
+  <span class="picker-value" id="modelField_value">Спочатку оберіть марку</span>
+  <span class="picker-arrow">▾</span>
+</div>
 <div style="display:flex; gap:10px;">
   <input type="number" id="year" placeholder="Рік випуску" style="flex:1;">
   <input type="number" id="mileage" placeholder="Пробіг, км" style="flex:1;">
@@ -70,11 +76,39 @@
   const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwenZncXlqdHFvZnRoYnBrZHNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMTEwNjEsImV4cCI6MjEwMTU4NzA2MX0.jbbpKpHaD6S9SJMIbxcwb12ggBCv44J_-s4OQ8ESNfA';
   const sb = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-  populateBrandSelect(document.getElementById('brand'));
+  let selectedBrand = '';
+  let selectedModel = '';
+  let currentModelsList = [];
 
-  document.getElementById('brand').addEventListener('change', async function() {
-    await populateModelSelect(document.getElementById('model'), this.value, 'Модель — оберіть');
-  });
+  async function openBrandPicker() {
+    const brands = await fetchAllBrands();
+    openSearchPicker('Марка авто', brands, selectedBrand, (val) => {
+      selectedBrand = val;
+      document.getElementById('brandField_value').textContent = val;
+      document.getElementById('brandField').classList.remove('ph');
+      onBrandChange();
+    });
+  }
+
+  async function onBrandChange() {
+    selectedModel = '';
+    const modelField = document.getElementById('modelField');
+    modelField.classList.add('disabled');
+    document.getElementById('modelField_value').textContent = 'Завантаження моделей...';
+    currentModelsList = await fetchModelsForBrand(selectedBrand);
+    modelField.classList.remove('disabled');
+    modelField.classList.add('ph');
+    document.getElementById('modelField_value').textContent = 'Модель — оберіть';
+  }
+
+  function openModelPicker() {
+    if (!selectedBrand) return;
+    openSearchPicker('Модель', currentModelsList, selectedModel, (val) => {
+      selectedModel = val;
+      document.getElementById('modelField_value').textContent = val;
+      document.getElementById('modelField').classList.remove('ph');
+    });
+  }
 
   async function submitLead() {
     const msg = document.getElementById('msg');
@@ -89,7 +123,7 @@
       return;
     }
 
-    const details = `Авто: ${document.getElementById('brand').value} ${document.getElementById('model').value}, ${document.getElementById('year').value || '—'} рік, ${document.getElementById('mileage').value || '—'} км. Стан: ${document.getElementById('condition').value || '—'}. Коментар: ${document.getElementById('comment').value || '—'}`;
+    const details = `Авто: ${selectedBrand} ${selectedModel}, ${document.getElementById('year').value || '—'} рік, ${document.getElementById('mileage').value || '—'} км. Стан: ${document.getElementById('condition').value || '—'}. Коментар: ${document.getElementById('comment').value || '—'}`;
 
     const { error } = await sb.from('leads').insert({
       type: 'trade_in',

@@ -302,3 +302,83 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').catch(() => {});
   });
 }
+
+/* ---------- Пошуковий пікер (заміна довгих select) ---------- */
+
+function injectPickerStyles() {
+  if (document.getElementById('picker-styles')) return;
+  const style = document.createElement('style');
+  style.id = 'picker-styles';
+  style.textContent = `
+    .picker-field { width: 100%; padding: 14px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 10px; font-size: 15px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: #fff; box-sizing: border-box; }
+    .picker-field.ph .picker-value { color: #999; }
+    .picker-field.disabled { color: #bbb; background: #fafafa; pointer-events: none; }
+    .picker-value { color: #222; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .picker-arrow { color: #999; font-size: 12px; margin-left: 8px; flex-shrink: 0; }
+    .picker-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 300; display: flex; align-items: flex-end; justify-content: center; }
+    .picker-sheet { background: #fff; width: 100%; max-width: 520px; height: 75vh; border-radius: 20px 20px 0 0; display: flex; flex-direction: column; }
+    .picker-header { padding: 14px 16px 10px; }
+    .picker-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .picker-title { font-size: 16px; font-weight: bold; }
+    .picker-close-btn { background: none; border: none; font-size: 18px; color: #999; cursor: pointer; padding: 4px 8px; }
+    .picker-search { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; font-size: 15px; box-sizing: border-box; }
+    .picker-list { flex: 1; overflow-y: auto; padding: 0 16px 16px; -webkit-overflow-scrolling: touch; }
+    .picker-item { padding: 13px 6px; border-top: 1px solid #f5f5f5; cursor: pointer; font-size: 15px; }
+    .picker-item:first-child { border-top: none; }
+    .picker-item.selected { color: #8E00FF; font-weight: bold; }
+    .picker-empty { text-align: center; color: #999; padding: 30px; }
+  `;
+  document.head.appendChild(style);
+}
+
+function openSearchPicker(title, options, currentValue, onSelect) {
+  injectPickerStyles();
+  closeSearchPicker();
+
+  const overlay = document.createElement('div');
+  overlay.className = 'picker-overlay';
+  overlay.id = 'activePickerOverlay';
+  overlay.innerHTML = `
+    <div class="picker-sheet">
+      <div class="picker-header">
+        <div class="picker-top">
+          <div class="picker-title">${title}</div>
+          <button class="picker-close-btn" onclick="closeSearchPicker()">✕</button>
+        </div>
+        <input type="text" class="picker-search" id="pickerSearchInput" placeholder="Пошук..." autocomplete="off">
+      </div>
+      <div class="picker-list" id="pickerListEl"></div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  const searchInput = document.getElementById('pickerSearchInput');
+  const listEl = document.getElementById('pickerListEl');
+
+  function renderList(query) {
+    const filtered = query ? options.filter(opt => matchesQuery(opt, query)) : options;
+    if (filtered.length === 0) {
+      listEl.innerHTML = '<div class="picker-empty">Нічого не знайдено</div>';
+      return;
+    }
+    listEl.innerHTML = filtered.map(opt =>
+      `<div class="picker-item ${opt === currentValue ? 'selected' : ''}">${opt}</div>`
+    ).join('');
+    Array.from(listEl.children).forEach((el, i) => {
+      el.addEventListener('click', () => {
+        onSelect(filtered[i]);
+        closeSearchPicker();
+      });
+    });
+  }
+
+  renderList('');
+  searchInput.addEventListener('input', () => renderList(searchInput.value.trim()));
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) closeSearchPicker(); });
+  setTimeout(() => searchInput.focus(), 100);
+}
+
+function closeSearchPicker() {
+  const overlay = document.getElementById('activePickerOverlay');
+  if (overlay) overlay.remove();
+}

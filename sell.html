@@ -83,31 +83,32 @@
   <option value="used">Б/у</option>
   <option value="imported">Пригон</option>
 </select>
-<select id="transportType" onchange="onTransportTypeChange()">
-  <option value="">Тип транспорту — оберіть</option>
-  <option value="car">🚗 Легкові</option>
-  <option value="moto">🏍️ Мото</option>
-  <option value="truck">🚛 Вантажівки</option>
-  <option value="trailer">🚚 Причепи</option>
-  <option value="special">🏗️ Спецтехніка</option>
-  <option value="agro">🚜 Сільгосптехніка</option>
-  <option value="bus">🚌 Автобуси</option>
-  <option value="water">🚤 Водний транспорт</option>
-  <option value="air">🚁 Повітряний транспорт</option>
-  <option value="motorhome">🚐 Автобудинки</option>
-</select>
-<select id="bodyType" disabled>
-  <option value="">Спочатку оберіть тип транспорту</option>
-</select>
+<div class="picker-field ph" id="transportTypeField" onclick="openTransportTypePicker()">
+  <span class="picker-value" id="transportTypeField_value">Тип транспорту — оберіть</span>
+  <span class="picker-arrow">▾</span>
+</div>
+<div class="picker-field ph disabled" id="bodyTypeField" onclick="openBodyTypePicker()">
+  <span class="picker-value" id="bodyTypeField_value">Спочатку оберіть тип транспорту</span>
+  <span class="picker-arrow">▾</span>
+</div>
 
 <h2>Основне</h2>
-<select id="brand" onchange="onBrandChange()"></select>
-<select id="model" disabled></select>
+<div class="picker-field ph" id="brandField" onclick="openBrandPicker()">
+  <span class="picker-value" id="brandField_value">Марка — оберіть</span>
+  <span class="picker-arrow">▾</span>
+</div>
+<div class="picker-field ph disabled" id="modelField" onclick="openModelPicker()">
+  <span class="picker-value" id="modelField_value">Спочатку оберіть марку</span>
+  <span class="picker-arrow">▾</span>
+</div>
 <div class="row">
   <input type="number" id="year" placeholder="Рік випуску">
   <input type="number" id="mileage" placeholder="Пробіг, км">
 </div>
-<select id="region"></select>
+<div class="picker-field ph" id="regionField" onclick="openRegionPicker()">
+  <span class="picker-value" id="regionField_value">Регіон — оберіть</span>
+  <span class="picker-arrow">▾</span>
+</div>
 <input type="text" id="color" placeholder="Колір (напр. чорний)">
 
 <h2>Ціна та оплата</h2>
@@ -199,17 +200,84 @@
     document.getElementById('priceFieldWrap').classList.toggle('hidden', type === 'auction');
   }
 
-  populateBrandSelect(document.getElementById('brand'));
-  populateRegionSelect(document.getElementById('region'), 'Регіон — оберіть');
+  const TRANSPORT_TYPE_LABELS = {
+    car: '🚗 Легкові', moto: '🏍️ Мото', truck: '🚛 Вантажівки', trailer: '🚚 Причепи',
+    special: '🏗️ Спецтехніка', agro: '🚜 Сільгосптехніка', bus: '🚌 Автобуси',
+    water: '🚤 Водний транспорт', air: '🚁 Повітряний транспорт', motorhome: '🚐 Автобудинки'
+  };
 
-  function onBrandChange() {
-    const brand = document.getElementById('brand').value;
-    populateModelSelect(document.getElementById('model'), brand, 'Модель — оберіть');
+  let selectedTransportType = '';
+  let selectedBodyType = '';
+  let selectedBrand = '';
+  let selectedModel = '';
+  let selectedRegion = '';
+  let currentModelsList = [];
+
+  function openTransportTypePicker() {
+    const labels = Object.values(TRANSPORT_TYPE_LABELS);
+    openSearchPicker('Тип транспорту', labels, TRANSPORT_TYPE_LABELS[selectedTransportType] || '', (label) => {
+      selectedTransportType = Object.keys(TRANSPORT_TYPE_LABELS).find(k => TRANSPORT_TYPE_LABELS[k] === label);
+      document.getElementById('transportTypeField_value').textContent = label;
+      document.getElementById('transportTypeField').classList.remove('ph');
+      onTransportTypeChange();
+    });
+  }
+
+  function openBodyTypePicker() {
+    if (!selectedTransportType) return;
+    const options = BODY_TYPES_BY_TRANSPORT[selectedTransportType] || [];
+    openSearchPicker('Тип кузова', options, selectedBodyType, (val) => {
+      selectedBodyType = val;
+      document.getElementById('bodyTypeField_value').textContent = val;
+      document.getElementById('bodyTypeField').classList.remove('ph');
+    });
   }
 
   function onTransportTypeChange() {
-    const transportType = document.getElementById('transportType').value;
-    populateBodyTypeSelect(document.getElementById('bodyType'), transportType, 'Тип кузова — оберіть');
+    selectedBodyType = '';
+    const bodyField = document.getElementById('bodyTypeField');
+    const options = BODY_TYPES_BY_TRANSPORT[selectedTransportType] || [];
+    document.getElementById('bodyTypeField_value').textContent = options.length ? 'Тип кузова — оберіть' : 'Спочатку оберіть тип транспорту';
+    bodyField.classList.toggle('disabled', options.length === 0);
+    bodyField.classList.add('ph');
+  }
+
+  async function openBrandPicker() {
+    const brands = await fetchAllBrands();
+    openSearchPicker('Марка авто', brands, selectedBrand, (val) => {
+      selectedBrand = val;
+      document.getElementById('brandField_value').textContent = val;
+      document.getElementById('brandField').classList.remove('ph');
+      onBrandChange();
+    });
+  }
+
+  async function onBrandChange() {
+    selectedModel = '';
+    const modelField = document.getElementById('modelField');
+    modelField.classList.add('disabled');
+    document.getElementById('modelField_value').textContent = 'Завантаження моделей...';
+    currentModelsList = await fetchModelsForBrand(selectedBrand);
+    modelField.classList.remove('disabled');
+    modelField.classList.add('ph');
+    document.getElementById('modelField_value').textContent = 'Модель — оберіть';
+  }
+
+  function openModelPicker() {
+    if (!selectedBrand) return;
+    openSearchPicker('Модель', currentModelsList, selectedModel, (val) => {
+      selectedModel = val;
+      document.getElementById('modelField_value').textContent = val;
+      document.getElementById('modelField').classList.remove('ph');
+    });
+  }
+
+  function openRegionPicker() {
+    openSearchPicker('Регіон', UA_REGIONS, selectedRegion, (val) => {
+      selectedRegion = val;
+      document.getElementById('regionField_value').textContent = val;
+      document.getElementById('regionField').classList.remove('ph');
+    });
   }
 
   async function loadStatusPanel() {
@@ -289,8 +357,8 @@
       return;
     }
 
-    const brand = document.getElementById('brand').value;
-    const model = document.getElementById('model').value;
+    const brand = selectedBrand;
+    const model = selectedModel;
     const year = document.getElementById('year').value;
     const price = document.getElementById('price').value;
 
@@ -315,12 +383,12 @@
       mileage: parseInt(document.getElementById('mileage').value) || null,
       fuel_type: document.getElementById('fuelType').value,
       transmission: document.getElementById('transmission').value,
-      region: document.getElementById('region').value,
+      region: selectedRegion,
       description: document.getElementById('description').value,
       photo_url: '',
       photos: [],
-      body_type: document.getElementById('bodyType').value,
-      transport_type: document.getElementById('transportType').value,
+      body_type: selectedBodyType,
+      transport_type: selectedTransportType,
       drive_type: document.getElementById('driveType').value,
       engine_volume: parseFloat(document.getElementById('engineVolume').value) || null,
       condition: document.getElementById('condition').value,

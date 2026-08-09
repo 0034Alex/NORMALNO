@@ -105,22 +105,14 @@
   <option value="used">Б/у</option>
   <option value="imported">Пригон</option>
 </select>
-<select id="fTransportType" onchange="onFilterTransportTypeChange()">
-  <option value="">Тип транспорту — всі</option>
-  <option value="car">🚗 Легкові</option>
-  <option value="moto">🏍️ Мото</option>
-  <option value="truck">🚛 Вантажівки</option>
-  <option value="trailer">🚚 Причепи</option>
-  <option value="special">🏗️ Спецтехніка</option>
-  <option value="agro">🚜 Сільгосптехніка</option>
-  <option value="bus">🚌 Автобуси</option>
-  <option value="water">🚤 Водний транспорт</option>
-  <option value="air">🚁 Повітряний транспорт</option>
-  <option value="motorhome">🚐 Автобудинки</option>
-</select>
-<select id="fBodyType" disabled>
-  <option value="">Спочатку оберіть тип транспорту</option>
-</select>
+<div class="picker-field ph" id="fTransportTypeField" onclick="openFTransportTypePicker()">
+  <span class="picker-value" id="fTransportTypeField_value">Тип транспорту — всі</span>
+  <span class="picker-arrow">▾</span>
+</div>
+<div class="picker-field ph disabled" id="fBodyTypeField" onclick="openFBodyTypePicker()">
+  <span class="picker-value" id="fBodyTypeField_value">Спочатку оберіть тип транспорту</span>
+  <span class="picker-arrow">▾</span>
+</div>
 
 <h3>Марка і модель</h3>
 <div class="autosuggest">
@@ -140,7 +132,10 @@
 </div>
 
 <h3>Регіон</h3>
-<select id="fRegion"></select>
+<div class="picker-field ph" id="fRegionField" onclick="openFRegionPicker()">
+  <span class="picker-value" id="fRegionField_value">Регіон — всі</span>
+  <span class="picker-arrow">▾</span>
+</div>
 
 <h3>Ціна</h3>
 <div class="row">
@@ -226,11 +221,52 @@
   let selectedBrand = '';
   let favoritedIds = new Set();
 
-  populateRegionSelect(document.getElementById('fRegion'), 'Регіон — всі');
+  const F_TRANSPORT_TYPE_LABELS = {
+    car: '🚗 Легкові', moto: '🏍️ Мото', truck: '🚛 Вантажівки', trailer: '🚚 Причепи',
+    special: '🏗️ Спецтехніка', agro: '🚜 Сільгосптехніка', bus: '🚌 Автобуси',
+    water: '🚤 Водний транспорт', air: '🚁 Повітряний транспорт', motorhome: '🚐 Автобудинки'
+  };
+  let fSelectedTransportType = '';
+  let fSelectedBodyType = '';
+  let fSelectedRegion = '';
+
+  function openFTransportTypePicker() {
+    const labels = Object.values(F_TRANSPORT_TYPE_LABELS);
+    openSearchPicker('Тип транспорту', labels, F_TRANSPORT_TYPE_LABELS[fSelectedTransportType] || '', (label) => {
+      fSelectedTransportType = label ? Object.keys(F_TRANSPORT_TYPE_LABELS).find(k => F_TRANSPORT_TYPE_LABELS[k] === label) : '';
+      document.getElementById('fTransportTypeField_value').textContent = label || 'Тип транспорту — всі';
+      document.getElementById('fTransportTypeField').classList.toggle('ph', !label);
+      onFilterTransportTypeChange();
+    });
+  }
+
+  function openFBodyTypePicker() {
+    if (!fSelectedTransportType) return;
+    const options = BODY_TYPES_BY_TRANSPORT[fSelectedTransportType] || [];
+    openSearchPicker('Тип кузова', options, fSelectedBodyType, (val) => {
+      fSelectedBodyType = val;
+      document.getElementById('fBodyTypeField_value').textContent = val;
+      document.getElementById('fBodyTypeField').classList.remove('ph');
+      updateCount();
+    });
+  }
+
+  function openFRegionPicker() {
+    openSearchPicker('Регіон', UA_REGIONS, fSelectedRegion, (val) => {
+      fSelectedRegion = val;
+      document.getElementById('fRegionField_value').textContent = val;
+      document.getElementById('fRegionField').classList.remove('ph');
+      updateCount();
+    });
+  }
 
   function onFilterTransportTypeChange() {
-    const transportType = document.getElementById('fTransportType').value;
-    populateBodyTypeSelect(document.getElementById('fBodyType'), transportType, 'Тип кузова — всі');
+    fSelectedBodyType = '';
+    const bodyField = document.getElementById('fBodyTypeField');
+    const options = BODY_TYPES_BY_TRANSPORT[fSelectedTransportType] || [];
+    document.getElementById('fBodyTypeField_value').textContent = options.length ? 'Тип кузова — всі' : 'Спочатку оберіть тип транспорту';
+    bodyField.classList.toggle('disabled', options.length === 0);
+    bodyField.classList.add('ph');
     updateCount();
   }
 
@@ -330,10 +366,10 @@
       mileageTo: document.getElementById('fMileageTo').value,
       fuel: document.getElementById('fFuel').value,
       transmission: document.getElementById('fTransmission').value,
-      region: document.getElementById('fRegion').value,
+      region: fSelectedRegion,
       condition: document.getElementById('fCondition').value,
-      transportType: document.getElementById('fTransportType').value,
-      bodyType: document.getElementById('fBodyType').value,
+      transportType: fSelectedTransportType,
+      bodyType: fSelectedBodyType,
       driveType: document.getElementById('fDriveType').value,
       engineFrom: document.getElementById('fEngineFrom').value,
       engineTo: document.getElementById('fEngineTo').value,
@@ -405,7 +441,7 @@
     resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  document.querySelectorAll('#fCondition, #fRegion, #fFuel, #fTransmission, #fDriveType, #fDoors, #fSort, #fColor, #fYearFrom, #fYearTo, #fPriceFrom, #fPriceTo, #fMileageFrom, #fMileageTo, #fEngineFrom, #fEngineTo, #fPowerFrom, #fPowerTo, #fExchangePossible, #fCustomsCleared')
+  document.querySelectorAll('#fCondition, #fFuel, #fTransmission, #fDriveType, #fDoors, #fSort, #fColor, #fYearFrom, #fYearTo, #fPriceFrom, #fPriceTo, #fMileageFrom, #fMileageTo, #fEngineFrom, #fEngineTo, #fPowerFrom, #fPowerTo, #fExchangePossible, #fCustomsCleared')
     .forEach(el => el.addEventListener('input', updateCount));
   document.querySelectorAll('.fCurrencyCb').forEach(el => el.addEventListener('change', updateCount));
 

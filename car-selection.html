@@ -48,7 +48,10 @@
   <option value="leasing">Лізинг</option>
   <option value="installment">Розстрочка</option>
 </select>
-<select id="region"></select>
+<div class="picker-field ph" id="regionField" onclick="openRegionPicker()">
+  <span class="picker-value" id="regionField_value">Регіон — оберіть</span>
+  <span class="picker-arrow">▾</span>
+</div>
 <textarea id="comment" placeholder="Побажання щодо авто (марка, тип, рік і т.д.)"></textarea>
 
 <button class="main" onclick="submitLead()">Надіслати заявку</button>
@@ -67,7 +70,14 @@
   const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwenZncXlqdHFvZnRoYnBrZHNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMTEwNjEsImV4cCI6MjEwMTU4NzA2MX0.jbbpKpHaD6S9SJMIbxcwb12ggBCv44J_-s4OQ8ESNfA';
   const sb = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-  populateRegionSelect(document.getElementById('region'), 'Регіон — оберіть');
+  let selectedRegion = '';
+  function openRegionPicker() {
+    openSearchPicker('Регіон', UA_REGIONS, selectedRegion, (val) => {
+      selectedRegion = val;
+      document.getElementById('regionField_value').textContent = val;
+      document.getElementById('regionField').classList.remove('ph');
+    });
+  }
 
   async function submitLead() {
     const msg = document.getElementById('msg');
@@ -91,7 +101,7 @@
       phone: phone,
       budget: parseFloat(document.getElementById('budget').value) || null,
       payment_type: document.getElementById('paymentType').value,
-      region: document.getElementById('region').value,
+      region: selectedRegion,
       details: details
     });
 
@@ -106,7 +116,7 @@
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         leadType: 'car_selection', name, phone,
-        summary: `Бюджет: ${document.getElementById('budget').value || '—'}, оплата: ${document.getElementById('paymentType').value || '—'}, регіон: ${document.getElementById('region').value || '—'}`
+        summary: `Бюджет: ${document.getElementById('budget').value || '—'}, оплата: ${document.getElementById('paymentType').value || '—'}, регіон: ${selectedRegion || '—'}`
       })
     }).catch(() => {});
 
