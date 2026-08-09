@@ -16,7 +16,7 @@ module.exports = async (req, res) => {
     );
     const admins = await adminsResp.json();
 
-    const typeLabel = leadType === 'trade_in' ? 'Trade-in заявка' : (leadType === 'leasing' ? 'Заявка на розрахунок лізингу' : 'Заявка на підбір авто');
+    const typeLabel = leadType === 'trade_in' ? 'Trade-in заявка' : (leadType === 'leasing' ? 'Заявка на розрахунок лізингу' : (leadType === 'partner' ? 'Заявка від партнера' : 'Заявка на підбір авто'));
     const text = `📋 Нова заявка!\nТип: ${typeLabel}\nІм'я: ${name || '—'}\nТелефон: ${phone || '—'}\n${summary || ''}`;
 
     for (const admin of admins || []) {

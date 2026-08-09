@@ -4,12 +4,38 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NORMALNO — Партнери</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   * { box-sizing: border-box; }
-  body { font-family: Arial, sans-serif; background: #fff; margin: 0; padding: 20px; padding-bottom: 80px; }
-  .logo { font-size: 20px; font-weight: bold; color: #8E00FF; margin-bottom: 20px; }
-  .placeholder { text-align: center; color: #999; margin-top: 60px; font-size: 14px; line-height: 1.6; }
-  .placeholder-icon { font-size: 40px; margin-bottom: 16px; }
+  body { font-family: Arial, sans-serif; background: #fff; margin: 0; padding: 16px; padding-bottom: 90px; }
+  .logo { font-size: 22px; font-weight: bold; color: #8E00FF; margin-bottom: 16px; }
+
+  .search-row { display: flex; gap: 8px; margin-bottom: 14px; }
+  .search-input { flex: 1; padding: 13px; border: 1px solid #ddd; border-radius: 10px; font-size: 14px; }
+
+  .chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 18px; }
+  .chip { flex-shrink: 0; background: #f7f7f7; border: 1px solid #eee; border-radius: 20px; padding: 8px 14px; font-size: 13px; cursor: pointer; white-space: nowrap; }
+  .chip.active { background: #8E00FF; color: #fff; border-color: #8E00FF; font-weight: bold; }
+
+  .empty { text-align: center; color: #999; margin-top: 40px; }
+
+  .partner-card { border: 1px solid #eee; border-radius: 14px; padding: 14px; margin-bottom: 14px; }
+  .partner-name { font-weight: bold; font-size: 16px; margin-bottom: 2px; }
+  .partner-category { display: inline-block; background: #f5e6ff; color: #8E00FF; font-size: 11px; font-weight: bold; padding: 3px 10px; border-radius: 10px; margin-bottom: 8px; }
+  .partner-desc { font-size: 13px; color: #555; margin-bottom: 10px; line-height: 1.4; }
+  .partner-row { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #666; margin-bottom: 6px; }
+  .partner-actions { display: flex; gap: 8px; margin-top: 10px; }
+  .partner-btn { flex: 1; text-align: center; padding: 10px; border-radius: 8px; font-size: 13px; font-weight: bold; text-decoration: none; }
+  .btn-call { background: #f5e6ff; color: #8E00FF; }
+  .btn-route { background: #fff0e0; color: #FF7A00; }
+
+  .promo-banner {
+    background: #f5e6ff; border-radius: 14px; padding: 16px; margin: 20px 0;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  }
+  .promo-text { font-size: 13px; color: #444; }
+  .promo-text b { display: block; font-size: 15px; color: #111; margin-bottom: 2px; }
+  .promo-btn { background: #8E00FF; color: white; border: none; border-radius: 10px; padding: 10px 16px; font-size: 13px; font-weight: bold; cursor: pointer; white-space: nowrap; }
 
   .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; display: flex; background: white; border-top: 1px solid #eee; padding: 8px 0; }
   .nav-item { flex: 1; text-align: center; padding: 8px 0; cursor: pointer; color: #999; font-size: 11px; position: relative; }
@@ -22,9 +48,25 @@
 
 <div class="logo">Партнери</div>
 
-<div class="placeholder">
-  <div class="placeholder-icon">🤝</div>
-  Розділ у розробці — скоро тут з'явиться інформація для партнерів.
+<div class="search-row">
+  <input type="text" class="search-input" id="searchInput" placeholder="Знайти партнера..." oninput="render()">
+</div>
+
+<div class="chips" id="chips">
+  <div class="chip active" data-cat="all" onclick="setCategory('all')">Всі</div>
+  <div class="chip" data-cat="Автосалон" onclick="setCategory('Автосалон')">Автосалони</div>
+  <div class="chip" data-cat="СТО" onclick="setCategory('СТО')">СТО</div>
+  <div class="chip" data-cat="Автомийка" onclick="setCategory('Автомийка')">Автомийки</div>
+  <div class="chip" data-cat="Автопідбір" onclick="setCategory('Автопідбір')">Автопідбір</div>
+  <div class="chip" data-cat="Детейлінг" onclick="setCategory('Детейлінг')">Детейлінг</div>
+  <div class="chip" data-cat="Запчастини" onclick="setCategory('Запчастини')">Запчастини</div>
+</div>
+
+<div id="list">Завантаження...</div>
+
+<div class="promo-banner">
+  <div class="promo-text"><b>Станьте партнером NORMALNO</b>Розмістіть свої послуги на платформі</div>
+  <button class="promo-btn" onclick="window.location.href='partner-registration.html'">Стати партнером</button>
 </div>
 
 <div class="bottom-nav">
@@ -34,6 +76,56 @@
   <div class="nav-item active"><span class="icon">🤝</span>Партнери</div>
   <div class="nav-item" onclick="window.location.href='profile.html'"><span class="icon">👤</span>Профіль</div>
 </div>
+
+<script>
+  const supabaseUrl = 'https://ipzvgqyjtqofthbpkdsd.supabase.co';
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwenZncXlqdHFvZnRoYnBrZHNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMTEwNjEsImV4cCI6MjEwMTU4NzA2MX0.jbbpKpHaD6S9SJMIbxcwb12ggBCv44J_-s4OQ8ESNfA';
+  const sb = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+  let allPartners = [];
+  let currentCategory = 'all';
+
+  function setCategory(cat) {
+    currentCategory = cat;
+    document.querySelectorAll('.chip').forEach(c => c.classList.toggle('active', c.dataset.cat === cat));
+    render();
+  }
+
+  function render() {
+    const query = document.getElementById('searchInput').value.trim().toLowerCase();
+    let filtered = allPartners;
+    if (currentCategory !== 'all') filtered = filtered.filter(p => p.category === currentCategory);
+    if (query) filtered = filtered.filter(p => p.name.toLowerCase().includes(query) || (p.description || '').toLowerCase().includes(query));
+
+    const list = document.getElementById('list');
+    if (filtered.length === 0) {
+      list.innerHTML = '<div class="empty">Партнерів не знайдено</div>';
+      return;
+    }
+
+    list.innerHTML = filtered.map(p => `
+      <div class="partner-card">
+        <div class="partner-name">${p.name}</div>
+        <div class="partner-category">${p.category}</div>
+        ${p.description ? `<div class="partner-desc">${p.description}</div>` : ''}
+        ${p.address ? `<div class="partner-row">📍 ${p.address}</div>` : ''}
+        ${p.phone ? `<div class="partner-row">📞 ${p.phone}</div>` : ''}
+        <div class="partner-actions">
+          ${p.phone ? `<a class="partner-btn btn-call" href="tel:${p.phone}">Подзвонити</a>` : ''}
+          ${p.address ? `<a class="partner-btn btn-route" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(p.address)}" target="_blank">Прокласти маршрут</a>` : ''}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  async function load() {
+    const { data } = await sb.from('partners').select('*').eq('status', 'approved').order('created_at', { ascending: false });
+    allPartners = data || [];
+    render();
+  }
+
+  load();
+</script>
 
 </body>
 </html>

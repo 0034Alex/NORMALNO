@@ -34,6 +34,7 @@
   .status-btn.active-closed { background: #eafbe9; border-color: #1a8f2a; color: #1a8f2a; }
   .empty { text-align: center; color: #999; margin-top: 40px; }
   .denied { text-align: center; margin-top: 60px; color: #999; }
+  .hidden { display: none; }
 </style>
 </head>
 <body>
@@ -56,7 +57,7 @@
   let allLeads = [];
   let currentFilter = 'all';
 
-  const TYPE_LABELS = { trade_in: 'Trade-in', car_selection: 'Підбір авто', leasing: 'Розрахунок лізингу' };
+  const TYPE_LABELS = { trade_in: 'Trade-in', car_selection: 'Підбір авто', leasing: 'Розрахунок лізингу', partner: 'Заявка партнера' };
   const STATUS_LABELS = { new: 'Нова', in_progress: 'В роботі', closed: 'Закрита' };
 
   function timeAgo(dateStr) {
@@ -88,15 +89,87 @@
       <div class="logo">Адмін-панель</div>
       <div class="role-badge">${adminRow.role === 'owner' ? 'Власник' : 'Менеджер'}</div>
       <div class="tabs">
-        <div class="tab active" id="tabAll" onclick="setFilter('all')">Всі</div>
-        <div class="tab" id="tabNew" onclick="setFilter('new')">Нові</div>
-        <div class="tab" id="tabProgress" onclick="setFilter('in_progress')">В роботі</div>
-        <div class="tab" id="tabClosed" onclick="setFilter('closed')">Закриті</div>
+        <div class="tab active" id="tabSectionLeads" onclick="setSection('leads')">Заявки</div>
+        <div class="tab" id="tabSectionPartners" onclick="setSection('partners')">Партнери</div>
       </div>
-      <div id="leadsList"></div>
+
+      <div id="leadsSection">
+        <div class="tabs">
+          <div class="tab active" id="tabAll" onclick="setFilter('all')">Всі</div>
+          <div class="tab" id="tabNew" onclick="setFilter('new')">Нові</div>
+          <div class="tab" id="tabProgress" onclick="setFilter('in_progress')">В роботі</div>
+          <div class="tab" id="tabClosed" onclick="setFilter('closed')">Закриті</div>
+        </div>
+        <div id="leadsList"></div>
+      </div>
+
+      <div id="partnersSection" class="hidden">
+        <div class="tabs">
+          <div class="tab active" id="tabPartnersPending" onclick="setPartnerFilter('pending')">На розгляді</div>
+          <div class="tab" id="tabPartnersApproved" onclick="setPartnerFilter('approved')">Затверджені</div>
+        </div>
+        <div id="partnersList"></div>
+      </div>
     `;
 
     await loadLeads();
+  }
+
+  function setSection(section) {
+    document.getElementById('tabSectionLeads').classList.toggle('active', section === 'leads');
+    document.getElementById('tabSectionPartners').classList.toggle('active', section === 'partners');
+    document.getElementById('leadsSection').classList.toggle('hidden', section !== 'leads');
+    document.getElementById('partnersSection').classList.toggle('hidden', section !== 'partners');
+    if (section === 'partners') loadPartners();
+  }
+
+  let allPartnersAdmin = [];
+  let currentPartnerFilter = 'pending';
+
+  async function loadPartners() {
+    const { data } = await sb.from('partners').select('*').order('created_at', { ascending: false });
+    allPartnersAdmin = data || [];
+    renderPartners();
+  }
+
+  function setPartnerFilter(filter) {
+    currentPartnerFilter = filter;
+    document.getElementById('tabPartnersPending').classList.toggle('active', filter === 'pending');
+    document.getElementById('tabPartnersApproved').classList.toggle('active', filter === 'approved');
+    renderPartners();
+  }
+
+  function renderPartners() {
+    const list = document.getElementById('partnersList');
+    const filtered = allPartnersAdmin.filter(p => p.status === currentPartnerFilter);
+
+    if (filtered.length === 0) {
+      list.innerHTML = '<div class="empty">Немає заявок</div>';
+      return;
+    }
+
+    list.innerHTML = filtered.map(p => `
+      <div class="lead-card">
+        <div class="lead-type">${p.category}</div>
+        <div class="lead-name">${p.name}</div>
+        <div class="lead-phone">${p.phone || '—'}</div>
+        <div class="lead-details">Контакт: ${p.contact_person || '—'}<br>Email: ${p.email || '—'}<br>Адреса: ${p.address || '—'}<br>${p.description || ''}</div>
+        <div class="lead-time">${timeAgo(p.created_at)}</div>
+        <div class="status-row">
+          ${p.status === 'pending' ? `<button class="status-btn active-closed" onclick="approvePartner(${p.id})">✓ Затвердити</button>` : ''}
+          ${p.status === 'approved' ? `<button class="status-btn active-new" onclick="rejectPartner(${p.id})">Повернути на розгляд</button>` : ''}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  async function approvePartner(id) {
+    await sb.from('partners').update({ status: 'approved' }).eq('id', id);
+    await loadPartners();
+  }
+  async function rejectPartner(id) {
+    await sb.from('partners').update({ status: 'pending' }).eq('id', id);
+    await loadPartners();
   }
 
   async function loadLeads() {
