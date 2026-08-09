@@ -377,6 +377,7 @@
       is_hot: document.getElementById('isHot').checked
     };
 
+    const priceDropped = newPrice < currentCar.price;
     if (newPrice !== currentCar.price) {
       updateData.previous_price = currentCar.price;
       updateData.price = newPrice;
@@ -401,6 +402,20 @@
       msg.textContent = error.message;
       msg.style.color = 'red';
       return;
+    }
+
+    if (priceDropped) {
+      fetch('/api/notify-price-drop', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          carId: carId,
+          carLabel: `${currentCar.brand} ${currentCar.model}, ${currentCar.year}`,
+          oldPrice: currentCar.price,
+          newPrice: newPrice,
+          currency: currentCar.currency
+        })
+      }).catch(() => {});
     }
 
     msg.textContent = currentCar.archived ? 'Оголошення знову активне!' : 'Збережено!';

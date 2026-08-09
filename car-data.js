@@ -433,3 +433,54 @@ function openSoldModal(carId, sbClient, onDone) {
   overlay.querySelector('.sold-modal-cancel').addEventListener('click', () => overlay.remove());
   overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
 }
+
+/* ---------- Web Push: підписка на сповіщення ---------- */
+
+const VAPID_PUBLIC_KEY = 'BNoVXtk-5KOK7ZImPn_NoZX0MHIwVhPfW0T2jl5DSYH9Kr2o-a_KcTFZkvvcjYBk1fSMlPYHbQFyW9Pe7oFB3CQ';
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
+}
+
+async function isPushSubscribed() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false;
+  const reg = await navigator.serviceWorker.ready;
+  const sub = await reg.pushManager.getSubscription();
+  return !!sub;
+}
+
+async function subscribeToPush(sbClient, userId) {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    alert('Ваш браузер не підтримує push-сповіщення');
+    return false;
+  }
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') return false;
+
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+      });
+    }
+
+    await fetch('/api/save-push-subscription', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, subscription: sub.toJSON() })
+    });
+
+    return true;
+  } catch (e) {
+    console.error('Push subscribe error:', e);
+    return false;
+  }
+}

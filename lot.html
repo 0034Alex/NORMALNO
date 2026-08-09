@@ -243,7 +243,8 @@
           previousUserId: data.previous_leader,
           carLabel: `${car.brand} ${car.model}, ${car.year}`,
           newBid: data.new_bid,
-          currency: car.currency
+          currency: car.currency,
+          carId: carId
         })
       }).catch(() => {});
     }
