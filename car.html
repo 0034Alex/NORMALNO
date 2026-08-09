@@ -152,7 +152,8 @@
       ['Кузов', car.body_type || '—'],
       ['Колір', car.color || '—'],
       ['Дверей', car.doors || '—'],
-      ['Регіон', car.region || '—']
+      ['Регіон', car.region || '—'],
+      ['VIN-код', car.vin_code || '—']
     ];
 
     const isOwn = currentUserId && car.user_id === currentUserId;

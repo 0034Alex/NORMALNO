@@ -109,12 +109,16 @@
   <span class="picker-value" id="regionField_value">Регіон — оберіть</span>
   <span class="picker-arrow">▾</span>
 </div>
-<input type="text" id="color" placeholder="Колір (напр. чорний)">
+<div class="picker-field ph" id="colorField" onclick="openColorPicker()">
+  <span class="picker-value" id="colorField_value">Колір — оберіть</span>
+  <span class="picker-arrow">▾</span>
+</div>
+<input type="text" id="vinCode" placeholder="VIN-код (необов'язково)" maxlength="17" autocomplete="off">
 
 <h2>Ціна та оплата</h2>
 <div class="row">
   <div id="priceFieldWrap" style="flex:1;">
-    <input type="number" id="price" placeholder="Ціна">
+    <input type="number" id="price" placeholder="Ціна" autocomplete="off" inputmode="numeric">
   </div>
   <select id="currency" style="flex:1;">
     <option value="USD">$</option>
@@ -280,6 +284,21 @@
     });
   }
 
+  const CAR_COLORS = [
+    'Білий', 'Чорний', 'Сірий', 'Сріблястий', 'Червоний', 'Синій', 'Блакитний',
+    'Зелений', 'Жовтий', 'Помаранчевий', 'Коричневий', 'Бежевий', 'Бордовий',
+    'Фіолетовий', 'Золотистий', 'Хамелеон', 'Інший'
+  ];
+  let selectedColor = '';
+
+  function openColorPicker() {
+    openSearchPicker('Колір', CAR_COLORS, selectedColor, (val) => {
+      selectedColor = val;
+      document.getElementById('colorField_value').textContent = val;
+      document.getElementById('colorField').classList.remove('ph');
+    });
+  }
+
   async function loadStatusPanel() {
     const panel = document.getElementById('statusPanel');
     const { data: { session } } = await sb.auth.getSession();
@@ -392,7 +411,8 @@
       drive_type: document.getElementById('driveType').value,
       engine_volume: parseFloat(document.getElementById('engineVolume').value) || null,
       condition: document.getElementById('condition').value,
-      color: document.getElementById('color').value,
+      color: selectedColor,
+      vin_code: document.getElementById('vinCode').value.trim().toUpperCase(),
       power_hp: parseInt(document.getElementById('powerHp').value) || null,
       doors: parseInt(document.getElementById('doors').value) || null,
       exchange_possible: document.getElementById('exchangePossible').checked,

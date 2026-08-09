@@ -382,3 +382,5 @@ function closeSearchPicker() {
   const overlay = document.getElementById('activePickerOverlay');
   if (overlay) overlay.remove();
 }
+
+injectPickerStyles();
