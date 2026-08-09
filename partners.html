@@ -54,9 +54,13 @@
   .size-toggle { display: flex; gap: 4px; }
   .size-btn { width: 30px; height: 30px; border-radius: 8px; background: #f7f7f7; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 15px; color: #999; }
   .size-btn.active { background: #f5e6ff; color: #8E00FF; }
-  .partners-list.grid-small { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-  .partners-list.grid-small .partner-row-card { flex-direction: column; }
-  .partners-list.grid-small .partner-logo { width: 100%; height: 90px; border-radius: 10px; }
+  .partners-list.grid-small { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .partners-list.grid-small .partner-row-card { flex-direction: column; padding: 8px; }
+  .partners-list.grid-small .partner-logo { width: 100%; height: 76px; border-radius: 8px; }
+  .partners-list.grid-small .partner-name { font-size: 13px; }
+  .partners-list.grid-small .partner-desc { display: none; }
+  .partners-list.grid-small .partner-meta { font-size: 10px; }
+  .partners-list.grid-small .partner-btn { font-size: 10px; padding: 6px 4px; }
 
   /* Партнери поруч */
   .section-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
@@ -75,8 +79,12 @@
   .geo-btn { background: #8E00FF; color: #fff; border: none; border-radius: 8px; padding: 8px 14px; font-size: 12px; font-weight: bold; cursor: pointer; margin-top: 8px; }
 
   /* Всі партнери */
-  .partner-row-card { display: flex; gap: 12px; border: 1px solid #eee; border-radius: 14px; padding: 12px; margin-bottom: 12px; }
-  .partner-logo { width: 64px; height: 64px; border-radius: 12px; background: #f5e6ff; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; overflow: hidden; }
+  .partner-row-card { display: flex; gap: 12px; border: 1px solid #eee; border-radius: 14px; padding: 12px; margin-bottom: 12px; min-width: 0; }
+  .partner-logo { width: 64px; height: 64px; border-radius: 12px; background: #f5e6ff; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; overflow: hidden; position: relative; }
+  .partner-logo-scroll { display: flex; overflow-x: auto; width: 100%; height: 100%; scroll-snap-type: x mandatory; }
+  .partner-logo-scroll img { flex: 0 0 100%; width: 100%; height: 100%; object-fit: cover; scroll-snap-align: start; }
+  .partner-logo-dots { position: absolute; bottom: 3px; left: 0; right: 0; display: flex; justify-content: center; gap: 3px; pointer-events: none; }
+  .partner-logo-dots span { width: 4px; height: 4px; border-radius: 50%; background: rgba(255,255,255,0.8); box-shadow: 0 0 2px rgba(0,0,0,0.4); }
   .partner-logo img { width: 100%; height: 100%; object-fit: cover; }
   .partner-info { flex: 1; min-width: 0; }
   .partner-name { font-weight: bold; font-size: 15px; margin-bottom: 2px; overflow-wrap: break-word; }
@@ -86,8 +94,8 @@
   .partner-meta a { color: #8E00FF; }
   .status-open { color: #1a8f2a; font-weight: bold; }
   .status-closed { color: #cc0000; font-weight: bold; }
-  .partner-actions { display: flex; gap: 6px; }
-  .partner-btn { flex: 1; text-align: center; padding: 8px; border-radius: 8px; font-size: 12px; font-weight: bold; text-decoration: none; border: none; cursor: pointer; }
+  .partner-actions { display: flex; gap: 6px; min-width: 0; }
+  .partner-btn { flex: 1; min-width: 0; text-align: center; padding: 8px; border-radius: 8px; font-size: 12px; font-weight: bold; text-decoration: none; border: none; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .btn-call { background: #f5e6ff; color: #8E00FF; }
   .btn-route { background: #fff0e0; color: #FF7A00; }
 
@@ -301,10 +309,16 @@
         (openStatus ? '<span class="status-open">🟢 Відкрито зараз</span>' : '<span class="status-closed">🔴 Закрито</span>');
       const hoursText = (p.work_from && p.work_to) ? `${p.work_from}–${p.work_to}` : '';
 
+      const photos = p.photos && p.photos.length ? p.photos : [];
+      const logoHtml = photos.length
+        ? `<div class="partner-logo-scroll">${photos.map(ph => `<img src="${ph}" onerror="this.style.display='none'">`).join('')}</div>` +
+          (photos.length > 1 ? `<div class="partner-logo-dots">${photos.map(() => '<span></span>').join('')}</div>` : '')
+        : '🏢';
+
       return `
       <div class="partner-row-card" id="partner-${p.id}">
         <div class="partner-logo">
-          ${p.photos && p.photos[0] ? `<img src="${p.photos[0]}" onerror="this.style.display='none'">` : '🏢'}
+          ${logoHtml}
         </div>
         <div class="partner-info">
           <div class="partner-name">${p.name}</div>
