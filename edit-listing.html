@@ -11,34 +11,142 @@
 <script src="car-data.js"></script>
 <style>
   * { box-sizing: border-box; }
-  body { font-family: Arial, sans-serif; background: #fff; margin: 0; padding: 20px; padding-bottom: 40px; }
+  body { font-family: Arial, sans-serif; background: #ffffff; margin: 0; padding: 20px; padding-bottom: 60px; }
   .back { color: #FF7A00; text-decoration: none; font-size: 14px; display: inline-block; margin-bottom: 10px; }
-  .logo { font-size: 20px; font-weight: bold; color: #8E00FF; margin-bottom: 20px; }
-  label { font-size: 12px; color: #999; display: block; margin-bottom: 4px; }
-  input, textarea { width: 100%; padding: 14px; margin-bottom: 14px; border: 1px solid #ddd; border-radius: 10px; font-size: 15px; font-family: Arial, sans-serif; }
-  textarea { min-height: 100px; resize: vertical; }
+  .logo { text-align: center; font-size: 20px; font-weight: bold; color: #8E00FF; margin-bottom: 4px; }
+  .subtitle { text-align: center; color: #999; font-size: 13px; margin-bottom: 16px; }
+  h2 { font-size: 15px; color: #666; margin: 20px 0 8px; }
+  input, select, textarea {
+    width: 100%; padding: 14px; margin-bottom: 10px; border: 1px solid #ddd;
+    border-radius: 10px; font-size: 15px; font-family: Arial, sans-serif;
+  }
+  textarea { min-height: 90px; resize: vertical; }
+  .row { display: flex; gap: 10px; }
+  .row > * { flex: 1; }
+  .check-row { display: flex; align-items: center; gap: 8px; padding: 10px 2px; font-size: 14px; }
+  .check-row input { width: auto; margin: 0; }
+  button.main {
+    width: 100%; padding: 15px; background: #8E00FF; color: white; border: none;
+    border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 14px;
+  }
+  .msg { text-align: center; margin-top: 12px; font-size: 14px; }
   #photoPreview { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
   #photoPreview img { width: 70px; height: 70px; object-fit: cover; border-radius: 8px; }
-  button.main { width: 100%; padding: 15px; background: #8E00FF; color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; }
-  .msg { text-align: center; margin-top: 12px; font-size: 14px; }
+  .hint { font-size: 11px; color: #999; margin: -6px 0 12px; }
 </style>
 </head>
 <body>
 
-<a href="my-listings.html" class="back">&larr; Назад до моїх оголошень</a>
-<div class="logo">Редагувати оголошення</div>
+<a href="my-listings.html" class="back">&larr; Назад</a>
+<div class="logo" id="pageTitle">Редагувати оголошення</div>
+<div class="subtitle" id="pageSubtitle"></div>
 
-<label>Ціна</label>
-<input type="number" id="price" autocomplete="off">
+<h2>Тип</h2>
+<select id="condition">
+  <option value="">Стан — оберіть</option>
+  <option value="new">Нове</option>
+  <option value="used">Б/у</option>
+  <option value="imported">Пригон</option>
+</select>
+<div class="picker-field ph" id="transportTypeField" onclick="openTransportTypePicker()">
+  <span class="picker-value" id="transportTypeField_value">Тип транспорту — оберіть</span>
+  <span class="picker-arrow">▾</span>
+</div>
+<div class="picker-field ph disabled" id="bodyTypeField" onclick="openBodyTypePicker()">
+  <span class="picker-value" id="bodyTypeField_value">Спочатку оберіть тип транспорту</span>
+  <span class="picker-arrow">▾</span>
+</div>
 
-<label>Опис</label>
-<textarea id="description"></textarea>
+<h2>Основне</h2>
+<div class="picker-field ph" id="brandField" onclick="openBrandPicker()">
+  <span class="picker-value" id="brandField_value">Марка — оберіть</span>
+  <span class="picker-arrow">▾</span>
+</div>
+<div class="picker-field ph disabled" id="modelField" onclick="openModelPicker()">
+  <span class="picker-value" id="modelField_value">Спочатку оберіть марку</span>
+  <span class="picker-arrow">▾</span>
+</div>
+<div class="row">
+  <input type="number" id="year" placeholder="Рік випуску">
+  <input type="number" id="mileage" placeholder="Пробіг, км">
+</div>
+<div class="picker-field ph" id="regionField" onclick="openRegionPicker()">
+  <span class="picker-value" id="regionField_value">Регіон — оберіть</span>
+  <span class="picker-arrow">▾</span>
+</div>
+<div class="picker-field ph" id="colorField" onclick="openColorPicker()">
+  <span class="picker-value" id="colorField_value">Колір — оберіть</span>
+  <span class="picker-arrow">▾</span>
+</div>
 
-<label>Фото (додайте нові — замінять поточні)</label>
+<h2>Ціна</h2>
+<div class="row">
+  <input type="number" id="price" placeholder="Ціна" autocomplete="off">
+  <select id="currency">
+    <option value="USD">$</option>
+    <option value="EUR">€</option>
+    <option value="UAH">грн</option>
+  </select>
+</div>
+
+<h2>Характеристики</h2>
+<select id="fuelType">
+  <option value="">Тип палива — оберіть</option>
+  <option value="petrol">Бензин</option>
+  <option value="diesel">Дизель</option>
+  <option value="hybrid">Гібрид</option>
+  <option value="gas">Газ</option>
+  <option value="electric">Електро</option>
+</select>
+<select id="transmission">
+  <option value="">Коробка передач — оберіть</option>
+  <option value="manual">Механіка</option>
+  <option value="automatic">Автомат</option>
+  <option value="variator">Варіатор</option>
+</select>
+<select id="driveType">
+  <option value="">Тип приводу — оберіть</option>
+  <option value="front">Передній</option>
+  <option value="rear">Задній</option>
+  <option value="all">Повний</option>
+</select>
+<div class="row">
+  <input type="number" step="0.1" id="engineVolume" placeholder="Об'єм двигуна, л">
+  <input type="number" id="powerHp" placeholder="Потужність, к.с.">
+</div>
+<select id="doors">
+  <option value="">Кількість дверей</option>
+  <option value="2">2</option>
+  <option value="3">3</option>
+  <option value="4">4</option>
+  <option value="5">5</option>
+</select>
+<input type="text" id="vinCode" placeholder="VIN-код (необов'язково)" maxlength="17" autocomplete="off">
+
+<div class="check-row">
+  <input type="checkbox" id="exchangePossible">
+  <label for="exchangePossible">Можливий обмін</label>
+</div>
+<div class="check-row">
+  <input type="checkbox" id="customsCleared">
+  <label for="customsCleared">Розмитнене</label>
+</div>
+<div class="check-row">
+  <input type="checkbox" id="isUrgent">
+  <label for="isUrgent">Терміновий продаж</label>
+</div>
+<div class="check-row">
+  <input type="checkbox" id="isHot">
+  <label for="isHot">Гаряча пропозиція</label>
+</div>
+
+<h2>Фото та опис</h2>
 <input type="file" id="photoFiles" accept="image/*" multiple>
+<div class="hint">Додайте нові фото, щоб замінити поточні — до 10 шт.</div>
 <div id="photoPreview"></div>
+<textarea id="description" placeholder="Опис авто"></textarea>
 
-<button class="main" onclick="saveListing()">Зберегти</button>
+<button class="main" id="saveBtn" onclick="saveListing()">Зберегти</button>
 <div class="msg" id="msg"></div>
 
 <script>
@@ -52,6 +160,99 @@
   let sessionUserId = null;
   let existingPhotos = [];
 
+  const TRANSPORT_TYPE_LABELS = {
+    car: '🚗 Легкові', moto: '🏍️ Мото', truck: '🚛 Вантажівки', trailer: '🚚 Причепи',
+    special: '🏗️ Спецтехніка', agro: '🚜 Сільгосптехніка', bus: '🚌 Автобуси',
+    water: '🚤 Водний транспорт', air: '🚁 Повітряний транспорт', motorhome: '🚐 Автобудинки'
+  };
+  const CAR_COLORS = [
+    'Білий', 'Чорний', 'Сірий', 'Сріблястий', 'Червоний', 'Синій', 'Блакитний',
+    'Зелений', 'Жовтий', 'Помаранчевий', 'Коричневий', 'Бежевий', 'Бордовий',
+    'Фіолетовий', 'Золотистий', 'Хамелеон', 'Інший'
+  ];
+
+  let selectedTransportType = '';
+  let selectedBodyType = '';
+  let selectedBrand = '';
+  let selectedModel = '';
+  let selectedRegion = '';
+  let selectedColor = '';
+  let currentModelsList = [];
+
+  function setField(fieldId, value) {
+    document.getElementById(fieldId + '_value').textContent = value;
+    document.getElementById(fieldId).classList.remove('ph');
+  }
+
+  function openTransportTypePicker() {
+    const labels = Object.values(TRANSPORT_TYPE_LABELS);
+    openSearchPicker('Тип транспорту', labels, TRANSPORT_TYPE_LABELS[selectedTransportType] || '', (label) => {
+      selectedTransportType = Object.keys(TRANSPORT_TYPE_LABELS).find(k => TRANSPORT_TYPE_LABELS[k] === label);
+      setField('transportTypeField', label);
+      onTransportTypeChange();
+    });
+  }
+
+  function onTransportTypeChange() {
+    selectedBodyType = '';
+    const bodyField = document.getElementById('bodyTypeField');
+    const options = BODY_TYPES_BY_TRANSPORT[selectedTransportType] || [];
+    document.getElementById('bodyTypeField_value').textContent = options.length ? 'Тип кузова — оберіть' : 'Спочатку оберіть тип транспорту';
+    bodyField.classList.toggle('disabled', options.length === 0);
+    bodyField.classList.add('ph');
+  }
+
+  function openBodyTypePicker() {
+    if (!selectedTransportType) return;
+    const options = BODY_TYPES_BY_TRANSPORT[selectedTransportType] || [];
+    openSearchPicker('Тип кузова', options, selectedBodyType, (val) => {
+      selectedBodyType = val;
+      setField('bodyTypeField', val);
+    });
+  }
+
+  async function openBrandPicker() {
+    const brands = await fetchAllBrands();
+    openSearchPicker('Марка авто', brands, selectedBrand, (val) => {
+      selectedBrand = val;
+      setField('brandField', val);
+      onBrandChange();
+    });
+  }
+
+  async function onBrandChange() {
+    selectedModel = '';
+    const modelField = document.getElementById('modelField');
+    modelField.classList.add('disabled');
+    document.getElementById('modelField_value').textContent = 'Завантаження моделей...';
+    currentModelsList = await fetchModelsForBrand(selectedBrand);
+    modelField.classList.remove('disabled');
+    modelField.classList.add('ph');
+    document.getElementById('modelField_value').textContent = 'Модель — оберіть';
+  }
+
+  function openModelPicker() {
+    if (!selectedBrand) return;
+    openSearchPicker('Модель', currentModelsList, selectedModel, (val) => {
+      selectedModel = val;
+      setField('modelField', val);
+    });
+  }
+
+  function openRegionPicker() {
+    openSearchPicker('Регіон', UA_REGIONS, selectedRegion, (val) => {
+      selectedRegion = val;
+      setField('regionField', val);
+    });
+  }
+
+  function openColorPicker() {
+    openSearchPicker('Колір', CAR_COLORS, selectedColor, (val) => {
+      selectedColor = val;
+      setField('colorField', val);
+    });
+  }
+
   async function load() {
     const { data: { session } } = await sb.auth.getSession();
     if (!session) { window.location.href = 'register2.html'; return; }
@@ -63,15 +264,49 @@
       return;
     }
     currentCar = car;
-    existingPhotos = carPhotos(car);
+
+    if (car.archived) {
+      document.getElementById('pageTitle').textContent = 'Виставити авто знову';
+      document.getElementById('pageSubtitle').textContent = 'Перевірте дані та натисніть "Виставити"';
+      document.getElementById('saveBtn').textContent = 'Виставити оголошення';
+    }
+
+    document.getElementById('condition').value = car.condition || '';
+    document.getElementById('year').value = car.year || '';
+    document.getElementById('mileage').value = car.mileage || '';
     document.getElementById('price').value = car.price || '';
+    document.getElementById('currency').value = car.currency || 'USD';
+    document.getElementById('fuelType').value = car.fuel_type || '';
+    document.getElementById('transmission').value = car.transmission || '';
+    document.getElementById('driveType').value = car.drive_type || '';
+    document.getElementById('engineVolume').value = car.engine_volume || '';
+    document.getElementById('powerHp').value = car.power_hp || '';
+    document.getElementById('doors').value = car.doors || '';
+    document.getElementById('vinCode').value = car.vin_code || '';
     document.getElementById('description').value = car.description || '';
+    document.getElementById('exchangePossible').checked = !!car.exchange_possible;
+    document.getElementById('customsCleared').checked = !!car.customs_cleared;
+    document.getElementById('isUrgent').checked = !!car.is_urgent;
+    document.getElementById('isHot').checked = !!car.is_hot;
+
+    if (car.transport_type) {
+      selectedTransportType = car.transport_type;
+      setField('transportTypeField', TRANSPORT_TYPE_LABELS[car.transport_type] || car.transport_type);
+      const options = BODY_TYPES_BY_TRANSPORT[car.transport_type] || [];
+      document.getElementById('bodyTypeField').classList.remove('disabled');
+    }
+    if (car.body_type) { selectedBodyType = car.body_type; setField('bodyTypeField', car.body_type); }
+    if (car.brand) { selectedBrand = car.brand; setField('brandField', car.brand); currentModelsList = await fetchModelsForBrand(car.brand); document.getElementById('modelField').classList.remove('disabled'); }
+    if (car.model) { selectedModel = car.model; setField('modelField', car.model); }
+    if (car.region) { selectedRegion = car.region; setField('regionField', car.region); }
+    if (car.color) { selectedColor = car.color; setField('colorField', car.color); }
+
+    existingPhotos = carPhotos(car);
     renderExistingPhotos();
   }
 
   function renderExistingPhotos() {
-    const preview = document.getElementById('photoPreview');
-    preview.innerHTML = existingPhotos.map(p => `<img src="${p}">`).join('');
+    document.getElementById('photoPreview').innerHTML = existingPhotos.map(p => `<img src="${p}">`).join('');
   }
 
   document.getElementById('photoFiles').addEventListener('change', function() {
@@ -105,9 +340,10 @@
   async function saveListing() {
     const msg = document.getElementById('msg');
     const newPrice = parseFloat(document.getElementById('price').value);
+    const year = document.getElementById('year').value;
 
-    if (!newPrice) {
-      msg.textContent = 'Вкажіть ціну';
+    if (!selectedBrand || !selectedModel || !year || !newPrice) {
+      msg.textContent = 'Заповніть хоча б марку, модель, рік і ціну';
       msg.style.color = 'red';
       return;
     }
@@ -116,7 +352,28 @@
     msg.style.color = '#8E00FF';
 
     const updateData = {
-      description: document.getElementById('description').value
+      condition: document.getElementById('condition').value,
+      transport_type: selectedTransportType,
+      body_type: selectedBodyType,
+      brand: selectedBrand,
+      model: selectedModel,
+      year: parseInt(year),
+      mileage: parseInt(document.getElementById('mileage').value) || null,
+      region: selectedRegion,
+      color: selectedColor,
+      currency: document.getElementById('currency').value,
+      fuel_type: document.getElementById('fuelType').value,
+      transmission: document.getElementById('transmission').value,
+      drive_type: document.getElementById('driveType').value,
+      engine_volume: parseFloat(document.getElementById('engineVolume').value) || null,
+      power_hp: parseInt(document.getElementById('powerHp').value) || null,
+      doors: parseInt(document.getElementById('doors').value) || null,
+      vin_code: document.getElementById('vinCode').value.trim().toUpperCase(),
+      description: document.getElementById('description').value,
+      exchange_possible: document.getElementById('exchangePossible').checked,
+      customs_cleared: document.getElementById('customsCleared').checked,
+      is_urgent: document.getElementById('isUrgent').checked,
+      is_hot: document.getElementById('isHot').checked
     };
 
     if (newPrice !== currentCar.price) {
@@ -130,6 +387,13 @@
       updateData.photo_url = newPhotos[0];
     }
 
+    if (currentCar.archived) {
+      updateData.archived = false;
+      updateData.sold = false;
+      updateData.sold_via = null;
+      updateData.created_at = new Date().toISOString();
+    }
+
     const { error } = await sb.from('cars').update(updateData).eq('id', carId);
 
     if (error) {
@@ -138,9 +402,9 @@
       return;
     }
 
-    msg.textContent = 'Збережено!';
+    msg.textContent = currentCar.archived ? 'Оголошення знову активне!' : 'Збережено!';
     msg.style.color = 'green';
-    setTimeout(() => { window.location.href = 'my-listings.html'; }, 1000);
+    setTimeout(() => { window.location.href = currentCar.archived ? 'my-listings.html' : 'my-listings.html'; }, 1000);
   }
 
   load();

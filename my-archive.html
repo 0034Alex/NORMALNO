@@ -79,7 +79,9 @@
           <div class="listing-title">${car.brand} ${car.model}, ${car.year}</div>
           <div class="listing-price">${Number(price).toLocaleString('uk-UA')} ${car.currency || ''}</div>
           ${badgeHtml}
-          ${!car.sold ? `<button class="restore-btn" onclick="restoreListing(${car.id}, '${car.listing_type}')">Відновити</button>` : ''}
+          ${car.listing_type === 'auction'
+            ? `<button class="restore-btn" onclick="restoreListing(${car.id}, 'auction')">Виставити знову</button>`
+            : `<button class="restore-btn" onclick="window.location.href='edit-listing.html?id=${car.id}'">Редагувати та виставити</button>`}
         </div>
       </div>
     `;
