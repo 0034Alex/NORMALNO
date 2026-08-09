@@ -91,6 +91,7 @@
       <div class="tabs">
         <div class="tab active" id="tabSectionLeads" onclick="setSection('leads')">Заявки</div>
         <div class="tab" id="tabSectionPartners" onclick="setSection('partners')">Партнери</div>
+        <div class="tab" id="tabSectionBroadcast" onclick="setSection('broadcast')">Розсилка</div>
       </div>
 
       <div id="leadsSection">
@@ -110,6 +111,14 @@
         </div>
         <div id="partnersList"></div>
       </div>
+
+      <div id="broadcastSection" class="hidden">
+        <p style="font-size:13px; color:#666; margin-bottom:12px;">Push-сповіщення надійде всім користувачам, які увімкнули сповіщення в Профілі — навіть якщо застосунок закритий.</p>
+        <input type="text" id="broadcastTitle" placeholder="Заголовок (напр. 🎉 Вітаємо зі святом!)" style="width:100%; padding:14px; margin-bottom:10px; border:1px solid #ddd; border-radius:10px; font-size:15px; box-sizing:border-box;">
+        <textarea id="broadcastBody" placeholder="Текст повідомлення" style="width:100%; padding:14px; margin-bottom:10px; border:1px solid #ddd; border-radius:10px; font-size:15px; min-height:100px; box-sizing:border-box; font-family:Arial,sans-serif;"></textarea>
+        <button onclick="sendBroadcast()" style="width:100%; padding:14px; background:#8E00FF; color:#fff; border:none; border-radius:10px; font-weight:bold; font-size:15px; cursor:pointer;">Надіслати всім</button>
+        <div id="broadcastMsg" style="text-align:center; margin-top:12px; font-size:14px;"></div>
+      </div>
     `;
 
     await loadLeads();
@@ -118,10 +127,45 @@
   function setSection(section) {
     document.getElementById('tabSectionLeads').classList.toggle('active', section === 'leads');
     document.getElementById('tabSectionPartners').classList.toggle('active', section === 'partners');
+    document.getElementById('tabSectionBroadcast').classList.toggle('active', section === 'broadcast');
     document.getElementById('leadsSection').classList.toggle('hidden', section !== 'leads');
     document.getElementById('partnersSection').classList.toggle('hidden', section !== 'partners');
+    document.getElementById('broadcastSection').classList.toggle('hidden', section !== 'broadcast');
     if (section === 'partners') loadPartners();
   }
+
+  window.sendBroadcast = async function() {
+    const title = document.getElementById('broadcastTitle').value.trim();
+    const body = document.getElementById('broadcastBody').value.trim();
+    const msg = document.getElementById('broadcastMsg');
+
+    if (!title || !body) {
+      msg.textContent = 'Заповніть заголовок і текст';
+      msg.style.color = 'red';
+      return;
+    }
+
+    msg.textContent = 'Надсилаємо...';
+    msg.style.color = '#8E00FF';
+
+    const resp = await fetch('/api/broadcast-push', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, body })
+    });
+    const data = await resp.json();
+
+    if (data.error) {
+      msg.textContent = data.error;
+      msg.style.color = 'red';
+      return;
+    }
+
+    msg.textContent = `Надіслано ${data.sent || 0} користувачам!`;
+    msg.style.color = 'green';
+    document.getElementById('broadcastTitle').value = '';
+    document.getElementById('broadcastBody').value = '';
+  };
 
   let allPartnersAdmin = [];
   let currentPartnerFilter = 'pending';
