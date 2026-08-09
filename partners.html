@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NORMALNO — Партнери</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
   * { box-sizing: border-box; }
   body { font-family: Arial, sans-serif; background: #fff; margin: 0; padding: 16px; padding-bottom: 90px; }
@@ -18,6 +20,15 @@
   .chip.active { background: #8E00FF; color: #fff; border-color: #8E00FF; font-weight: bold; }
 
   .empty { text-align: center; color: #999; margin-top: 40px; }
+
+  .office-card { border: 2px solid #8E00FF; border-radius: 16px; padding: 16px; margin-bottom: 20px; background: #f9f2ff; }
+  .office-title { font-weight: bold; font-size: 16px; color: #8E00FF; margin-bottom: 4px; }
+  .office-address { font-size: 13px; color: #555; margin-bottom: 12px; }
+  #officeMap { width: 100%; height: 180px; border-radius: 12px; margin-bottom: 12px; z-index: 1; }
+  .office-route-btn {
+    display: block; text-align: center; background: #8E00FF; color: #fff; text-decoration: none;
+    padding: 12px; border-radius: 10px; font-weight: bold; font-size: 14px;
+  }
 
   .partner-card { border: 1px solid #eee; border-radius: 14px; padding: 14px; margin-bottom: 14px; }
   .partner-name { font-weight: bold; font-size: 16px; margin-bottom: 2px; }
@@ -47,6 +58,13 @@
 <body>
 
 <div class="logo">Партнери</div>
+
+<div class="office-card">
+  <div class="office-title">🏢 Головний офіс та майданчик NORMALNO</div>
+  <div class="office-address">📍 м. Київ, Кільцева дорога, 19</div>
+  <div id="officeMap"></div>
+  <a class="office-route-btn" href="https://www.google.com/maps/dir/?api=1&destination=50.446016,30.357536" target="_blank">Прокласти маршрут</a>
+</div>
 
 <div class="search-row">
   <input type="text" class="search-input" id="searchInput" placeholder="Знайти партнера..." oninput="render()">
@@ -124,6 +142,18 @@
     render();
   }
 
+  function initOfficeMap() {
+    const officeCoords = [50.446016, 30.357536];
+    const map = L.map('officeMap', { zoomControl: false, attributionControl: false }).setView(officeCoords, 15);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    const purpleIcon = L.divIcon({
+      html: '<div style="background:#8E00FF; width:22px; height:22px; border-radius:50% 50% 50% 0; transform:rotate(-45deg); border:2px solid #fff; box-shadow:0 2px 4px rgba(0,0,0,0.3);"></div>',
+      className: '', iconSize: [22, 22], iconAnchor: [11, 22]
+    });
+    L.marker(officeCoords, { icon: purpleIcon }).addTo(map).bindPopup('NORMALNO — головний офіс');
+  }
+
+  initOfficeMap();
   load();
 </script>
 
