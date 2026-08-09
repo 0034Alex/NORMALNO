@@ -49,6 +49,8 @@
   .row-arrow { color: #ccc; }
 
   .logout-btn { width: 100%; padding: 14px; background: #fff0f0; color: #cc0000; border: none; border-radius: 12px; font-weight: bold; font-size: 14px; cursor: pointer; }
+  .notify-btn { width: 100%; padding: 14px; background: #f5e6ff; color: #8E00FF; border: none; border-radius: 12px; font-weight: bold; font-size: 14px; cursor: pointer; margin-bottom: 12px; }
+  .notify-btn.enabled { background: #eafbe9; color: #1a8f2a; }
 
   .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; display: flex; background: white; border-top: 1px solid #eee; padding: 8px 0; }
   .nav-item { flex: 1; text-align: center; padding: 8px 0; cursor: pointer; color: #999; font-size: 11px; position: relative; }
@@ -150,6 +152,7 @@
   </div>
 </div>
 
+<button class="notify-btn" id="notifyBtn" onclick="enablePush()">🔔 Увімкнути сповіщення</button>
 <button class="logout-btn" onclick="logout()">⏻ Вийти з акаунту</button>
 
 <div class="bottom-nav">
@@ -231,6 +234,30 @@
     await sb.auth.signOut();
     window.location.href = 'register2.html';
   }
+
+  window.enablePush = async function() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) return;
+    const btn = document.getElementById('notifyBtn');
+    btn.textContent = 'Вмикаємо...';
+    const ok = await subscribeToPush(sb, session.user.id);
+    if (ok) {
+      btn.textContent = '✓ Сповіщення увімкнено';
+      btn.classList.add('enabled');
+    } else {
+      btn.textContent = '🔔 Увімкнути сповіщення';
+    }
+  };
+
+  async function checkPushStatus() {
+    const subscribed = await isPushSubscribed();
+    if (subscribed) {
+      const btn = document.getElementById('notifyBtn');
+      btn.textContent = '✓ Сповіщення увімкнено';
+      btn.classList.add('enabled');
+    }
+  }
+  checkPushStatus();
 
   load();
 </script>
