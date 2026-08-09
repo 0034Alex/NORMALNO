@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#8E00FF">
+<link rel="apple-touch-icon" href="/icons/icon-180.png">
+<title>NORMALNO — Архів</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="car-data.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; background: #fff; margin: 0; padding: 20px; padding-bottom: 40px; }
+  .back { color: #FF7A00; text-decoration: none; font-size: 14px; display: inline-block; margin-bottom: 10px; }
+  .logo { font-size: 20px; font-weight: bold; color: #8E00FF; margin-bottom: 16px; }
+  .tabs { display: flex; gap: 20px; border-bottom: 2px solid #eee; margin-bottom: 16px; }
+  .tab { padding: 10px 0; cursor: pointer; color: #999; font-weight: bold; font-size: 14px; }
+  .tab.active { color: #8E00FF; border-bottom: 3px solid #FF7A00; }
+  .empty { text-align: center; color: #999; margin-top: 40px; }
+  .hidden { display: none; }
+
+  .listing-card { border: 1px solid #eee; border-radius: 14px; padding: 12px; margin-bottom: 14px; display: flex; gap: 12px; opacity: 0.85; }
+  .listing-photo { width: 80px; height: 80px; border-radius: 10px; overflow: hidden; background: #f2f2f2; flex-shrink: 0; }
+  .listing-photo img { width: 100%; height: 100%; object-fit: cover; }
+  .listing-noimg { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #ccc; }
+  .listing-info { flex: 1; min-width: 0; }
+  .listing-title { font-weight: bold; font-size: 14px; margin-bottom: 4px; }
+  .listing-price { color: #666; font-weight: bold; font-size: 14px; margin-bottom: 4px; }
+  .listing-badge { font-size: 10px; font-weight: bold; padding: 3px 8px; border-radius: 10px; display: inline-block; margin-bottom: 6px; }
+  .badge-sold-platform { background: #eafbe9; color: #1a8f2a; }
+  .badge-sold-other { background: #f5e6ff; color: #8E00FF; }
+  .badge-expired { background: #fff0e0; color: #FF7A00; }
+  .restore-btn { width: 100%; padding: 8px; background: #f5e6ff; border: none; color: #8E00FF; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<a href="profile.html" class="back">&larr; Назад до профілю</a>
+<div class="logo">Архів</div>
+
+<div class="tabs">
+  <div class="tab active" id="tabListings" onclick="setTab('listings')">Архів оголошень</div>
+  <div class="tab" id="tabAuctions" onclick="setTab('auctions')">Архів аукціону</div>
+</div>
+
+<div id="listingsSection">Завантаження...</div>
+<div id="auctionsSection" class="hidden"></div>
+
+<script>
+  const supabaseUrl = 'https://ipzvgqyjtqofthbpkdsd.supabase.co';
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwenZncXlqdHFvZnRoYnBrZHNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMTEwNjEsImV4cCI6MjEwMTU4NzA2MX0.jbbpKpHaD6S9SJMIbxcwb12ggBCv44J_-s4OQ8ESNfA';
+  const sb = window.supabase.createClient(supabaseUrl, supabaseKey);
+  let sessionUserId = null;
+  let allArchived = [];
+
+  function setTab(tab) {
+    document.getElementById('tabListings').classList.toggle('active', tab === 'listings');
+    document.getElementById('tabAuctions').classList.toggle('active', tab === 'auctions');
+    document.getElementById('listingsSection').classList.toggle('hidden', tab !== 'listings');
+    document.getElementById('auctionsSection').classList.toggle('hidden', tab !== 'auctions');
+  }
+
+  function renderCard(car) {
+    const photos = carPhotos(car, 1);
+    const price = car.listing_type === 'auction' ? (car.current_bid || car.start_price || 0) : (car.price || 0);
+
+    let badgeHtml = '';
+    if (car.sold && car.sold_via === 'platform') badgeHtml = '<span class="listing-badge badge-sold-platform">Продано через NORMALNO</span>';
+    else if (car.sold && car.sold_via === 'other') badgeHtml = '<span class="listing-badge badge-sold-other">Продано самостійно</span>';
+    else badgeHtml = '<span class="listing-badge badge-expired">Термін вийшов</span>';
+
+    return `
+      <div class="listing-card">
+        <div class="listing-photo">
+          ${photos[0] ? `<img src="${photos[0]}" onerror="this.style.display='none'">` : `<div class="listing-noimg">🚗</div>`}
+        </div>
+        <div class="listing-info">
+          <div class="listing-title">${car.brand} ${car.model}, ${car.year}</div>
+          <div class="listing-price">${Number(price).toLocaleString('uk-UA')} ${car.currency || ''}</div>
+          ${badgeHtml}
+          ${!car.sold ? `<button class="restore-btn" onclick="restoreListing(${car.id}, '${car.listing_type}')">Відновити</button>` : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  function render() {
+    const listings = allArchived.filter(c => c.listing_type !== 'auction');
+    const auctions = allArchived.filter(c => c.listing_type === 'auction');
+
+    document.getElementById('listingsSection').innerHTML = listings.length
+      ? listings.map(renderCard).join('') : '<div class="empty">Архів оголошень порожній</div>';
+
+    document.getElementById('auctionsSection').innerHTML = auctions.length
+      ? auctions.map(renderCard).join('') : '<div class="empty">Архів аукціону порожній</div>';
+  }
+
+  window.restoreListing = async function(carId, listingType) {
+    if (listingType === 'auction') {
+      const car = allArchived.find(c => c.id === carId);
+      const duration = car.auction_duration_days || 5;
+      const startsAt = new Date();
+      const endsAt = new Date(startsAt.getTime() + duration * 24 * 60 * 60 * 1000);
+      await sb.from('cars').update({
+        archived: false, sold: false, current_bid: null, current_bid_user_id: null, bid_count: 0,
+        auction_starts_at: startsAt.toISOString(), auction_ends_at: endsAt.toISOString(), start_notified: false
+      }).eq('id', carId);
+    } else {
+      await sb.from('cars').update({
+        archived: false, sold: false, created_at: new Date().toISOString()
+      }).eq('id', carId);
+    }
+    load();
+  };
+
+  async function load() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { window.location.href = 'register2.html'; return; }
+    sessionUserId = session.user.id;
+
+    const { data } = await sb.from('cars').select('*').eq('user_id', sessionUserId).eq('archived', true).order('archived_at', { ascending: false });
+    allArchived = data || [];
+    render();
+  }
+
+  load();
+</script>
+
+</body>
+</html>

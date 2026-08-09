@@ -46,6 +46,7 @@
   .ncard-subtitle { color: #999; font-size: 12px; margin-bottom: 6px; }
   .ncard-price { color: #8E00FF; font-weight: bold; font-size: 18px; margin-bottom: 8px; }
   .ncard-price-uah { color: #999; font-weight: normal; font-size: 12px; }
+  .ncard-price-old { color: #999; font-weight: normal; font-size: 13px; text-decoration: line-through; }
   .ncard-leasing { font-size: 11px; color: #FF7A00; background: #fff0e0; padding: 4px 8px; border-radius: 6px; margin-bottom: 8px; display: inline-block; }
   .ncard-specs { display: flex; flex-wrap: wrap; gap: 10px; font-size: 12px; color: #555; margin-bottom: 8px; }
   .ncard-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
@@ -128,7 +129,7 @@
       return;
     }
 
-    const { data: cars, error } = await sb.from('cars').select('*').in('id', carIds).neq('listing_type', 'auction');
+    const { data: cars, error } = await sb.from('cars').select('*').in('id', carIds).neq('listing_type', 'auction').eq('archived', false);
 
     if (error || !cars || cars.length === 0) {
       feed.innerHTML = '<div class="empty-feed">Ви ще нічого не додали в обране</div>';

@@ -61,7 +61,16 @@
   .big-btn { width: 100%; padding: 10px; background: #8E00FF; color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer; }
 
   /* середні рядки (всі активні торги) */
-  .row-card { display: flex; gap: 12px; border: 1px solid #eee; border-radius: 12px; padding: 10px; margin-bottom: 10px; cursor: pointer; align-items: center; }
+  .row-card { display: flex; gap: 12px; border: 1px solid #eee; border-radius: 12px; padding: 10px; margin-bottom: 10px; cursor: pointer; align-items: center; min-width: 0; }
+  .size-toggle { display: flex; gap: 4px; }
+  .size-btn { width: 30px; height: 30px; border-radius: 8px; background: #f7f7f7; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px; color: #999; }
+  .size-btn.active { background: #f5e6ff; color: #8E00FF; }
+  #allActiveRows.grid-view { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  #allActiveRows.grid-view .row-card { flex-direction: column; align-items: stretch; padding: 8px; min-width: 0; }
+  #allActiveRows.grid-view .row-photo { width: 100%; height: 80px; }
+  #allActiveRows.grid-view .row-right { text-align: left; }
+  #allActiveRows.grid-view .row-bid { font-size: 13px; }
+  #allActiveRows.grid-view .row-count { display: none; }
   .row-photo { position: relative; width: 70px; height: 70px; border-radius: 10px; overflow: hidden; background: #f2f2f2; flex-shrink: 0; }
   .row-photo img { width: 100%; height: 100%; object-fit: cover; }
   .row-heart { position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; border-radius: 50%; background: rgba(255,255,255,0.9); display: flex; align-items: center; justify-content: center; font-size: 10px; color: #8E00FF; }
@@ -127,6 +136,10 @@
   <div class="section">
     <div class="section-head">
       <div class="section-title" id="allActiveTitle">🟣 Всі активні торги</div>
+      <div class="size-toggle">
+        <span class="size-btn active" id="sizeList" onclick="setAuctionGridSize('list')" title="Список">☰</span>
+        <span class="size-btn" id="sizeGrid" onclick="setAuctionGridSize('grid')" title="Сітка">▦</span>
+      </div>
     </div>
     <div class="section-reset hidden" id="resetChipBtn" onclick="applyChip('all')">← Показати всі</div>
     <div id="allActiveRows">Завантаження...</div>
@@ -288,6 +301,12 @@
     `;
   }
 
+  window.setAuctionGridSize = function(mode) {
+    document.getElementById('allActiveRows').classList.toggle('grid-view', mode === 'grid');
+    document.getElementById('sizeList').classList.toggle('active', mode === 'list');
+    document.getElementById('sizeGrid').classList.toggle('active', mode === 'grid');
+  };
+
   function matchChip(car, chip) {
     if (chip === 'all') return true;
     if (chip === 'cheap') return (car.current_bid || car.start_price || 0) <= 10000;
@@ -396,7 +415,7 @@
     }
 
     await ensureRatesLoaded();
-    const { data: cars } = await sb.from('cars').select('*').eq('listing_type', 'auction').order('auction_ends_at', { ascending: true });
+    const { data: cars } = await sb.from('cars').select('*').eq('listing_type', 'auction').eq('archived', false).order('auction_ends_at', { ascending: true });
     allLots = cars || [];
     renderAll();
   }

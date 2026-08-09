@@ -169,7 +169,7 @@
 
       <h1>${car.brand} ${car.model}, ${car.year}</h1>
       <div class="subline">Опубліковано ${timeAgo(car.created_at)}</div>
-      <div class="price">${Number(car.price || 0).toLocaleString('uk-UA')} ${car.currency || ''}${(() => { const uah = convertToUAH(car.price, car.currency); return uah ? ` <span style="color:#999;font-weight:normal;font-size:15px;">(≈ ${uah.toLocaleString('uk-UA')} грн)</span>` : ''; })()}</div>
+      <div class="price">${car.previous_price && car.previous_price != car.price ? `<span style="color:#999;font-weight:normal;font-size:16px;text-decoration:line-through;">${Number(car.previous_price).toLocaleString('uk-UA')} ${car.currency || ''}</span> ` : ''}${Number(car.price || 0).toLocaleString('uk-UA')} ${car.currency || ''}${(() => { const uah = convertToUAH(car.price, car.currency); return uah ? ` <span style="color:#999;font-weight:normal;font-size:15px;">(≈ ${uah.toLocaleString('uk-UA')} грн)</span>` : ''; })()}</div>
 
       ${badges.length ? `<div class="badges">${badges.map(b => `<span class="badge">${b}</span>`).join('')}</div>` : ''}
 

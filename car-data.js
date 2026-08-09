@@ -219,7 +219,7 @@ function renderCarCard(car, currentUserId, favoritedIds) {
       <div class="ncard-body">
         <div class="ncard-title">${car.brand} ${car.model}, ${car.year}</div>
         <div class="ncard-subtitle">${[fuel, car.engine_volume ? car.engine_volume + ' л' : '', transmission].filter(Boolean).join(' · ')}</div>
-        <div class="ncard-price">${Number(car.price).toLocaleString('uk-UA')} ${car.currency || ''}${(() => { const uah = convertToUAH(car.price, car.currency); return uah ? ` <span class="ncard-price-uah">(≈ ${uah.toLocaleString('uk-UA')} грн)</span>` : ''; })()}</div>
+        <div class="ncard-price">${car.previous_price && car.previous_price != car.price ? `<span class="ncard-price-old">${Number(car.previous_price).toLocaleString('uk-UA')} ${car.currency || ''}</span> ` : ''}${Number(car.price).toLocaleString('uk-UA')} ${car.currency || ''}${(() => { const uah = convertToUAH(car.price, car.currency); return uah ? ` <span class="ncard-price-uah">(≈ ${uah.toLocaleString('uk-UA')} грн)</span>` : ''; })()}</div>
         ${leasingLineHtml(car)}
         <div class="ncard-specs">
           <span>🛣️ ${car.mileage ? Number(car.mileage).toLocaleString('uk-UA') + ' км' : '—'}</span>
@@ -384,3 +384,52 @@ function closeSearchPicker() {
 }
 
 injectPickerStyles();
+
+/* ---------- Модалка "Позначити як продано" ---------- */
+
+function injectSoldModalStyles() {
+  if (document.getElementById('sold-modal-styles')) return;
+  const style = document.createElement('style');
+  style.id = 'sold-modal-styles';
+  style.textContent = `
+    .sold-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 400; display: flex; align-items: flex-end; justify-content: center; }
+    .sold-modal-sheet { background: #fff; width: 100%; max-width: 480px; border-radius: 20px 20px 0 0; padding: 20px; }
+    .sold-modal-title { font-size: 16px; font-weight: bold; margin-bottom: 4px; }
+    .sold-modal-sub { font-size: 12px; color: #999; margin-bottom: 16px; }
+    .sold-modal-btn { display: block; width: 100%; padding: 14px; border-radius: 10px; font-size: 14px; font-weight: bold; border: none; cursor: pointer; margin-bottom: 10px; }
+    .sold-modal-btn.platform { background: #8E00FF; color: #fff; }
+    .sold-modal-btn.other { background: #f5e6ff; color: #8E00FF; }
+    .sold-modal-cancel { text-align: center; color: #999; font-size: 13px; padding: 8px; cursor: pointer; }
+  `;
+  document.head.appendChild(style);
+}
+
+function openSoldModal(carId, sbClient, onDone) {
+  injectSoldModalStyles();
+  const overlay = document.createElement('div');
+  overlay.className = 'sold-modal-overlay';
+  overlay.id = 'activeSoldModal';
+  overlay.innerHTML = `
+    <div class="sold-modal-sheet">
+      <div class="sold-modal-title">Як ви продали це авто?</div>
+      <div class="sold-modal-sub">Це допоможе нам вести статистику продажів</div>
+      <button class="sold-modal-btn platform">За допомогою NORMALNO</button>
+      <button class="sold-modal-btn other">Самостійно</button>
+      <div class="sold-modal-cancel">Скасувати</div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  async function confirmSold(via) {
+    await sbClient.from('cars').update({
+      sold: true, archived: true, archived_at: new Date().toISOString(), sold_via: via
+    }).eq('id', carId);
+    overlay.remove();
+    if (onDone) onDone();
+  }
+
+  overlay.querySelector('.platform').addEventListener('click', () => confirmSold('platform'));
+  overlay.querySelector('.other').addEventListener('click', () => confirmSold('other'));
+  overlay.querySelector('.sold-modal-cancel').addEventListener('click', () => overlay.remove());
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+}

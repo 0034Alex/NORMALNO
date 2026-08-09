@@ -32,7 +32,9 @@
   .listing-badge { font-size: 10px; font-weight: bold; padding: 3px 8px; border-radius: 10px; }
   .badge-auction { background: #f5e6ff; color: #8E00FF; }
   .badge-sold { background: #eafbe9; color: #1a8f2a; }
-  .sold-btn { width: 100%; padding: 8px; background: #fff; border: 1px solid #8E00FF; color: #8E00FF; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; }
+  .sold-btn { flex: 1; padding: 8px; background: #fff; border: 1px solid #8E00FF; color: #8E00FF; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; }
+  .edit-btn { flex: 1; padding: 8px; background: #fff0e0; border: none; color: #FF7A00; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; }
+  .listing-actions { display: flex; gap: 6px; margin-top: 8px; }
 </style>
 </head>
 <body>
@@ -54,14 +56,14 @@
     if (!session) { window.location.href = 'register2.html'; return; }
     sessionUserId = session.user.id;
 
-    const { data: cars } = await sb.from('cars').select('*').eq('user_id', sessionUserId).neq('listing_type', 'auction').order('created_at', { ascending: false });
+    const { data: cars } = await sb.from('cars').select('*').eq('user_id', sessionUserId).neq('listing_type', 'auction').eq('archived', false).order('created_at', { ascending: false });
     render(cars || []);
   }
 
   function render(cars) {
     const list = document.getElementById('list');
     if (cars.length === 0) {
-      list.innerHTML = '<div class="empty">У вас ще немає оголошень</div>';
+      list.innerHTML = '<div class="empty">У вас ще немає активних оголошень</div>';
       return;
     }
 
@@ -82,19 +84,16 @@
               <div class="listing-price">${Number(price).toLocaleString('uk-UA')} ${car.currency || ''}${uah ? ` <span style="color:#999;font-weight:normal;font-size:11px;">(≈${uah.toLocaleString('uk-UA')} грн)</span>` : ''}</div>
               <div class="listing-badges">
                 ${isAuction ? '<span class="listing-badge badge-auction">Аукціон</span>' : ''}
-                ${car.sold ? '<span class="listing-badge badge-sold">Продано</span>' : ''}
               </div>
             </div>
-            ${!car.sold ? `<button class="sold-btn" onclick="markSold(${car.id})">Позначити як продано</button>` : ''}
+            <div class="listing-actions">
+              <button class="edit-btn" onclick="window.location.href='edit-listing.html?id=${car.id}'">Редагувати</button>
+              <button class="sold-btn" onclick="openSoldModal(${car.id}, sb, load)">Позначити як продано</button>
+            </div>
           </div>
         </div>
       `;
     }).join('');
-  }
-
-  async function markSold(carId) {
-    await sb.from('cars').update({ sold: true }).eq('id', carId);
-    load();
   }
 
   load();

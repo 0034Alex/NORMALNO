@@ -54,22 +54,21 @@
     if (!session) { window.location.href = 'register2.html'; return; }
     sessionUserId = session.user.id;
 
-    const { data: cars } = await sb.from('cars').select('*').eq('user_id', sessionUserId).eq('listing_type', 'auction').order('created_at', { ascending: false });
+    const { data: cars } = await sb.from('cars').select('*').eq('user_id', sessionUserId).eq('listing_type', 'auction').eq('archived', false).order('created_at', { ascending: false });
     render(cars || []);
   }
 
   function render(cars) {
     const list = document.getElementById('list');
     if (cars.length === 0) {
-      list.innerHTML = '<div class="empty">Ви ще не виставляли лоти на аукціон</div>';
+      list.innerHTML = '<div class="empty">У вас немає активних лотів на аукціоні</div>';
       return;
     }
 
     list.innerHTML = cars.map(car => {
-      const photos = carPhotos(car, 1);
-      const isAuction = car.listing_type === 'auction';
-      const price = isAuction ? (car.current_bid || car.start_price || 0) : (car.price || 0);
+      const price = car.current_bid || car.start_price || 0;
       const uah = convertToUAH(price, car.currency);
+      const photos = carPhotos(car, 1);
 
       return `
         <div class="listing-card">
@@ -77,24 +76,17 @@
             ${photos[0] ? `<img src="${photos[0]}" onerror="this.style.display='none'">` : `<div class="listing-noimg">🚗</div>`}
           </div>
           <div style="flex:1;">
-            <div class="listing-info" onclick="window.location.href='${isAuction ? 'lot.html' : 'car.html'}?id=${car.id}'">
+            <div class="listing-info" onclick="window.location.href='lot.html?id=${car.id}'">
               <div class="listing-title">${car.brand} ${car.model}, ${car.year}</div>
               <div class="listing-price">${Number(price).toLocaleString('uk-UA')} ${car.currency || ''}${uah ? ` <span style="color:#999;font-weight:normal;font-size:11px;">(≈${uah.toLocaleString('uk-UA')} грн)</span>` : ''}</div>
               <div class="listing-badges">
-                ${isAuction ? '<span class="listing-badge badge-auction">Аукціон</span>' : ''}
-                ${car.sold ? '<span class="listing-badge badge-sold">Продано</span>' : ''}
+                <span class="listing-badge badge-auction">Аукціон · ${car.bid_count || 0} ставок</span>
               </div>
             </div>
-            ${!car.sold ? `<button class="sold-btn" onclick="markSold(${car.id})">Позначити як продано</button>` : ''}
           </div>
         </div>
       `;
     }).join('');
-  }
-
-  async function markSold(carId) {
-    await sb.from('cars').update({ sold: true }).eq('id', carId);
-    load();
   }
 
   load();
