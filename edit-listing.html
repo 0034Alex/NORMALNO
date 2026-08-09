@@ -37,7 +37,7 @@
 </head>
 <body>
 
-<a href="my-listings.html" class="back">&larr; Назад</a>
+<a href="my-listings.html" class="back" id="backLink">&larr; Назад</a>
 <div class="logo" id="pageTitle">Редагувати оголошення</div>
 <div class="subtitle" id="pageSubtitle"></div>
 
@@ -269,6 +269,7 @@
       document.getElementById('pageTitle').textContent = 'Виставити авто знову';
       document.getElementById('pageSubtitle').textContent = 'Перевірте дані та натисніть "Виставити"';
       document.getElementById('saveBtn').textContent = 'Виставити оголошення';
+      document.getElementById('backLink').href = 'my-archive.html';
     }
 
     document.getElementById('condition').value = car.condition || '';
@@ -404,7 +405,7 @@
 
     msg.textContent = currentCar.archived ? 'Оголошення знову активне!' : 'Збережено!';
     msg.style.color = 'green';
-    setTimeout(() => { window.location.href = currentCar.archived ? 'my-listings.html' : 'my-listings.html'; }, 1000);
+    setTimeout(() => { window.location.href = currentCar.archived ? 'index.html' : 'my-listings.html'; }, 1000);
   }
 
   load();
