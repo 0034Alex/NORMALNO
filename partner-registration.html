@@ -15,7 +15,10 @@
     width: 100%; padding: 14px; margin-bottom: 12px; border: 1px solid #ddd;
     border-radius: 10px; font-size: 15px; font-family: Arial, sans-serif;
   }
-  textarea { min-height: 90px; resize: vertical; }
+  textarea { min-height: 80px; resize: vertical; }
+  .hint { font-size: 11px; color: #999; margin: -6px 0 12px; }
+  #photoPreview { display: flex; gap: 8px; margin-bottom: 10px; }
+  #photoPreview img { width: 70px; height: 70px; object-fit: cover; border-radius: 8px; }
   button.main { width: 100%; padding: 15px; background: #8E00FF; color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; }
   .msg { text-align: center; margin-top: 12px; font-size: 14px; }
 </style>
@@ -39,8 +42,15 @@
 <input type="text" id="contactPerson" placeholder="Контактна особа">
 <input type="tel" id="phone" placeholder="Телефон">
 <input type="email" id="email" placeholder="Email">
-<input type="text" id="address" placeholder="Адреса (місто, вулиця)">
-<textarea id="description" placeholder="Короткий опис послуг"></textarea>
+<input type="url" id="website" placeholder="Сайт або сторінка в соцмережі (необов'язково)">
+<input type="text" id="address" placeholder="Адреса (місто, вулиця, номер будинку)">
+<input type="text" id="workingHours" placeholder="Графік роботи (напр. Пн-Пт 9:00-19:00)">
+<textarea id="description" placeholder="Короткий опис послуг" maxlength="200"></textarea>
+<div class="hint">До 200 символів — щоб влізло в картку</div>
+
+<label style="font-size:13px; color:#666; display:block; margin-bottom:6px;">Фото (до 3 шт.)</label>
+<input type="file" id="photoFiles" accept="image/*" multiple>
+<div id="photoPreview"></div>
 
 <button class="main" onclick="submitPartner()">Надіслати заявку</button>
 <div class="msg" id="msg"></div>
@@ -49,6 +59,33 @@
   const supabaseUrl = 'https://ipzvgqyjtqofthbpkdsd.supabase.co';
   const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwenZncXlqdHFvZnRoYnBrZHNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMTEwNjEsImV4cCI6MjEwMTU4NzA2MX0.jbbpKpHaD6S9SJMIbxcwb12ggBCv44J_-s4OQ8ESNfA';
   const sb = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+  document.getElementById('photoFiles').addEventListener('change', function() {
+    const preview = document.getElementById('photoPreview');
+    preview.innerHTML = '';
+    const files = Array.from(this.files).slice(0, 3);
+    if (this.files.length > 3) alert('Можна завантажити максимум 3 фото. Взято перші 3.');
+    files.forEach(file => {
+      const img = document.createElement('img');
+      img.src = URL.createObjectURL(file);
+      preview.appendChild(img);
+    });
+  });
+
+  async function uploadPartnerPhotos(userId) {
+    const files = Array.from(document.getElementById('photoFiles').files).slice(0, 3);
+    const urls = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const ext = file.name.split('.').pop();
+      const path = `${userId}/${Date.now()}-${i}.${ext}`;
+      const { error } = await sb.storage.from('partner-photos').upload(path, file);
+      if (error) continue;
+      const { data } = sb.storage.from('partner-photos').getPublicUrl(path);
+      urls.push(data.publicUrl);
+    }
+    return urls;
+  }
 
   async function submitPartner() {
     const msg = document.getElementById('msg');
@@ -62,6 +99,7 @@
     const name = document.getElementById('name').value.trim();
     const category = document.getElementById('category').value;
     const phone = document.getElementById('phone').value.trim();
+    const address = document.getElementById('address').value.trim();
 
     if (!name || !category || !phone) {
       msg.textContent = "Заповніть хоча б назву, категорію і телефон";
@@ -69,21 +107,36 @@
       return;
     }
 
-    const { error } = await sb.from('partners').insert({
+    msg.textContent = 'Завантажуємо фото...';
+    msg.style.color = '#8E00FF';
+    const photoUrls = await uploadPartnerPhotos(session.user.id);
+
+    const { data: inserted, error } = await sb.from('partners').insert({
       name: name,
       category: category,
       contact_person: document.getElementById('contactPerson').value.trim(),
       phone: phone,
       email: document.getElementById('email').value.trim(),
-      address: document.getElementById('address').value.trim(),
+      website: document.getElementById('website').value.trim(),
+      address: address,
+      working_hours: document.getElementById('workingHours').value.trim(),
       description: document.getElementById('description').value.trim(),
+      photos: photoUrls,
       status: 'pending'
-    });
+    }).select().single();
 
     if (error) {
       msg.textContent = error.message;
       msg.style.color = 'red';
       return;
+    }
+
+    if (address && inserted) {
+      fetch('/api/geocode-partner', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ partnerId: inserted.id, address: address })
+      }).catch(() => {});
     }
 
     fetch('/api/notify-lead', {
