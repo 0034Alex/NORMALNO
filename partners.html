@@ -21,10 +21,13 @@
 
   .empty { text-align: center; color: #999; margin-top: 40px; }
 
-  .office-card { border: 2px solid #8E00FF; border-radius: 16px; padding: 16px; margin-bottom: 20px; background: #f9f2ff; }
-  .office-title { font-weight: bold; font-size: 16px; color: #8E00FF; margin-bottom: 4px; }
-  .office-address { font-size: 13px; color: #555; margin-bottom: 12px; }
-  #officeMap { width: 100%; height: 180px; border-radius: 12px; margin-bottom: 12px; z-index: 1; }
+  .office-card { border: 2px solid #8E00FF; border-radius: 16px; padding: 12px; margin-bottom: 20px; background: #f9f2ff; }
+  .office-row { display: flex; gap: 12px; align-items: center; }
+  #officeMap { width: 90px; height: 90px; border-radius: 12px; flex-shrink: 0; z-index: 1; }
+  .office-info { flex: 1; min-width: 0; }
+  .office-title { font-weight: bold; font-size: 14px; color: #8E00FF; margin-bottom: 4px; }
+  .office-address { font-size: 12px; color: #555; margin-bottom: 3px; }
+  .office-phone { font-size: 12px; color: #555; }
   .office-route-btn {
     display: block; text-align: center; background: #8E00FF; color: #fff; text-decoration: none;
     padding: 12px; border-radius: 10px; font-weight: bold; font-size: 14px; cursor: pointer; border: none; width: 100%;
@@ -73,10 +76,15 @@
 <div class="logo">Партнери</div>
 
 <div class="office-card">
-  <div class="office-title">🏢 Головний офіс та майданчик NORMALNO</div>
-  <div class="office-address">📍 м. Київ, Кільцева дорога, 19</div>
-  <div id="officeMap"></div>
-  <button class="office-route-btn" onclick="openRouteMenu(50.446016, 30.357536, 'Головний офіс NORMALNO')">Прокласти маршрут</button>
+  <div class="office-row">
+    <div id="officeMap"></div>
+    <div class="office-info">
+      <div class="office-title">🏢 Головний офіс NORMALNO</div>
+      <div class="office-address">📍 м. Київ, Кільцева дорога, 19</div>
+      <div class="office-phone">📞 +3801234567890</div>
+    </div>
+  </div>
+  <button class="office-route-btn" onclick="openRouteMenu(50.446016, 30.357536, 'Головний офіс NORMALNO')" style="margin-top:10px;">Прокласти маршрут</button>
 </div>
 
 <div class="route-modal-overlay hidden" id="routeModal" onclick="if(event.target===this) closeRouteMenu()">
