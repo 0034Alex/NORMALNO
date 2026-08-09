@@ -40,12 +40,12 @@
 
   /* Категорії плитками */
   .section-title { font-size: 16px; font-weight: bold; margin-bottom: 12px; }
-  .category-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 24px; }
-  .category-tile { border: 2px solid #eee; border-radius: 14px; padding: 14px 8px; text-align: center; cursor: pointer; }
-  .category-tile.active { border-color: #8E00FF; background: #f9f2ff; }
-  .category-icon { font-size: 24px; margin-bottom: 6px; }
-  .category-label { font-size: 12px; font-weight: bold; color: #333; }
-  .category-count { font-size: 11px; color: #999; }
+  .category-grid { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 24px; }
+  .category-tile { flex-shrink: 0; width: 76px; text-align: center; cursor: pointer; }
+  .category-circle { width: 56px; height: 56px; border-radius: 50%; background: #f5e6ff; display: flex; align-items: center; justify-content: center; font-size: 22px; margin: 0 auto 6px; }
+  .category-tile.active .category-circle { background: #8E00FF; }
+  .category-label { font-size: 11px; font-weight: bold; color: #333; white-space: nowrap; }
+  .category-count { font-size: 10px; color: #999; }
 
   /* Партнери поруч */
   .section-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
@@ -107,7 +107,7 @@
   <div class="office-row">
     <div id="officeMap"></div>
     <div class="office-info">
-      <div class="office-title">🏢 Головний офіс NORMALNO</div>
+      <div class="office-title">Головний офіс NORMALNO</div>
       <div class="office-address">📍 м. Київ, Кільцева дорога, 19</div>
       <div class="office-phone">📞 +3801234567890</div>
     </div>
@@ -243,7 +243,7 @@
     const allCount = allPartners.length;
     let html = `
       <div class="category-tile ${currentCategory === 'all' ? 'active' : ''}" onclick="setCategory('all')">
-        <div class="category-icon">🔲</div>
+        <div class="category-circle">🔲</div>
         <div class="category-label">Всі</div>
         <div class="category-count">${allCount}</div>
       </div>
@@ -252,7 +252,7 @@
       const count = allPartners.filter(p => p.category === c.key).length;
       html += `
         <div class="category-tile ${currentCategory === c.key ? 'active' : ''}" onclick="setCategory('${c.key}')">
-          <div class="category-icon">${c.icon}</div>
+          <div class="category-circle">${c.icon}</div>
           <div class="category-label">${c.label}</div>
           <div class="category-count">${count}</div>
         </div>
