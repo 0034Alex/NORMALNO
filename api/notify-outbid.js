@@ -1,6 +1,7 @@
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const { sendPushToUsers } = require('./push-helper');
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
@@ -8,7 +9,7 @@ module.exports = async (req, res) => {
     return;
   }
   try {
-    const { previousUserId, carLabel, newBid, currency } = req.body;
+    const { previousUserId, carLabel, newBid, currency, carId } = req.body;
     if (!previousUserId) {
       res.status(200).json({ skipped: true });
       return;
@@ -29,8 +30,14 @@ module.exports = async (req, res) => {
           chat_id: tgId,
           text: `⚡ Вашу ставку перебили! ${carLabel} — нова ціна ${newBid} ${currency}. Встигніть відповісти!`
         })
-      });
+      }).catch(() => {});
     }
+
+    await sendPushToUsers([previousUserId], {
+      title: '⚡ Вашу ставку перебили!',
+      body: `${carLabel} — нова ціна ${newBid} ${currency}`,
+      url: carId ? `/lot.html?id=${carId}` : '/auction.html'
+    }).catch(() => {});
 
     res.status(200).json({ notified: !!tgId });
   } catch (err) {

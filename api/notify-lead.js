@@ -1,6 +1,7 @@
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const { sendPushToUsers } = require('./push-helper');
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
@@ -16,7 +17,7 @@ module.exports = async (req, res) => {
     );
     const admins = await adminsResp.json();
 
-    const typeLabel = leadType === 'trade_in' ? 'Trade-in заявка' : 'Заявка на підбір авто';
+    const typeLabel = leadType === 'trade_in' ? 'Trade-in заявка' : (leadType === 'leasing' ? 'Заявка на розрахунок лізингу' : (leadType === 'partner' ? 'Заявка від партнера' : 'Заявка на підбір авто'));
     const text = `📋 Нова заявка!\nТип: ${typeLabel}\nІм'я: ${name || '—'}\nТелефон: ${phone || '—'}\n${summary || ''}`;
 
     for (const admin of admins || []) {
@@ -34,6 +35,12 @@ module.exports = async (req, res) => {
         }).catch(() => {});
       }
     }
+
+    await sendPushToUsers((admins || []).map(a => a.user_id), {
+      title: '📋 Нова заявка: ' + typeLabel,
+      body: `${name || '—'} · ${phone || '—'}`,
+      url: '/admin.html'
+    }).catch(() => {});
 
     res.status(200).json({ notified: (admins || []).length });
   } catch (err) {
