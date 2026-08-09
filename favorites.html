@@ -78,7 +78,7 @@
 </head>
 <body>
 
-<a href="index.html" class="back">&larr; Назад на головну</a>
+<a href="index.html" class="back" id="backLink">&larr; Назад на головну</a>
 <div class="logo">Обране</div>
 
 <div class="feed" id="feed">Завантаження...</div>
@@ -108,6 +108,13 @@
 
   let currentUserId = null;
   let favoritedIds = new Set();
+
+  const cameFrom = new URLSearchParams(window.location.search).get('from');
+  if (cameFrom === 'profile') {
+    const backLink = document.getElementById('backLink');
+    backLink.href = 'profile.html';
+    backLink.textContent = '← Назад до профілю';
+  }
 
   async function loadFavorites() {
     await ensureRatesLoaded();
