@@ -53,6 +53,7 @@
   .desc-text { font-size: 14px; color: #444; line-height: 1.5; white-space: pre-wrap; margin-bottom: 20px; }
 
   .seller-box { border: 1px solid #eee; border-radius: 12px; padding: 14px; margin-bottom: 16px; }
+  .views-fav-stats { font-size: 12px; color: #999; margin-bottom: 12px; }
   .seller-name { font-weight: bold; font-size: 16px; margin: 4px 0 10px; }
   .seller-actions { display: flex; gap: 8px; }
   .seller-btn { flex: 1; text-align: center; padding: 12px; border-radius: 10px; font-weight: bold; font-size: 13px; text-decoration: none; border: none; cursor: pointer; }
@@ -132,6 +133,20 @@
     }
     render(car);
     loadSellerInfo(car.user_id);
+
+    const isOwner = session && car.user_id === currentUserId;
+    let displayViews = car.views || 0;
+    if (!isOwner) {
+      displayViews += 1;
+      sb.rpc('increment_car_views', { car_id_input: carId }).catch(() => {});
+    }
+    loadViewsAndFavorites(displayViews);
+  }
+
+  async function loadViewsAndFavorites(displayViews) {
+    const { count: favCount } = await sb.from('favorites').select('*', { count: 'exact', head: true }).eq('car_id', carId);
+    const el = document.getElementById('viewsFavStats');
+    if (el) el.textContent = `👁 ${displayViews} переглядів · ❤️ ${favCount || 0} в обраному`;
   }
 
   async function loadSellerInfo(sellerId) {
@@ -227,6 +242,8 @@
       </div>
 
       ${car.description ? `<div class="desc-title">Опис від продавця</div><div class="desc-text">${car.description}</div>` : ''}
+
+      <div class="views-fav-stats" id="viewsFavStats"></div>
 
       <button class="leasing-btn" onclick="openLeasingModal()">📊 Розрахувати в лізинг</button>
 

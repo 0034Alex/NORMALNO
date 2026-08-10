@@ -7,8 +7,8 @@
 <meta name="theme-color" content="#8E00FF">
 <link rel="apple-touch-icon" href="/icons-admin/icon-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Adminka">
-<title>Adminka NORMALNO</title>
+<meta name="apple-mobile-web-app-title" content="CRM">
+<title>CRM NORMALNO</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="car-data.js"></script>
 <style>
@@ -175,7 +175,6 @@
     if (hasPerm('auction')) tabs.push('auction');
     if (hasPerm('users')) tabs.push('users');
     if (hasPerm('broadcast')) tabs.push('broadcast');
-    if (hasPerm('stats')) tabs.push('stats');
     if (hasPerm('content')) tabs.push('content');
     if (myRole === 'owner') tabs.push('staff');
 
@@ -189,7 +188,7 @@
       <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
       <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
-          <div class="sidebar-logo">Adminka <span>NORMALNO</span></div>
+          <div class="sidebar-logo">CRM <span>NORMALNO</span></div>
           <div class="sidebar-role">${ROLE_LABELS[myRole] || myRole}</div>
         </div>
         <div class="sidebar-nav">
@@ -246,7 +245,7 @@
     const loaders = {
       dashboard: loadDashboardSection, leads: loadLeadsSection, partners: loadPartnersSection, listings: loadListingsSection,
       auction: loadAuctionSection, users: loadUsersSection, broadcast: loadBroadcastSection,
-      stats: loadStatsSection, content: loadContentSection, staff: loadStaffSection
+      content: loadContentSection, staff: loadStaffSection
     };
     if (loaders[section]) loaders[section]();
   };
@@ -274,7 +273,7 @@
     const data = {};
     queries.forEach((q, i) => { data[q[0]] = results[i].count || 0; });
 
-    const cards = [
+    const todayCards = [
       hasPerm('users') ? ['👥', data.newUsers, 'Нових користувачів сьогодні'] : null,
       hasPerm('listings') ? ['🚗', data.newListings, 'Нових оголошень сьогодні'] : null,
       ['✅', data.soldToday, 'Продано сьогодні'],
@@ -286,7 +285,7 @@
     body.innerHTML = `
       <div style="font-size:15px; font-weight:bold; margin-bottom:14px;">Сьогодні, ${new Date().toLocaleDateString('uk-UA')}</div>
       <div class="stats-grid">
-        ${cards.map(c => `
+        ${todayCards.map(c => `
           <div class="stat-box">
             <div style="font-size:22px; margin-bottom:4px;">${c[0]}</div>
             <div class="stat-num">${c[1]}</div>
@@ -294,6 +293,36 @@
           </div>
         `).join('')}
       </div>
+      ${hasPerm('stats') ? '<div id="generalStatsWrap" style="margin-top:24px;"><div class="empty">Рахуємо загальну статистику...</div></div>' : ''}
+    `;
+
+    if (hasPerm('stats')) loadGeneralStats();
+  }
+
+  async function loadGeneralStats() {
+    const [{ count: totalActive }, { count: soldPlatform }, { count: soldOther }, { count: activeAuctions }, { count: totalUsers }, { count: totalPartners }] = await Promise.all([
+      sb.from('cars').select('*', { count: 'exact', head: true }).eq('archived', false),
+      sb.from('cars').select('*', { count: 'exact', head: true }).eq('sold', true).eq('sold_via', 'platform'),
+      sb.from('cars').select('*', { count: 'exact', head: true }).eq('sold', true).neq('sold_via', 'platform'),
+      sb.from('cars').select('*', { count: 'exact', head: true }).eq('listing_type', 'auction').eq('archived', false),
+      sb.from('profiles').select('*', { count: 'exact', head: true }),
+      sb.from('partners').select('*', { count: 'exact', head: true }).eq('status', 'approved')
+    ]);
+
+    const wrap = document.getElementById('generalStatsWrap');
+    if (!wrap) return;
+
+    wrap.innerHTML = `
+      <div style="font-size:15px; font-weight:bold; margin-bottom:14px;">Загальна статистика</div>
+      <div class="stats-grid">
+        <div class="stat-box"><div class="stat-num">${totalActive || 0}</div><div class="stat-label">Активних оголошень</div></div>
+        <div class="stat-box"><div class="stat-num">${activeAuctions || 0}</div><div class="stat-label">Активних лотів</div></div>
+        <div class="stat-box"><div class="stat-num">${soldPlatform || 0}</div><div class="stat-label">Продано через NORMALNO</div></div>
+        <div class="stat-box"><div class="stat-num">${soldOther || 0}</div><div class="stat-label">Продано самостійно</div></div>
+        <div class="stat-box"><div class="stat-num">${totalUsers || 0}</div><div class="stat-label">Користувачів</div></div>
+        <div class="stat-box"><div class="stat-num">${totalPartners || 0}</div><div class="stat-label">Партнерів</div></div>
+      </div>
+      <p style="font-size:12px; color:#666; margin-top:16px; text-align:center;">Фінансова статистика зʼявиться після підключення платежів.</p>
     `;
   }
 
@@ -509,33 +538,6 @@
     document.getElementById('broadcastTitle').value = '';
     document.getElementById('broadcastBody').value = '';
   };
-
-  /* ---------- СТАТИСТИКА ---------- */
-  async function loadStatsSection() {
-    const body = document.getElementById('sectionBody');
-    body.innerHTML = '<div class="empty">Рахуємо...</div>';
-
-    const [{ count: totalActive }, { count: soldPlatform }, { count: soldOther }, { count: activeAuctions }, { count: totalUsers }, { count: totalPartners }] = await Promise.all([
-      sb.from('cars').select('*', { count: 'exact', head: true }).eq('archived', false),
-      sb.from('cars').select('*', { count: 'exact', head: true }).eq('sold', true).eq('sold_via', 'platform'),
-      sb.from('cars').select('*', { count: 'exact', head: true }).eq('sold', true).neq('sold_via', 'platform'),
-      sb.from('cars').select('*', { count: 'exact', head: true }).eq('listing_type', 'auction').eq('archived', false),
-      sb.from('profiles').select('*', { count: 'exact', head: true }),
-      sb.from('partners').select('*', { count: 'exact', head: true }).eq('status', 'approved')
-    ]);
-
-    body.innerHTML = `
-      <div class="stats-grid">
-        <div class="stat-box"><div class="stat-num">${totalActive || 0}</div><div class="stat-label">Активних оголошень</div></div>
-        <div class="stat-box"><div class="stat-num">${activeAuctions || 0}</div><div class="stat-label">Активних лотів</div></div>
-        <div class="stat-box"><div class="stat-num">${soldPlatform || 0}</div><div class="stat-label">Продано через NORMALNO</div></div>
-        <div class="stat-box"><div class="stat-num">${soldOther || 0}</div><div class="stat-label">Продано самостійно</div></div>
-        <div class="stat-box"><div class="stat-num">${totalUsers || 0}</div><div class="stat-label">Користувачів</div></div>
-        <div class="stat-box"><div class="stat-num">${totalPartners || 0}</div><div class="stat-label">Партнерів</div></div>
-      </div>
-      <p style="font-size:12px; color:#666; margin-top:16px; text-align:center;">Фінансова статистика зʼявиться після підключення платежів.</p>
-    `;
-  }
 
   /* ---------- КОНТЕНТ (заглушка) ---------- */
   function loadContentSection() {

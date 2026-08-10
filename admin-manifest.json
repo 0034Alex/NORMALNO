@@ -1,6 +1,6 @@
 {
-  "name": "Adminka NORMALNO",
-  "short_name": "Adminka",
+  "name": "CRM NORMALNO",
+  "short_name": "CRM",
   "description": "Адміністративна панель NORMALNO",
   "start_url": "/admin.html",
   "display": "standalone",
