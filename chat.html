@@ -24,7 +24,8 @@
   .messages-wrap { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
   .msg-row { display: flex; }
   .msg-row.mine { justify-content: flex-end; }
-  .msg-bubble { max-width: 75%; padding: 10px 14px; border-radius: 16px; font-size: 14px; line-height: 1.4; white-space: pre-wrap; overflow-wrap: break-word; }
+  .msg-bubble-wrap { max-width: 75%; min-width: 0; }
+  .msg-bubble { padding: 10px 14px; border-radius: 16px; font-size: 14px; line-height: 1.4; white-space: pre-wrap; overflow-wrap: anywhere; word-break: normal; }
   .msg-row:not(.mine) .msg-bubble { background: #f5e6ff; color: #333; border-bottom-left-radius: 4px; }
   .msg-row.mine .msg-bubble { background: #8E00FF; color: #fff; border-bottom-right-radius: 4px; }
   .msg-time { font-size: 10px; color: #bbb; margin-top: 3px; text-align: right; }
@@ -122,7 +123,7 @@
       const time = new Date(m.created_at).toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' });
       return `
         <div class="msg-row ${mine ? 'mine' : ''}">
-          <div>
+          <div class="msg-bubble-wrap">
             <div class="msg-bubble">${escapeHtml(m.text)}</div>
             <div class="msg-time">${time}</div>
           </div>
