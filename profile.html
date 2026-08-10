@@ -36,7 +36,8 @@
   .actions-title { font-size: 15px; font-weight: bold; margin-bottom: 12px; }
   .actions-grid { display: flex; gap: 6px; margin-bottom: 24px; }
   .action-btn { flex: 1; min-width: 0; text-align: center; cursor: pointer; position: relative; }
-  .action-icon { width: 42px; height: 42px; border-radius: 13px; background: #f5e6ff; display: flex; align-items: center; justify-content: center; font-size: 18px; margin: 0 auto 5px; }
+  .action-icon { width: 42px; height: 42px; border-radius: 13px; background: #f5e6ff; display: flex; align-items: center; justify-content: center; font-size: 18px; margin: 0 auto 5px; position: relative; }
+  .badge { position: absolute; top: -4px; right: -4px; background: #FF7A00; color: #fff; font-size: 10px; font-weight: bold; min-width: 16px; height: 16px; border-radius: 8px; display: flex; align-items: center; justify-content: center; padding: 0 3px; }
   .action-label { font-size: 9px; font-weight: bold; color: #333; line-height: 1.2; }
   .action-badge { position: absolute; top: -4px; right: 10px; background: #8E00FF; color: #fff; font-size: 10px; font-weight: bold; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
 
@@ -111,23 +112,23 @@
 <div class="actions-title">Мої дії</div>
 <div class="actions-grid">
   <div class="action-btn" onclick="window.location.href='my-listings.html'">
-    <div class="action-icon">📋</div>
+    <div class="action-icon">📋<span class="badge hidden" id="badgeListings"></span></div>
     <div class="action-label">Мої оголошення</div>
   </div>
   <div class="action-btn" onclick="window.location.href='my-auctions.html'">
-    <div class="action-icon">🔨</div>
+    <div class="action-icon">🔨<span class="badge hidden" id="badgeAuctions"></span></div>
     <div class="action-label">Мої аукціони</div>
   </div>
   <div class="action-btn" onclick="window.location.href='my-bids.html'">
-    <div class="action-icon">💰</div>
+    <div class="action-icon">💰<span class="badge hidden" id="badgeBids"></span></div>
     <div class="action-label">Мої ставки</div>
   </div>
   <div class="action-btn" onclick="window.location.href='favorites.html?from=profile'">
-    <div class="action-icon">❤️</div>
+    <div class="action-icon">❤️<span class="badge hidden" id="badgeFavorites"></span></div>
     <div class="action-label">Обране</div>
   </div>
   <div class="action-btn" onclick="window.location.href='chats-list.html'">
-    <div class="action-icon">💬</div>
+    <div class="action-icon">💬<span class="badge hidden" id="badgeMessages"></span></div>
     <div class="action-label">Повідомлення</div>
   </div>
   <div class="action-btn" onclick="window.location.href='my-archive.html'">
@@ -235,8 +236,43 @@
       document.getElementById('statusBarFill').style.width = progress + '%';
     }
 
-    const { count: bidsCount } = await sb.from('bids').select('*', { count: 'exact', head: true }).eq('user_id', session.user.id);
-    const { count: favCount } = await sb.from('favorites').select('*', { count: 'exact', head: true }).eq('user_id', session.user.id);
+    const userId = session.user.id;
+
+    const { count: listingsCount } = await sb.from('cars').select('*', { count: 'exact', head: true }).eq('user_id', userId).neq('listing_type', 'auction').eq('archived', false);
+    const { count: auctionsCount } = await sb.from('cars').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('listing_type', 'auction').eq('archived', false);
+    const { data: myBids } = await sb.from('bids').select('car_id').eq('user_id', userId);
+    const activeBidCarIds = [...new Set((myBids || []).map(b => b.car_id))];
+    let activeBidsCount = 0;
+    if (activeBidCarIds.length) {
+      const { data: bidCars } = await sb.from('cars').select('id, auction_ends_at, archived').in('id', activeBidCarIds);
+      activeBidsCount = (bidCars || []).filter(c => !c.archived && new Date(c.auction_ends_at) > new Date()).length;
+    }
+    const { count: favCount2 } = await sb.from('favorites').select('*', { count: 'exact', head: true }).eq('user_id', userId);
+
+    const { data: myChats } = await sb.from('chats').select('id').or(`buyer_id.eq.${userId},seller_id.eq.${userId}`);
+    let unreadCount = 0;
+    if (myChats && myChats.length) {
+      const chatIds = myChats.map(c => c.id);
+      const { count } = await sb.from('messages').select('*', { count: 'exact', head: true }).in('chat_id', chatIds).eq('read', false).neq('sender_id', userId);
+      unreadCount = count || 0;
+    }
+
+    setBadge('badgeListings', listingsCount);
+    setBadge('badgeAuctions', auctionsCount);
+    setBadge('badgeBids', activeBidsCount);
+    setBadge('badgeFavorites', favCount2);
+    setBadge('badgeMessages', unreadCount);
+  }
+
+  function setBadge(id, count) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (count && count > 0) {
+      el.textContent = count;
+      el.classList.remove('hidden');
+    } else {
+      el.classList.add('hidden');
+    }
   }
 
   window.openLevelInfo = function() {
