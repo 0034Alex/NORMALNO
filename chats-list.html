@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#8E00FF">
+<link rel="apple-touch-icon" href="/icons/icon-180.png">
+<title>NORMALNO — Повідомлення</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="car-data.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; background: #fff; margin: 0; padding: 20px; padding-bottom: 40px; }
+  .back { color: #FF7A00; text-decoration: none; font-size: 14px; display: inline-block; margin-bottom: 10px; }
+  .logo { font-size: 20px; font-weight: bold; color: #8E00FF; margin-bottom: 20px; }
+  .empty { text-align: center; color: #999; margin-top: 40px; }
+
+  .chat-card { display: flex; gap: 12px; padding: 12px; border-bottom: 1px solid #f5f5f5; cursor: pointer; align-items: center; }
+  .chat-photo { width: 54px; height: 54px; border-radius: 10px; object-fit: cover; background: #f2f2f2; flex-shrink: 0; }
+  .chat-info { flex: 1; min-width: 0; }
+  .chat-name { font-weight: bold; font-size: 14px; }
+  .chat-car { font-size: 12px; color: #999; margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .chat-last { font-size: 13px; color: #666; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .chat-unread { background: #FF7A00; color: #fff; font-size: 11px; font-weight: bold; border-radius: 10px; padding: 2px 7px; flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<a href="profile.html" class="back">&larr; Назад до профілю</a>
+<div class="logo">Повідомлення</div>
+
+<div id="list">Завантаження...</div>
+
+<script>
+  const supabaseUrl = 'https://ipzvgqyjtqofthbpkdsd.supabase.co';
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwenZncXlqdHFvZnRoYnBrZHNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMTEwNjEsImV4cCI6MjEwMTU4NzA2MX0.jbbpKpHaD6S9SJMIbxcwb12ggBCv44J_-s4OQ8ESNfA';
+  const sb = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+  async function load() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { window.location.href = 'register2.html'; return; }
+    const userId = session.user.id;
+
+    const { data: chats } = await sb.from('chats').select('*').or(`buyer_id.eq.${userId},seller_id.eq.${userId}`).order('created_at', { ascending: false });
+    const list = document.getElementById('list');
+
+    if (!chats || chats.length === 0) {
+      list.innerHTML = '<div class="empty">У вас ще немає повідомлень</div>';
+      return;
+    }
+
+    const items = await Promise.all(chats.map(async (chat) => {
+      const otherId = chat.buyer_id === userId ? chat.seller_id : chat.buyer_id;
+      const { data: otherProfile } = await sb.from('profiles').select('name').eq('user_id', otherId).maybeSingle();
+      const { data: car } = await sb.from('cars').select('brand, model, year, photos, photo_url').eq('id', chat.car_id).maybeSingle();
+      const { data: lastMsgArr } = await sb.from('messages').select('*').eq('chat_id', chat.id).order('created_at', { ascending: false }).limit(1);
+      const { count: unreadCount } = await sb.from('messages').select('*', { count: 'exact', head: true }).eq('chat_id', chat.id).eq('read', false).neq('sender_id', userId);
+
+      const lastMsg = lastMsgArr && lastMsgArr[0];
+      const photo = car ? carPhotos(car, 1)[0] : null;
+
+      return `
+        <div class="chat-card" onclick="window.location.href='chat.html?id=${chat.id}'">
+          ${photo ? `<img class="chat-photo" src="${photo}">` : `<div class="chat-photo"></div>`}
+          <div class="chat-info">
+            <div class="chat-name">${(otherProfile && otherProfile.name) ? otherProfile.name : 'Користувач'}</div>
+            <div class="chat-car">${car ? `${car.brand} ${car.model}, ${car.year}` : ''}</div>
+            <div class="chat-last">${lastMsg ? lastMsg.text : 'Немає повідомлень'}</div>
+          </div>
+          ${unreadCount > 0 ? `<div class="chat-unread">${unreadCount}</div>` : ''}
+        </div>
+      `;
+    }));
+
+    list.innerHTML = items.join('');
+  }
+
+  load();
+</script>
+
+</body>
+</html>

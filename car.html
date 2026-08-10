@@ -53,6 +53,11 @@
   .desc-text { font-size: 14px; color: #444; line-height: 1.5; white-space: pre-wrap; margin-bottom: 20px; }
 
   .seller-box { border: 1px solid #eee; border-radius: 12px; padding: 14px; margin-bottom: 16px; }
+  .seller-name { font-weight: bold; font-size: 16px; margin: 4px 0 10px; }
+  .seller-actions { display: flex; gap: 8px; }
+  .seller-btn { flex: 1; text-align: center; padding: 12px; border-radius: 10px; font-weight: bold; font-size: 13px; text-decoration: none; border: none; cursor: pointer; }
+  .seller-btn-call { background: #f5e6ff; color: #8E00FF; }
+  .seller-btn-chat { background: #8E00FF; color: #fff; }
   .seller-label { font-size: 12px; color: #999; margin-bottom: 4px; }
   .seller-phone { color: #8E00FF; font-weight: bold; font-size: 16px; }
 
@@ -126,7 +131,46 @@
       return;
     }
     render(car);
+    loadSellerInfo(car.user_id);
   }
+
+  async function loadSellerInfo(sellerId) {
+    const { data: seller } = await sb.from('profiles').select('name, phone').eq('user_id', sellerId).maybeSingle();
+    const nameEl = document.getElementById('sellerName');
+    const callBtn = document.getElementById('sellerCallBtn');
+    if (!nameEl) return;
+
+    nameEl.textContent = (seller && seller.name) ? seller.name : 'Приватний продавець';
+    if (seller && seller.phone) {
+      callBtn.href = 'tel:' + seller.phone;
+      callBtn.classList.remove('hidden');
+    }
+  }
+
+  window.openChatWithSeller = async function() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { window.location.href = 'register2.html'; return; }
+
+    const { data: car } = await sb.from('cars').select('user_id').eq('id', carId).single();
+    if (!car) return;
+
+    if (car.user_id === session.user.id) {
+      alert('Це ваше власне оголошення');
+      return;
+    }
+
+    let { data: existingChat } = await sb.from('chats').select('id').eq('car_id', carId).eq('buyer_id', session.user.id).maybeSingle();
+
+    if (!existingChat) {
+      const { data: newChat, error } = await sb.from('chats').insert({
+        car_id: carId, buyer_id: session.user.id, seller_id: car.user_id
+      }).select().single();
+      if (error) { alert('Помилка: ' + error.message); return; }
+      existingChat = newChat;
+    }
+
+    window.location.href = `chat.html?id=${existingChat.id}`;
+  };
 
   function render(car) {
     const photos = carPhotos(car);
@@ -188,7 +232,11 @@
 
       <div class="seller-box">
         <div class="seller-label">Продавець</div>
-        <div class="seller-phone">Контакти доступні після переходу в чат (буде додано)</div>
+        <div class="seller-name" id="sellerName">Завантаження...</div>
+        <div class="seller-actions">
+          <a class="seller-btn seller-btn-call hidden" id="sellerCallBtn" href="#">📞 Подзвонити</a>
+          <button class="seller-btn seller-btn-chat" onclick="openChatWithSeller()">💬 Написати</button>
+        </div>
       </div>
 
       <div class="modal-overlay hidden" id="leasingModal" onclick="if(event.target===this) closeLeasingModal()">
