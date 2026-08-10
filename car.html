@@ -225,6 +225,7 @@
         ${photos.length > 1 ? `<div class="gallery-dots">${photos.map(() => '<span></span>').join('')}</div>` : ''}
       </div>
       ${photos.length > 1 ? `<div class="gallery-count">📷 ${photos.length} фото — гортайте вбік</div>` : ''}
+      <div class="views-fav-stats" id="viewsFavStats"></div>
 
       <h1>${car.brand} ${car.model}, ${car.year}</h1>
       <div class="subline">Опубліковано ${timeAgo(car.created_at)}</div>
@@ -242,8 +243,6 @@
       </div>
 
       ${car.description ? `<div class="desc-title">Опис від продавця</div><div class="desc-text">${car.description}</div>` : ''}
-
-      <div class="views-fav-stats" id="viewsFavStats"></div>
 
       <button class="leasing-btn" onclick="openLeasingModal()">📊 Розрахувати в лізинг</button>
 
