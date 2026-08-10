@@ -9,9 +9,19 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    fetch(event.request).catch(() => caches.match(event.request))
-  );
+  const isPage = event.request.mode === 'navigate'
+    || event.request.destination === 'document'
+    || event.request.destination === 'script';
+
+  if (isPage) {
+    event.respondWith(
+      fetch(event.request, { cache: 'no-store' }).catch(() => caches.match(event.request))
+    );
+  } else {
+    event.respondWith(
+      fetch(event.request).catch(() => caches.match(event.request))
+    );
+  }
 });
 
 /* ---------- Web Push ---------- */
