@@ -10,7 +10,7 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const { initData } = req.body;
+    const { initData, startParam } = req.body;
     if (!initData) {
       res.status(400).json({ error: 'No initData' });
       return;
@@ -64,6 +64,19 @@ module.exports = async (req, res) => {
       user = created;
       isNewUser = true;
 
+      let referredBy = null;
+      if (startParam) {
+        const refResp = await fetch(`${SUPABASE_URL}/rest/v1/profiles?referral_code=eq.${startParam.toUpperCase()}&select=user_id`, {
+          headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` }
+        });
+        const refData = await refResp.json();
+        if (refData && refData[0]) referredBy = refData[0].user_id;
+      }
+
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      let newCode = '';
+      for (let i = 0; i < 7; i++) newCode += chars[Math.floor(Math.random() * chars.length)];
+
       await fetch(`${SUPABASE_URL}/rest/v1/profiles`, {
         method: 'POST',
         headers: {
@@ -74,9 +87,27 @@ module.exports = async (req, res) => {
           user_id: user.id,
           telegram_username: tgUsername,
           telegram_user_id: String(tgId),
-          phone: ''
+          phone: '',
+          referred_by: referredBy,
+          referral_code: newCode
         })
       });
+
+      if (referredBy) {
+        await fetch(`${SUPABASE_URL}/rest/v1/referral_events`, {
+          method: 'POST',
+          headers: {
+            apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`,
+            'Content-Type': 'application/json', Prefer: 'return=minimal'
+          },
+          body: JSON.stringify({
+            referrer_user_id: referredBy,
+            referred_user_id: user.id,
+            event_type: 'registration',
+            points: 10
+          })
+        });
+      }
     } else {
       await fetch(`${SUPABASE_URL}/rest/v1/profiles?user_id=eq.${user.id}`, {
         method: 'PATCH',
