@@ -17,7 +17,19 @@ module.exports = async (req, res) => {
     );
     const admins = await adminsResp.json();
 
-    const typeLabel = leadType === 'trade_in' ? 'Trade-in заявка' : (leadType === 'leasing' ? 'Заявка на розрахунок лізингу' : (leadType === 'partner' ? 'Заявка від партнера' : 'Заявка на підбір авто'));
+    const typeLabel = leadType === 'trade_in' ? 'Trade-in заявка'
+      : leadType === 'leasing' ? 'Заявка на розрахунок лізингу'
+      : leadType === 'partner' ? 'Заявка від партнера'
+      : leadType === 'investor' ? 'Заявка інвестора'
+      : leadType === 'support' ? 'Звернення в підтримку'
+      : 'Заявка на підбір авто';
+
+    const sectionMap = {
+      trade_in: 'leads', leasing: 'leads', car_selection: 'leads',
+      partner: 'partners', investor: 'investors', support: 'support'
+    };
+    const section = sectionMap[leadType] || 'leads';
+
     const text = `📋 Нова заявка!\nТип: ${typeLabel}\nІм'я: ${name || '—'}\nТелефон: ${phone || '—'}\n${summary || ''}`;
 
     for (const admin of admins || []) {
@@ -39,7 +51,7 @@ module.exports = async (req, res) => {
     await sendPushToUsers((admins || []).map(a => a.user_id), {
       title: '📋 Нова заявка: ' + typeLabel,
       body: `${name || '—'} · ${phone || '—'}`,
-      url: '/admin.html'
+      url: `/admin.html?section=${section}`
     }).catch(() => {});
 
     res.status(200).json({ notified: (admins || []).length });
