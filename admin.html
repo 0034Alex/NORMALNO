@@ -576,20 +576,37 @@
     const body = document.getElementById('sectionBody');
     body.innerHTML = '<div id="usersList">Завантаження...</div>';
     const { data } = await sb.from('profiles').select('*').order('created_at', { ascending: false }).limit(200);
+    const { data: staffRows } = await sb.from('admin_users').select('user_id');
+    const staffIds = new Set((staffRows || []).map(s => s.user_id));
+    const canManageStaff = myRole === 'owner' || myRole === 'administrator';
+
     const list = document.getElementById('usersList');
     if (!data || data.length === 0) { list.innerHTML = '<div class="empty">Немає користувачів</div>'; return; }
 
     list.innerHTML = data.map(u => `
       <div class="card">
-        <div class="card-title">${u.name || 'Без імені'}${u.blocked ? ' 🚫' : ''}</div>
+        <div class="card-title">${u.name || 'Без імені'}${u.blocked ? ' 🚫' : ''}${staffIds.has(u.user_id) ? ' 👤 (персонал)' : ''}</div>
         <div class="card-details">📞 ${u.phone || '—'}\n📱 Telegram: ${u.telegram_username ? '@' + u.telegram_username : '—'}</div>
         <div class="status-row">
           <button class="status-btn ${u.blocked ? 'active-new' : ''}" onclick="toggleBlockUser('${u.user_id}', ${!u.blocked})">${u.blocked ? 'Розблокувати' : 'Заблокувати'}</button>
           <button class="status-btn active-new" onclick="deleteUserAccount('${u.user_id}')">Видалити назавжди</button>
+          ${canManageStaff && !staffIds.has(u.user_id) ? `<button class="status-btn active-closed" onclick="makeStaff('${u.user_id}')">➕ Призначити співробітником</button>` : ''}
         </div>
       </div>
     `).join('');
   }
+
+  window.makeStaff = async function(userId) {
+    if (!confirm('Призначити цього користувача співробітником? Далі перейдіть у розділ "Персонал", щоб дати конкретну роль і права.')) return;
+
+    const { error } = await sb.from('admin_users').insert({ user_id: userId, role: 'pending', permissions: [] });
+    if (error) {
+      alert('Помилка: ' + error.message);
+      return;
+    }
+    alert('Готово! Тепер зайдіть у розділ "Персонал", щоб призначити роль.');
+    loadUsersSection();
+  };
 
   window.toggleBlockUser = async function(userId, block) {
     await sb.from('profiles').update({ blocked: block }).eq('user_id', userId);
