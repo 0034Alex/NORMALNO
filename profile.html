@@ -52,6 +52,15 @@
   .referral-teaser-title { font-weight: bold; font-size: 14px; }
   .referral-teaser-points { font-size: 12px; opacity: 0.9; }
   .referral-teaser-arrow { font-size: 20px; opacity: 0.8; }
+  .investor-teaser {
+    display: flex; align-items: center; gap: 12px; background: linear-gradient(135deg, #FF7A00, #ffab4d);
+    border-radius: 14px; padding: 14px 16px; margin-bottom: 16px; cursor: pointer; color: #fff;
+  }
+  .investor-teaser-icon { font-size: 26px; }
+  .investor-teaser-info { flex: 1; }
+  .investor-teaser-title { font-weight: bold; font-size: 14px; }
+  .investor-teaser-sub { font-size: 12px; opacity: 0.9; }
+  .investor-teaser-arrow { font-size: 20px; opacity: 0.8; }
   .section-title { font-size: 14px; font-weight: bold; padding: 14px 16px 8px; color: #333; }
   .row-link { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-top: 1px solid #f5f5f5; cursor: pointer; }
   .row-icon { font-size: 16px; color: #8E00FF; width: 20px; }
@@ -169,11 +178,17 @@
   </div>
 </div>
 
+<div class="investor-teaser" onclick="window.location.href='investor.html'">
+  <div class="investor-teaser-icon">💼</div>
+  <div class="investor-teaser-info">
+    <div class="investor-teaser-title">Стати інвестором</div>
+    <div class="investor-teaser-sub">Дізнайтесь про можливості співпраці</div>
+  </div>
+  <div class="investor-teaser-arrow">›</div>
+</div>
+
 <div class="section-box">
   <div class="section-title">Допомога та підтримка</div>
-  <div class="row-link" onclick="window.location.href='investor.html'">
-    <span class="row-icon">💼</span><span class="row-label">Стати інвестором</span><span class="row-arrow">›</span>
-  </div>
   <div class="row-link" onclick="window.location.href='support.html'">
     <span class="row-icon">❓</span><span class="row-label">Підтримка</span><span class="row-arrow">›</span>
   </div>

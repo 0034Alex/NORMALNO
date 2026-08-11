@@ -42,9 +42,6 @@
 <div class="logo">🔄 Обмін авто (Trade-in)</div>
 <div class="subtitle">Розкажіть про своє авто — наш менеджер зв'яжеться з вами</div>
 
-<div class="section-title">🔄 Останні заявки на обмін</div>
-<div id="recentRequests" class="recent-list">Завантаження...</div>
-
 <input type="text" id="name" placeholder="Ваше ім'я">
 <input type="tel" id="phone" placeholder="Номер телефону">
 <div class="picker-field ph" id="brandField" onclick="openBrandPicker()">
@@ -69,6 +66,9 @@
 
 <button class="main" onclick="submitLead()">Надіслати заявку</button>
 <div class="msg" id="msg"></div>
+
+<div class="section-title" style="margin-top:28px;">🔄 Останні заявки на обмін</div>
+<div id="recentRequests" class="recent-list">Завантаження...</div>
 
 <script>
   if (window.Telegram && window.Telegram.WebApp) {

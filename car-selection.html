@@ -42,9 +42,6 @@
 <div class="logo">⭐ Підбір авто</div>
 <div class="subtitle">Розкажіть, що шукаєте — ми підберемо варіанти</div>
 
-<div class="section-title">🔍 Зараз шукають</div>
-<div id="recentRequests" class="recent-list">Завантаження...</div>
-
 <input type="text" id="name" placeholder="Ваше ім'я">
 <input type="tel" id="phone" placeholder="Номер телефону">
 <input type="number" id="budget" placeholder="Бюджет (сума)">
@@ -63,6 +60,9 @@
 
 <button class="main" onclick="submitLead()">Надіслати заявку</button>
 <div class="msg" id="msg"></div>
+
+<div class="section-title" style="margin-top:28px;">🔍 Зараз шукають</div>
+<div id="recentRequests" class="recent-list">Завантаження...</div>
 
 <script>
   if (window.Telegram && window.Telegram.WebApp) {
