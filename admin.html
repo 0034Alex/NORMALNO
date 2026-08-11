@@ -585,6 +585,7 @@
         <div class="card-details">📞 ${u.phone || '—'}\n📱 Telegram: ${u.telegram_username ? '@' + u.telegram_username : '—'}</div>
         <div class="status-row">
           <button class="status-btn ${u.blocked ? 'active-new' : ''}" onclick="toggleBlockUser('${u.user_id}', ${!u.blocked})">${u.blocked ? 'Розблокувати' : 'Заблокувати'}</button>
+          <button class="status-btn active-new" onclick="deleteUserAccount('${u.user_id}')">Видалити назавжди</button>
         </div>
       </div>
     `).join('');
@@ -592,6 +593,25 @@
 
   window.toggleBlockUser = async function(userId, block) {
     await sb.from('profiles').update({ blocked: block }).eq('user_id', userId);
+    loadUsersSection();
+  };
+
+  window.deleteUserAccount = async function(userId) {
+    if (!confirm('Повністю видалити цей акаунт користувача? Це незворотньо.')) return;
+
+    const { data: { session } } = await sb.auth.getSession();
+
+    const resp = await fetch('/api/delete-staff-account', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ adminRowId: 0, staffUserId: userId, callerAccessToken: session.access_token })
+    });
+    const data = await resp.json();
+
+    if (data.error) {
+      alert('Помилка видалення: ' + data.error);
+      return;
+    }
     loadUsersSection();
   };
 
@@ -648,22 +668,29 @@
     list.innerHTML = staff.map(s => {
       const prof = profMap[s.user_id] || {};
       const perms = s.permissions || [];
+      const isMe = s.user_id === currentUserId;
       return `
         <div class="staff-card">
-          <div class="staff-name">${prof.name || 'Без імені'}</div>
+          <div class="staff-name">${prof.name || 'Без імені'}${isMe ? ' (це ви)' : ''}</div>
           <div class="staff-phone">${prof.phone || '—'}</div>
-          <select id="role_${s.id}" onchange="onRoleChange(${s.id})">
+          <select id="role_${s.id}" onchange="onRoleChange(${s.id})" ${isMe ? 'disabled' : ''}>
             ${Object.keys(ROLE_LABELS).map(r => `<option value="${r}" ${s.role === r ? 'selected' : ''}>${ROLE_LABELS[r]}</option>`).join('')}
           </select>
+          ${isMe ? '<div style="font-size:11px; color:#999; margin-bottom:8px;">Не можна змінити власну роль — щоб уникнути втрати доступу</div>' : ''}
           <div class="perm-grid" id="perms_${s.id}" style="${s.role === 'manager' || s.role === 'accountant' ? '' : 'display:none;'}">
             ${ALL_PERMS.map(p => `
               <label class="perm-item">
-                <input type="checkbox" value="${p.key}" ${perms.includes(p.key) ? 'checked' : ''}>
+                <input type="checkbox" value="${p.key}" ${perms.includes(p.key) ? 'checked' : ''} ${isMe ? 'disabled' : ''}>
                 ${p.label}
               </label>
             `).join('')}
           </div>
-          <button class="action-btn" style="width:100%; margin-top:8px;" onclick="saveStaff(${s.id})">Зберегти</button>
+          ${!isMe ? `
+            <div style="display:flex; gap:8px; margin-top:8px;">
+              <button class="action-btn" style="flex:1;" onclick="saveStaff(${s.id})">Зберегти</button>
+              <button class="status-btn active-new" style="flex:1;" onclick="deleteStaff(${s.id}, '${s.user_id}')">Видалити</button>
+            </div>
+          ` : ''}
         </div>
       `;
     }).join('');
@@ -680,8 +707,32 @@
     const checkboxes = document.querySelectorAll(`#perms_${id} input[type=checkbox]:checked`);
     const permissions = Array.from(checkboxes).map(cb => cb.value);
 
-    await sb.from('admin_users').update({ role, permissions }).eq('id', id);
+    const { error } = await sb.from('admin_users').update({ role, permissions }).eq('id', id);
+    if (error) {
+      alert('Помилка збереження: ' + error.message);
+      return;
+    }
     alert('Збережено!');
+    loadStaffSection();
+  };
+
+  window.deleteStaff = async function(adminRowId, staffUserId) {
+    if (!confirm('Повністю видалити цей акаунт? Це незворотньо — акаунт, профіль і доступ до CRM зникнуть назавжди.')) return;
+
+    const { data: { session } } = await sb.auth.getSession();
+
+    const resp = await fetch('/api/delete-staff-account', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ adminRowId, staffUserId, callerAccessToken: session.access_token })
+    });
+    const data = await resp.json();
+
+    if (data.error) {
+      alert('Помилка видалення: ' + data.error);
+      return;
+    }
+    loadStaffSection();
   };
 
   init();
