@@ -67,9 +67,6 @@
 <button class="main" onclick="submitLead()">Надіслати заявку</button>
 <div class="msg" id="msg"></div>
 
-<div class="section-title" style="margin-top:28px;">🔄 Останні заявки на обмін</div>
-<div id="recentRequests" class="recent-list">Завантаження...</div>
-
 <script>
   if (window.Telegram && window.Telegram.WebApp) {
     const tg = window.Telegram.WebApp;
@@ -82,20 +79,6 @@
   const supabaseUrl = 'https://ipzvgqyjtqofthbpkdsd.supabase.co';
   const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwenZncXlqdHFvZnRoYnBrZHNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMTEwNjEsImV4cCI6MjEwMTU4NzA2MX0.jbbpKpHaD6S9SJMIbxcwb12ggBCv44J_-s4OQ8ESNfA';
   const sb = window.supabase.createClient(supabaseUrl, supabaseKey);
-
-  async function loadRecentRequests() {
-    const { data } = await sb.from('public_leads_preview').select('details, created_at').eq('type', 'trade_in').order('created_at', { ascending: false }).limit(6);
-    const el = document.getElementById('recentRequests');
-    if (!data || data.length === 0) { el.innerHTML = '<div class="recent-item">Поки немає заявок — станьте першим!</div>'; return; }
-
-    el.innerHTML = data.map(l => `
-      <div class="recent-item">
-        ${l.details || 'Заявка на обмін'}
-        <div class="recent-time">${timeAgo(l.created_at)}</div>
-      </div>
-    `).join('');
-  }
-  loadRecentRequests();
 
   let selectedBrand = '';
   let selectedModel = '';
