@@ -140,7 +140,7 @@
     const userId = session.user.id;
 
     const code = await ensureReferralCode(sb, userId);
-    refLinkUrl = `https://normalno-a55.vercel.app/register2.html?ref=${code}`;
+    refLinkUrl = `https://t.me/Normalno_avtobot?start=${code}`;
     document.getElementById('refLink').textContent = refLinkUrl;
 
     const { count: invitedCount } = await sb.from('profiles').select('*', { count: 'exact', head: true }).eq('referred_by', userId);

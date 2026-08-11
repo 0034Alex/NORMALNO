@@ -30,6 +30,10 @@
     border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px;
   }
   .msg { text-align: center; margin-top: 12px; font-size: 14px; }
+  .section-title { font-size: 14px; font-weight: bold; color: #666; margin-bottom: 10px; }
+  .recent-list { margin-bottom: 22px; }
+  .recent-item { border: 1px solid #eee; border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; font-size: 13px; color: #444; }
+  .recent-time { font-size: 11px; color: #bbb; margin-top: 3px; }
 </style>
 </head>
 <body>
@@ -37,6 +41,9 @@
 <a href="index.html" class="back">&larr; Назад на головну</a>
 <div class="logo">⭐ Підбір авто</div>
 <div class="subtitle">Розкажіть, що шукаєте — ми підберемо варіанти</div>
+
+<div class="section-title">🔍 Зараз шукають</div>
+<div id="recentRequests" class="recent-list">Завантаження...</div>
 
 <input type="text" id="name" placeholder="Ваше ім'я">
 <input type="tel" id="phone" placeholder="Номер телефону">
@@ -68,6 +75,24 @@
 
   const supabaseUrl = 'https://ipzvgqyjtqofthbpkdsd.supabase.co';
   const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwenZncXlqdHFvZnRoYnBrZHNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMTEwNjEsImV4cCI6MjEwMTU4NzA2MX0.jbbpKpHaD6S9SJMIbxcwb12ggBCv44J_-s4OQ8ESNfA';
+
+  async function loadRecentRequests() {
+    const { data } = await sb.from('public_leads_preview').select('budget, payment_type, region, details, created_at').eq('type', 'car_selection').order('created_at', { ascending: false }).limit(6);
+    const el = document.getElementById('recentRequests');
+    if (!data || data.length === 0) { el.innerHTML = '<div class="recent-item">Поки немає запитів — станьте першим!</div>'; return; }
+
+    const paymentLabels = { cash: 'Готівка', credit: 'Кредит', leasing: 'Лізинг', installment: 'Розстрочка' };
+    el.innerHTML = data.map(l => `
+      <div class="recent-item">
+        ${l.budget ? `Бюджет до $${Number(l.budget).toLocaleString('uk-UA')}` : 'Бюджет не вказано'}
+        ${l.payment_type ? ` · ${paymentLabels[l.payment_type] || l.payment_type}` : ''}
+        ${l.region ? ` · ${l.region}` : ''}
+        ${l.details ? `<div>${l.details}</div>` : ''}
+        <div class="recent-time">${timeAgo(l.created_at)}</div>
+      </div>
+    `).join('');
+  }
+  loadRecentRequests();
   const sb = window.supabase.createClient(supabaseUrl, supabaseKey);
 
   let selectedRegion = '';

@@ -23,10 +23,9 @@
   .gallery-scroll { display: flex; overflow-x: auto; width: 100%; height: 100%; scroll-snap-type: x mandatory; }
   .gallery-scroll img { flex: 0 0 100%; width: 100%; height: 100%; object-fit: cover; scroll-snap-align: start; }
   .gallery-noimg { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 50px; color: #ccc; }
-  .gallery-watermark {
-    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-25deg);
-    font-size: 26px; font-weight: bold; color: rgba(255,255,255,0.5);
-    text-shadow: 0 0 6px rgba(0,0,0,0.35); letter-spacing: 2px; pointer-events: none;
+  .gallery-logo {
+    position: absolute; top: 12px; left: 12px; width: 38px; height: auto;
+    opacity: 0.85; pointer-events: none; filter: drop-shadow(0 1px 3px rgba(0,0,0,0.4));
   }
   .gallery-heart {
     position: absolute; top: 12px; right: 12px; width: 38px; height: 38px; border-radius: 50%;
@@ -134,19 +133,36 @@
     render(car);
     loadSellerInfo(car.user_id);
 
-    const isOwner = session && car.user_id === currentUserId;
-    let displayViews = car.views || 0;
-    if (!isOwner) {
-      displayViews += 1;
-      sb.rpc('increment_car_views', { car_id_input: carId }).catch(() => {});
+    const el = document.getElementById('viewsFavStats');
+    if (el) el.textContent = '⏳ рахуємо перегляди...';
+
+    try {
+      const isOwner = session && car.user_id === currentUserId;
+      let displayViews = car.views || 0;
+      if (!isOwner) {
+        displayViews += 1;
+        sb.rpc('increment_car_views', { car_id_input: carId }).catch((e) => {
+          if (el) el.textContent = '⚠️ RPC помилка: ' + (e && e.message ? e.message : 'невідома');
+        });
+      }
+      await loadViewsAndFavorites(displayViews);
+    } catch (e) {
+      if (el) el.textContent = '⚠️ Помилка: ' + (e && e.message ? e.message : String(e));
     }
-    loadViewsAndFavorites(displayViews);
   }
 
   async function loadViewsAndFavorites(displayViews) {
-    const { count: favCount } = await sb.from('favorites').select('*', { count: 'exact', head: true }).eq('car_id', carId);
     const el = document.getElementById('viewsFavStats');
-    if (el) el.textContent = `👁 ${displayViews} переглядів · ❤️ ${favCount || 0} в обраному`;
+    try {
+      const { count: favCount, error } = await sb.from('favorites').select('*', { count: 'exact', head: true }).eq('car_id', carId);
+      if (error) {
+        if (el) el.textContent = '⚠️ Помилка обраного: ' + error.message;
+        return;
+      }
+      if (el) el.textContent = `👁 ${displayViews} переглядів · ❤️ ${favCount || 0} в обраному`;
+    } catch (e) {
+      if (el) el.textContent = '⚠️ Виняток: ' + (e && e.message ? e.message : String(e));
+    }
   }
 
   async function loadSellerInfo(sellerId) {
@@ -220,7 +236,7 @@
     document.getElementById('content').innerHTML = `
       <div class="gallery">
         ${galleryHtml}
-        <div class="gallery-watermark">NORMALNO</div>
+        <img class="gallery-logo" src="/logo-watermark.png" alt="">
         <div class="gallery-heart" onclick="toggleFav()">${isFav ? '❤️' : '♡'}</div>
         ${photos.length > 1 ? `<div class="gallery-dots">${photos.map(() => '<span></span>').join('')}</div>` : ''}
       </div>

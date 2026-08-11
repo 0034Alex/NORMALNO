@@ -108,6 +108,8 @@
     { key: 'listings', label: 'Оголошення' },
     { key: 'auction', label: 'Аукціон' },
     { key: 'users', label: 'Користувачі' },
+    { key: 'investors', label: 'Інвестори' },
+    { key: 'support', label: 'Підтримка' },
     { key: 'broadcast', label: 'Розсилка' },
     { key: 'stats', label: 'Статистика' },
     { key: 'content', label: 'Контент' }
@@ -158,12 +160,12 @@
 
   const SECTION_ICONS = {
     dashboard: '📊', leads: '📋', partners: '🤝', listings: '🚗', auction: '🔨',
-    users: '👥', broadcast: '📢', stats: '📈', content: '📝', staff: '👤'
+    users: '👥', investors: '💼', support: '🎫', broadcast: '📢', stats: '📈', content: '📝', staff: '👤'
   };
   const SECTION_LABELS = {
     dashboard: 'Dashboard', leads: 'Заявки', partners: 'Партнери', listings: 'Оголошення',
-    auction: 'Аукціон', users: 'Користувачі', broadcast: 'Розсилка', stats: 'Статистика',
-    content: 'Контент', staff: 'Персонал'
+    auction: 'Аукціон', users: 'Користувачі', investors: 'Інвестори', support: 'Підтримка',
+    broadcast: 'Розсилка', stats: 'Статистика', content: 'Контент', staff: 'Персонал'
   };
 
   function buildLayout() {
@@ -174,9 +176,14 @@
     if (hasPerm('listings')) tabs.push('listings');
     if (hasPerm('auction')) tabs.push('auction');
     if (hasPerm('users')) tabs.push('users');
+    if (hasPerm('investors')) tabs.push('investors');
+    if (hasPerm('support')) tabs.push('support');
     if (hasPerm('broadcast')) tabs.push('broadcast');
     if (hasPerm('content')) tabs.push('content');
     if (myRole === 'owner') tabs.push('staff');
+
+    const requestedSection = new URLSearchParams(window.location.search).get('section');
+    const initialSection = (requestedSection && tabs.includes(requestedSection)) ? requestedSection : tabs[0];
 
     content.innerHTML = `
       <div class="topbar-admin">
@@ -192,8 +199,8 @@
           <div class="sidebar-role">${ROLE_LABELS[myRole] || myRole}</div>
         </div>
         <div class="sidebar-nav">
-          ${tabs.map((t, i) => `
-            <div class="sidebar-item ${i === 0 ? 'active' : ''}" id="tab_${t}" onclick="setSection('${t}')">
+          ${tabs.map((t) => `
+            <div class="sidebar-item ${t === initialSection ? 'active' : ''}" id="tab_${t}" onclick="setSection('${t}')">
               <span class="icon">${SECTION_ICONS[t]}</span> ${SECTION_LABELS[t]}
             </div>
           `).join('')}
@@ -206,7 +213,7 @@
       <div class="main-content" id="sectionBody">Завантаження...</div>
     `;
 
-    setSection(tabs[0]);
+    setSection(initialSection);
   }
 
   window.forceRefreshApp = async function() {
@@ -244,8 +251,8 @@
 
     const loaders = {
       dashboard: loadDashboardSection, leads: loadLeadsSection, partners: loadPartnersSection, listings: loadListingsSection,
-      auction: loadAuctionSection, users: loadUsersSection, broadcast: loadBroadcastSection,
-      content: loadContentSection, staff: loadStaffSection
+      auction: loadAuctionSection, users: loadUsersSection, investors: loadInvestorsSection, support: loadSupportSection,
+      broadcast: loadBroadcastSection, content: loadContentSection, staff: loadStaffSection
     };
     if (loaders[section]) loaders[section]();
   };
@@ -344,7 +351,7 @@
       <div id="leadsList">Завантаження...</div>
     `;
     const { data } = await sb.from('leads').select('*').order('created_at', { ascending: false });
-    allLeads = (data || []).filter(l => l.type === 'partner' ? false : (LEAD_TYPE_PERM[l.type] ? hasPerm(LEAD_TYPE_PERM[l.type]) : true));
+    allLeads = (data || []).filter(l => (l.type === 'partner' || l.type === 'investor' || l.type === 'support') ? false : (LEAD_TYPE_PERM[l.type] ? hasPerm(LEAD_TYPE_PERM[l.type]) : true));
     renderLeads();
   }
 
@@ -404,6 +411,54 @@
     await sb.from('leads').update({ status }).eq('id', id);
     loadLeadsSection();
   };
+
+  /* ---------- ІНВЕСТОРИ ---------- */
+  async function loadInvestorsSection() {
+    const body = document.getElementById('sectionBody');
+    body.innerHTML = '<div id="investorsList">Завантаження...</div>';
+    const { data } = await sb.from('leads').select('*').eq('type', 'investor').order('created_at', { ascending: false });
+    const list = document.getElementById('investorsList');
+    if (!data || data.length === 0) { list.innerHTML = '<div class="empty">Заявок від інвесторів немає</div>'; return; }
+
+    list.innerHTML = data.map(l => `
+      <div class="card">
+        <div class="card-type">Інвестор</div>
+        <div class="card-title">${l.name || '—'}</div>
+        <div class="card-sub">${l.phone || '—'}</div>
+        <div class="card-details">${l.details || ''}</div>
+        <div class="card-time">${timeAgo(l.created_at)}</div>
+        <div class="status-row">
+          <button class="status-btn ${l.status === 'new' ? 'active-new' : ''}" onclick="updateLeadStatus(${l.id}, 'new')">Нова</button>
+          <button class="status-btn ${l.status === 'in_progress' ? 'active-progress' : ''}" onclick="updateLeadStatus(${l.id}, 'in_progress')">В роботі</button>
+          <button class="status-btn ${l.status === 'closed' ? 'active-closed' : ''}" onclick="updateLeadStatus(${l.id}, 'closed')">Закрита</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  /* ---------- ПІДТРИМКА ---------- */
+  async function loadSupportSection() {
+    const body = document.getElementById('sectionBody');
+    body.innerHTML = '<div id="supportList">Завантаження...</div>';
+    const { data } = await sb.from('leads').select('*').eq('type', 'support').order('created_at', { ascending: false });
+    const list = document.getElementById('supportList');
+    if (!data || data.length === 0) { list.innerHTML = '<div class="empty">Звернень немає</div>'; return; }
+
+    list.innerHTML = data.map(l => `
+      <div class="card">
+        <div class="card-type">Звернення в підтримку</div>
+        <div class="card-title">${l.name || 'Без імені'}</div>
+        <div class="card-sub">${l.phone || '—'}</div>
+        <div class="card-details">${l.details || ''}</div>
+        <div class="card-time">${timeAgo(l.created_at)}</div>
+        <div class="status-row">
+          <button class="status-btn ${l.status === 'new' ? 'active-new' : ''}" onclick="updateLeadStatus(${l.id}, 'new')">Нове</button>
+          <button class="status-btn ${l.status === 'in_progress' ? 'active-progress' : ''}" onclick="updateLeadStatus(${l.id}, 'in_progress')">В роботі</button>
+          <button class="status-btn ${l.status === 'closed' ? 'active-closed' : ''}" onclick="updateLeadStatus(${l.id}, 'closed')">Вирішено</button>
+        </div>
+      </div>
+    `).join('');
+  }
 
   /* ---------- ПАРТНЕРИ ---------- */
   let allPartnersAdmin = [];

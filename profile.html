@@ -43,6 +43,15 @@
   .action-badge { position: absolute; top: -4px; right: 10px; background: #8E00FF; color: #fff; font-size: 10px; font-weight: bold; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
 
   .section-box { border: 1px solid #eee; border-radius: 14px; margin-bottom: 16px; overflow: hidden; }
+  .referral-teaser {
+    display: flex; align-items: center; gap: 12px; background: linear-gradient(135deg, #8E00FF, #b347ff);
+    border-radius: 14px; padding: 14px 16px; margin-bottom: 16px; cursor: pointer; color: #fff;
+  }
+  .referral-teaser-icon { font-size: 26px; }
+  .referral-teaser-info { flex: 1; }
+  .referral-teaser-title { font-weight: bold; font-size: 14px; }
+  .referral-teaser-points { font-size: 12px; opacity: 0.9; }
+  .referral-teaser-arrow { font-size: 20px; opacity: 0.8; }
   .section-title { font-size: 14px; font-weight: bold; padding: 14px 16px 8px; color: #333; }
   .row-link { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-top: 1px solid #f5f5f5; cursor: pointer; }
   .row-icon { font-size: 16px; color: #8E00FF; width: 20px; }
@@ -136,10 +145,15 @@
     <div class="action-icon">🗄️</div>
     <div class="action-label">Архів</div>
   </div>
-  <div class="action-btn" onclick="window.location.href='referrals.html'">
-    <div class="action-icon">🎁</div>
-    <div class="action-label">Запроси друзів</div>
+</div>
+
+<div class="referral-teaser" onclick="window.location.href='referrals.html'">
+  <div class="referral-teaser-icon">🎁</div>
+  <div class="referral-teaser-info">
+    <div class="referral-teaser-title">Запроси друзів</div>
+    <div class="referral-teaser-points" id="referralPointsTeaser">Завантаження...</div>
   </div>
+  <div class="referral-teaser-arrow">›</div>
 </div>
 
 <div class="section-box">
@@ -157,6 +171,9 @@
 
 <div class="section-box">
   <div class="section-title">Допомога та підтримка</div>
+  <div class="row-link" onclick="window.location.href='investor.html'">
+    <span class="row-icon">💼</span><span class="row-label">Стати інвестором</span><span class="row-arrow">›</span>
+  </div>
   <div class="row-link" onclick="window.location.href='support.html'">
     <span class="row-icon">❓</span><span class="row-label">Підтримка</span><span class="row-arrow">›</span>
   </div>
@@ -267,6 +284,10 @@
     setBadge('badgeBids', activeBidsCount);
     setBadge('badgeFavorites', favCount2);
     setBadge('badgeMessages', unreadCount);
+
+    const { data: refEvents } = await sb.from('referral_events').select('points').eq('referrer_user_id', userId);
+    const totalRefPoints = (refEvents || []).reduce((sum, e) => sum + Number(e.points), 0);
+    document.getElementById('referralPointsTeaser').textContent = `У вас ${totalRefPoints.toLocaleString('uk-UA')} балів`;
   }
 
   function setBadge(id, count) {

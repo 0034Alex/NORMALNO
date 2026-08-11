@@ -213,7 +213,6 @@ function renderCarCard(car, currentUserId, favoritedIds) {
     <div class="ncard ${car.sold ? 'ncard-sold' : ''}" onclick="window.location.href='car.html?id=${car.id}'">
       <div class="ncard-photo">
         ${photoHtml}
-        <div class="ncard-watermark">NORMALNO</div>
         <div class="ncard-heart" onclick="event.stopPropagation(); if(window.toggleFavorite) window.toggleFavorite(${car.id})">${heartChar}</div>
       </div>
       <div class="ncard-body">
