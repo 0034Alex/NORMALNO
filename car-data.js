@@ -525,3 +525,43 @@ async function forceRefreshApp() {
   }
   window.location.reload();
 }
+
+/* ---------- Реферальна система ---------- */
+
+function generateReferralCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 7; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  return code;
+}
+
+const REFERRAL_TIERS = [
+  { name: 'START', min: 0, max: 5, percent: 5 },
+  { name: 'ACTIVE', min: 6, max: 20, percent: 7 },
+  { name: 'PRO', min: 21, max: 50, percent: 10 },
+  { name: 'PARTNER', min: 51, max: Infinity, percent: 15 }
+];
+
+function getReferralTier(invitedCount) {
+  return REFERRAL_TIERS.find(t => invitedCount >= t.min && invitedCount <= t.max) || REFERRAL_TIERS[0];
+}
+
+const REFERRAL_POINTS = {
+  registration: 10,
+  first_listing: 50,
+  paid_service: 0,
+  leasing_signed: 1000
+};
+
+async function ensureReferralCode(sbClient, userId) {
+  const { data: profile } = await sbClient.from('profiles').select('referral_code').eq('user_id', userId).maybeSingle();
+  if (profile && profile.referral_code) return profile.referral_code;
+
+  let code = generateReferralCode();
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const { error } = await sbClient.from('profiles').update({ referral_code: code }).eq('user_id', userId);
+    if (!error) return code;
+    code = generateReferralCode();
+  }
+  return code;
+}

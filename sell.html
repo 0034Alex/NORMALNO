@@ -459,9 +459,30 @@
       return;
     }
 
+    checkFirstListingBonus(session.user.id);
+
     msg.textContent = "Готово! Оголошення опубліковано.";
     msg.style.color = 'green';
     setTimeout(() => { window.location.href = 'index.html'; }, 1200);
+  }
+
+  async function checkFirstListingBonus(userId) {
+    const { count } = await sb.from('cars').select('*', { count: 'exact', head: true }).eq('user_id', userId);
+    if (count !== 1) return;
+
+    const { data: profile } = await sb.from('profiles').select('referred_by, referred_by_partner').eq('user_id', userId).maybeSingle();
+    if (!profile || (!profile.referred_by && !profile.referred_by_partner)) return;
+
+    const { data: existing } = await sb.from('referral_events').select('id').eq('referred_user_id', userId).eq('event_type', 'first_listing').maybeSingle();
+    if (existing) return;
+
+    await sb.from('referral_events').insert({
+      referrer_user_id: profile.referred_by,
+      referrer_partner_id: profile.referred_by_partner,
+      referred_user_id: userId,
+      event_type: 'first_listing',
+      points: REFERRAL_POINTS.first_listing
+    });
   }
 
   loadStatusPanel();

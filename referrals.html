@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#8E00FF">
+<link rel="apple-touch-icon" href="/icons/icon-180.png">
+<title>NORMALNO — Запроси друзів</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="car-data.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; background: #fff; margin: 0; padding: 20px; padding-bottom: 40px; }
+  .back { color: #FF7A00; text-decoration: none; font-size: 14px; display: inline-block; margin-bottom: 10px; }
+  .logo { font-size: 20px; font-weight: bold; color: #8E00FF; margin-bottom: 4px; }
+  .subtitle { color: #999; font-size: 13px; margin-bottom: 20px; }
+
+  .hero-card { background: linear-gradient(135deg, #8E00FF, #b347ff); border-radius: 18px; padding: 20px; color: #fff; margin-bottom: 18px; }
+  .hero-points { font-size: 34px; font-weight: bold; }
+  .hero-label { font-size: 13px; opacity: 0.85; margin-bottom: 14px; }
+  .hero-stats { display: flex; gap: 20px; }
+  .hero-stat-num { font-size: 20px; font-weight: bold; }
+  .hero-stat-label { font-size: 11px; opacity: 0.8; }
+
+  .tier-card { border: 1px solid #eee; border-radius: 14px; padding: 16px; margin-bottom: 18px; }
+  .tier-badge { display: inline-block; background: #f5e6ff; color: #8E00FF; font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 20px; margin-bottom: 10px; }
+  .tier-bar-bg { background: #f0f0f0; border-radius: 10px; height: 8px; overflow: hidden; margin-bottom: 6px; }
+  .tier-bar-fill { background: #FF7A00; height: 100%; border-radius: 10px; }
+  .tier-hint { font-size: 12px; color: #999; }
+
+  .link-box { border: 1px dashed #8E00FF; border-radius: 12px; padding: 14px; margin-bottom: 18px; }
+  .link-label { font-size: 12px; color: #999; margin-bottom: 6px; }
+  .link-value { font-size: 13px; font-weight: bold; color: #8E00FF; word-break: break-all; margin-bottom: 12px; }
+  .link-actions { display: flex; gap: 8px; }
+  .link-btn { flex: 1; text-align: center; padding: 11px; border-radius: 10px; font-weight: bold; font-size: 13px; cursor: pointer; border: none; }
+  .link-btn-copy { background: #f5e6ff; color: #8E00FF; }
+  .link-btn-share { background: #8E00FF; color: #fff; }
+
+  .section-title { font-size: 16px; font-weight: bold; margin: 24px 0 12px; }
+  .how-step { display: flex; gap: 12px; margin-bottom: 14px; }
+  .how-num { background: #8E00FF; color: #fff; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 13px; flex-shrink: 0; }
+  .how-text b { display: block; font-size: 14px; margin-bottom: 2px; }
+  .how-text span { font-size: 12px; color: #999; }
+
+  .rule-card { border: 1px solid #eee; border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+  .rule-name { font-size: 13px; font-weight: bold; }
+  .rule-sub { font-size: 11px; color: #999; }
+  .rule-points { font-weight: bold; color: #8E00FF; font-size: 14px; white-space: nowrap; }
+  .rule-soon { font-size: 10px; background: #fff0e0; color: #FF7A00; padding: 2px 8px; border-radius: 8px; margin-left: 6px; }
+
+  .history-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f5f5f5; font-size: 13px; }
+  .history-type { color: #666; }
+  .history-points { font-weight: bold; color: #1a8f2a; }
+  .empty { text-align: center; color: #999; padding: 20px; }
+</style>
+</head>
+<body>
+
+<a href="profile.html" class="back">&larr; Назад до профілю</a>
+<div class="logo">🎁 Запроси та отримуй</div>
+<div class="subtitle">Запрошуй людей у NORMALNO та отримуй бонуси за їхню активність</div>
+
+<div class="hero-card">
+  <div class="hero-points" id="totalPoints">0 балів</div>
+  <div class="hero-label">Ваш баланс</div>
+  <div class="hero-stats">
+    <div><div class="hero-stat-num" id="invitedCount">0</div><div class="hero-stat-label">Запрошено</div></div>
+    <div><div class="hero-stat-num" id="activeCount">0</div><div class="hero-stat-label">Активних</div></div>
+  </div>
+</div>
+
+<div class="tier-card">
+  <div class="tier-badge" id="tierBadge">START</div>
+  <div class="tier-bar-bg"><div class="tier-bar-fill" id="tierBarFill" style="width:0%;"></div></div>
+  <div class="tier-hint" id="tierHint">Запрошуйте більше друзів, щоб підвищити рівень</div>
+</div>
+
+<div class="link-box">
+  <div class="link-label">Ваше реферальне посилання</div>
+  <div class="link-value" id="refLink">Завантаження...</div>
+  <div class="link-actions">
+    <button class="link-btn link-btn-copy" onclick="copyRefLink()">📋 Скопіювати</button>
+    <button class="link-btn link-btn-share" onclick="shareRefLink()">📤 Поділитися</button>
+  </div>
+</div>
+
+<div class="section-title">Як це працює</div>
+<div class="how-step">
+  <div class="how-num">1</div>
+  <div class="how-text"><b>Запросіть друга</b><span>Поділіться своїм посиланням будь-яким зручним способом</span></div>
+</div>
+<div class="how-step">
+  <div class="how-num">2</div>
+  <div class="how-text"><b>Друг користується NORMALNO</b><span>Реєструється, розміщує авто, оформлює лізинг</span></div>
+</div>
+<div class="how-step">
+  <div class="how-num">3</div>
+  <div class="how-text"><b>Ви отримуєте бонус</b><span>Нараховується автоматично після виконання умови</span></div>
+</div>
+
+<div class="section-title">За що нараховуються бали</div>
+<div class="rule-card">
+  <div><div class="rule-name">Реєстрація друга</div><div class="rule-sub">Одразу після реєстрації за вашим посиланням</div></div>
+  <div class="rule-points">+10</div>
+</div>
+<div class="rule-card">
+  <div><div class="rule-name">Перше оголошення друга</div><div class="rule-sub">Коли друг вперше виставив авто</div></div>
+  <div class="rule-points">+50</div>
+</div>
+<div class="rule-card">
+  <div><div class="rule-name">Оформлений лізинг</div><div class="rule-sub">Коли угода друга підписана</div></div>
+  <div class="rule-points">+1000</div>
+</div>
+<div class="rule-card">
+  <div><div class="rule-name">Платна послуга <span class="rule-soon">Скоро</span></div><div class="rule-sub">Відсоток від оплати друга (з'явиться з платежами)</div></div>
+  <div class="rule-points">—</div>
+</div>
+
+<div class="section-title">Історія нарахувань</div>
+<div id="historyList">Завантаження...</div>
+
+<script>
+  const supabaseUrl = 'https://ipzvgqyjtqofthbpkdsd.supabase.co';
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwenZncXlqdHFvZnRoYnBrZHNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMTEwNjEsImV4cCI6MjEwMTU4NzA2MX0.jbbpKpHaD6S9SJMIbxcwb12ggBCv44J_-s4OQ8ESNfA';
+  const sb = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+  const EVENT_LABELS = {
+    registration: 'Реєстрація друга',
+    first_listing: 'Перше оголошення друга',
+    leasing_signed: 'Оформлений лізинг',
+    paid_service: 'Платна послуга'
+  };
+
+  let refLinkUrl = '';
+
+  async function load() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { window.location.href = 'register2.html'; return; }
+    const userId = session.user.id;
+
+    const code = await ensureReferralCode(sb, userId);
+    refLinkUrl = `https://normalno-a55.vercel.app/register2.html?ref=${code}`;
+    document.getElementById('refLink').textContent = refLinkUrl;
+
+    const { count: invitedCount } = await sb.from('profiles').select('*', { count: 'exact', head: true }).eq('referred_by', userId);
+    const { data: invitedProfiles } = await sb.from('profiles').select('user_id').eq('referred_by', userId);
+    const invitedIds = (invitedProfiles || []).map(p => p.user_id);
+
+    let activeCount = 0;
+    if (invitedIds.length) {
+      const { data: activeListings } = await sb.from('cars').select('user_id').in('user_id', invitedIds);
+      activeCount = new Set((activeListings || []).map(c => c.user_id)).size;
+    }
+
+    const { data: events } = await sb.from('referral_events').select('*').eq('referrer_user_id', userId).order('created_at', { ascending: false });
+    const totalPoints = (events || []).reduce((sum, e) => sum + Number(e.points), 0);
+
+    document.getElementById('totalPoints').textContent = totalPoints.toLocaleString('uk-UA') + ' балів';
+    document.getElementById('invitedCount').textContent = invitedCount || 0;
+    document.getElementById('activeCount').textContent = activeCount;
+
+    const tier = getReferralTier(invitedCount || 0);
+    document.getElementById('tierBadge').textContent = `${tier.name} · ${tier.percent}%`;
+    const tierIndex = REFERRAL_TIERS.indexOf(tier);
+    const nextTier = REFERRAL_TIERS[tierIndex + 1];
+    if (nextTier) {
+      const progress = Math.min(100, Math.round(((invitedCount || 0) - tier.min) / (nextTier.min - tier.min) * 100));
+      document.getElementById('tierBarFill').style.width = progress + '%';
+      document.getElementById('tierHint').textContent = `Ще ${nextTier.min - (invitedCount || 0)} до рівня ${nextTier.name}`;
+    } else {
+      document.getElementById('tierBarFill').style.width = '100%';
+      document.getElementById('tierHint').textContent = 'Максимальний рівень досягнуто!';
+    }
+
+    const historyList = document.getElementById('historyList');
+    if (!events || events.length === 0) {
+      historyList.innerHTML = '<div class="empty">Поки немає нарахувань — запросіть першого друга!</div>';
+    } else {
+      historyList.innerHTML = events.map(e => `
+        <div class="history-item">
+          <div class="history-type">${EVENT_LABELS[e.event_type] || e.event_type} · ${new Date(e.created_at).toLocaleDateString('uk-UA')}</div>
+          <div class="history-points">+${e.points}</div>
+        </div>
+      `).join('');
+    }
+  }
+
+  window.copyRefLink = function() {
+    navigator.clipboard.writeText(refLinkUrl).then(() => alert('Посилання скопійовано!'));
+  };
+
+  window.shareRefLink = function() {
+    if (navigator.share) {
+      navigator.share({ title: 'NORMALNO', text: 'Приєднуйся до NORMALNO!', url: refLinkUrl });
+    } else {
+      copyRefLink();
+    }
+  };
+
+  load();
+</script>
+
+</body>
+</html>

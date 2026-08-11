@@ -371,9 +371,34 @@
           <button class="status-btn ${l.status === 'in_progress' ? 'active-progress' : ''}" onclick="updateLeadStatus(${l.id}, 'in_progress')">В роботі</button>
           <button class="status-btn ${l.status === 'closed' ? 'active-closed' : ''}" onclick="updateLeadStatus(${l.id}, 'closed')">Закрита</button>
         </div>
+        ${l.type === 'leasing' && l.user_id ? (
+          l.referral_bonus_given
+            ? '<div style="font-size:11px; color:#1a8f2a; margin-top:8px;">✓ Реферальний бонус нараховано</div>'
+            : `<button class="status-btn active-closed" style="width:100%; margin-top:8px;" onclick="markLeasingSigned(${l.id}, '${l.user_id}')">💰 Угода підписана — нарахувати бонус</button>`
+        ) : ''}
       </div>
     `).join('');
   }
+
+  window.markLeasingSigned = async function(leadId, userId) {
+    if (!confirm('Підтвердити, що угода лізингу підписана? Це нарахує реферальний бонус запрошувачу (якщо є).')) return;
+
+    const { data: profile } = await sb.from('profiles').select('referred_by, referred_by_partner').eq('user_id', userId).maybeSingle();
+
+    if (profile && (profile.referred_by || profile.referred_by_partner)) {
+      await sb.from('referral_events').insert({
+        referrer_user_id: profile.referred_by,
+        referrer_partner_id: profile.referred_by_partner,
+        referred_user_id: userId,
+        event_type: 'leasing_signed',
+        points: 1000,
+        note: `Заявка #${leadId}`
+      });
+    }
+
+    await sb.from('leads').update({ referral_bonus_given: true, status: 'closed' }).eq('id', leadId);
+    loadLeadsSection();
+  };
 
   window.updateLeadStatus = async function(id, status) {
     await sb.from('leads').update({ status }).eq('id', id);
@@ -416,6 +441,7 @@
         <div class="card-sub">${p.phone || '—'}</div>
         <div class="card-details">Контакт: ${p.contact_person || '—'}\nEmail: ${p.email || '—'}\nАдреса: ${p.address || '—'}\n${p.description || ''}</div>
         <div class="card-time">${timeAgo(p.created_at)}</div>
+        ${p.status === 'approved' && p.referral_code ? `<div style="font-size:12px; background:#f5e6ff; color:#8E00FF; padding:8px 10px; border-radius:8px; margin-bottom:8px;">🎁 Реферальний код: <b>${p.referral_code}</b> — передайте партнеру вручну (посилання: normalno-a55.vercel.app/register2.html?ref=${p.referral_code})</div>` : ''}
         <div class="status-row">
           ${p.status === 'pending' ? `<button class="status-btn active-closed" onclick="approvePartnerAdmin(${p.id})">✓ Затвердити</button>` : ''}
           ${p.status === 'approved' ? `<button class="status-btn active-new" onclick="rejectPartnerAdmin(${p.id})">Повернути на розгляд</button>` : ''}
@@ -424,7 +450,13 @@
     `).join('');
   }
 
-  window.approvePartnerAdmin = async function(id) { await sb.from('partners').update({ status: 'approved' }).eq('id', id); loadPartnersSection(); };
+  window.approvePartnerAdmin = async function(id) {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = '';
+    for (let i = 0; i < 7; i++) code += chars[Math.floor(Math.random() * chars.length)];
+    await sb.from('partners').update({ status: 'approved', referral_code: code }).eq('id', id);
+    loadPartnersSection();
+  };
   window.rejectPartnerAdmin = async function(id) { await sb.from('partners').update({ status: 'pending' }).eq('id', id); loadPartnersSection(); };
 
   /* ---------- ОГОЛОШЕННЯ ---------- */
