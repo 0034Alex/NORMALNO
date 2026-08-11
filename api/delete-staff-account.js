@@ -8,7 +8,7 @@ module.exports = async (req, res) => {
   }
   try {
     const { adminRowId, staffUserId, callerAccessToken } = req.body;
-    if (!adminRowId || !staffUserId || !callerAccessToken) {
+    if (adminRowId === undefined || adminRowId === null || !staffUserId || !callerAccessToken) {
       res.status(400).json({ error: 'Відсутні дані для видалення' });
       return;
     }
