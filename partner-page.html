@@ -32,7 +32,7 @@
   .desc-text { font-size: 14px; color: #444; line-height: 1.5; margin: 14px 0; }
 
   .social-row { display: flex; gap: 10px; margin: 16px 0; flex-wrap: wrap; }
-  .social-icon { width: 44px; height: 44px; border-radius: 12px; background: #f7f7f7; display: flex; align-items: center; justify-content: center; font-size: 20px; text-decoration: none; }
+  .social-icon { width: 44px; height: 44px; border-radius: 12px; overflow: hidden; display: flex; align-items: center; justify-content: center; text-decoration: none; }
 
   .actions-row { display: flex; gap: 8px; margin: 16px 0 8px; }
   .action-btn2 { flex: 1; text-align: center; padding: 13px; border-radius: 10px; font-weight: bold; font-size: 14px; text-decoration: none; border: none; cursor: pointer; }
@@ -110,12 +110,12 @@
   }
 
   const SOCIAL_ICONS = [
-    { key: 'telegram_link', icon: '✈️' },
-    { key: 'instagram_link', icon: '📷' },
-    { key: 'tiktok_link', icon: '🎵' },
-    { key: 'threads_link', icon: '🧵' },
-    { key: 'youtube_link', icon: '▶️' },
-    { key: 'website', icon: '🌐' }
+    { key: 'telegram_link', svg: 'telegram' },
+    { key: 'instagram_link', svg: 'instagram' },
+    { key: 'tiktok_link', svg: 'tiktok' },
+    { key: 'threads_link', svg: 'threads' },
+    { key: 'youtube_link', svg: 'youtube' },
+    { key: 'website', svg: 'website' }
   ];
 
   async function load() {
@@ -137,7 +137,7 @@
     const hoursText = (p.work_from && p.work_to) ? `${p.work_from}–${p.work_to}` : '';
 
     const socialsHtml = SOCIAL_ICONS.filter(s => p[s.key]).map(s =>
-      `<a class="social-icon" href="${p[s.key].startsWith('http') ? p[s.key] : 'https://' + p[s.key]}" target="_blank">${s.icon}</a>`
+      `<a class="social-icon" href="${p[s.key].startsWith('http') ? p[s.key] : 'https://' + p[s.key]}" target="_blank">${SOCIAL_SVG_ICONS[s.svg]}</a>`
     ).join('');
 
     let bottomSectionHtml = '';

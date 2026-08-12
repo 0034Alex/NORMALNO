@@ -111,6 +111,10 @@
     font-size: 12px; font-weight: bold; color: #FF7A00; cursor: pointer; white-space: nowrap;
     background: #fff0e0; padding: 6px 12px; border-radius: 20px;
   }
+  .sort-select {
+    font-size: 12px; font-weight: bold; color: #8E00FF; background: #f5e6ff; border: none;
+    padding: 6px 10px; border-radius: 20px; max-width: 140px;
+  }
   .size-btn { width: 30px; height: 30px; border-radius: 8px; background: #f7f7f7; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 15px; color: #999; }
   .size-btn.active { background: #f5e6ff; color: #8E00FF; }
   .full-feed.grid-small { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
@@ -276,7 +280,16 @@
         <span class="size-btn active" id="sizeSmall" onclick="setGridSize('small')" title="Дрібні картки">▦</span>
       </div>
     </div>
-    <span class="fav-link" onclick="window.location.href='favorites.html?from=index'">❤️ Обране</span>
+    <select id="sortSelect" class="sort-select" onchange="applySorting()">
+      <option value="default">Звичайне</option>
+      <option value="price_asc">Ціна: від дешевих</option>
+      <option value="price_desc">Ціна: від дорогих</option>
+      <option value="date_desc">Дата додавання</option>
+      <option value="year_asc">Рік випуску: зростання</option>
+      <option value="year_desc">Рік випуску: спадання</option>
+      <option value="mileage_asc">Пробіг: зростання</option>
+      <option value="mileage_desc">Пробіг: спадання</option>
+    </select>
   </div>
   <div class="section-reset hidden" id="resetFilterBtn" onclick="showAll()">← Показати всі авто</div>
 </div>
@@ -328,8 +341,39 @@
   }
   // hcards (Гарячі пропозиції) показують лише is_hot=true, у випадковому порядку
 
+  let currentFeedCars = [];
+
   function renderFullFeed(cars) {
+    currentFeedCars = cars || [];
+    renderSortedFeed();
+  }
+
+  window.applySorting = function() {
+    renderSortedFeed();
+  };
+
+  function renderSortedFeed() {
     const el = document.getElementById('fullFeed');
+    let cars = [...currentFeedCars];
+    const sortSelect = document.getElementById('sortSelect');
+    const sortBy = sortSelect ? sortSelect.value : 'default';
+
+    if (sortBy === 'price_asc') {
+      cars.sort((a, b) => (convertToUAH(a.price, a.currency) || a.price || 0) - (convertToUAH(b.price, b.currency) || b.price || 0));
+    } else if (sortBy === 'price_desc') {
+      cars.sort((a, b) => (convertToUAH(b.price, b.currency) || b.price || 0) - (convertToUAH(a.price, a.currency) || a.price || 0));
+    } else if (sortBy === 'date_desc') {
+      cars.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    } else if (sortBy === 'year_asc') {
+      cars.sort((a, b) => (a.year || 0) - (b.year || 0));
+    } else if (sortBy === 'year_desc') {
+      cars.sort((a, b) => (b.year || 0) - (a.year || 0));
+    } else if (sortBy === 'mileage_asc') {
+      cars.sort((a, b) => (a.mileage || 0) - (b.mileage || 0));
+    } else if (sortBy === 'mileage_desc') {
+      cars.sort((a, b) => (b.mileage || 0) - (a.mileage || 0));
+    }
+
     if (!cars || cars.length === 0) {
       el.innerHTML = '<div class="empty-feed">Поки що немає оголошень</div>';
       return;

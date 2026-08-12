@@ -298,7 +298,7 @@ function calcLeasing(priceUAH, months) {
 /* ---------- PWA: реєстрація Service Worker ---------- */
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {});
+    navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).catch(() => {});
   });
 }
 
@@ -564,3 +564,13 @@ async function ensureReferralCode(sbClient, userId) {
   }
   return code;
 }
+
+/* ---------- Брендовані іконки соцмереж ---------- */
+const SOCIAL_SVG_ICONS = {
+  telegram: `<svg viewBox="0 0 240 240" width="100%" height="100%"><circle cx="120" cy="120" r="120" fill="#229ED9"/><path fill="#fff" d="M167 72l-23 109c-1.7 7.7-6.3 9.6-12.7 6l-35-25.8-17 16.4c-1.9 1.9-3.5 3.5-7.1 3.5l2.5-36 65.5-59.2c2.8-2.6-.6-4-4.4-1.4l-81 51-35-11c-7.6-2.4-7.7-7.6 1.6-11.2l137-52.8c6.3-2.3 11.8 1.5 9.6 11.5z"/></svg>`,
+  instagram: `<svg viewBox="0 0 240 240" width="100%" height="100%"><defs><linearGradient id="igGrad" x1="0%" y1="100%" x2="100%" y2="0%"><stop offset="0%" stop-color="#FFDC80"/><stop offset="25%" stop-color="#FCAF45"/><stop offset="50%" stop-color="#E1306C"/><stop offset="75%" stop-color="#C13584"/><stop offset="100%" stop-color="#833AB4"/></linearGradient></defs><rect width="240" height="240" rx="56" fill="url(#igGrad)"/><rect x="62" y="62" width="116" height="116" rx="32" fill="none" stroke="#fff" stroke-width="12"/><circle cx="120" cy="120" r="32" fill="none" stroke="#fff" stroke-width="12"/><circle cx="164" cy="76" r="8" fill="#fff"/></svg>`,
+  tiktok: `<svg viewBox="0 0 240 240" width="100%" height="100%"><rect width="240" height="240" rx="56" fill="#010101"/><path fill="#25F4EE" d="M146 52c6 20 20 33 43 35v25c-15 1-29-4-43-13v55c0 32-26 55-56 55-15 0-29-6-39-16 12 5 27 3 38-6 12-10 17-25 15-40l0-108h27z"/><path fill="#FE2C55" d="M139 52c6 20 20 33 43 35v25c-15 1-29-4-43-13v55c0 32-26 55-56 55-32 0-58-26-58-58 0-30 23-54 52-57v27c-14 3-25 15-25 30 0 17 14 31 31 31s31-14 31-31V52h25z"/><path fill="#fff" d="M143 52c6 20 20 33 43 35v25c-15 1-29-4-43-13v55c0 32-26 55-56 55-32 0-58-26-58-58 0-30 23-54 52-57v27c-14 3-25 15-25 30 0 17 14 31 31 31s31-14 31-31V52h25z" opacity="0"/></svg>`,
+  threads: `<svg viewBox="0 0 240 240" width="100%" height="100%"><rect width="240" height="240" rx="56" fill="#000"/><path fill="#fff" d="M122 55c-38 0-62 24-64 62h20c2-27 17-43 44-43 25 0 40 13 40 30 0 13-7 21-24 26l-19 5c-27 7-42 20-42 41 0 24 20 40 51 40 30 0 51-15 55-42h-20c-3 15-15 24-35 24-18 0-29-8-29-21 0-11 8-17 24-21l19-5c30-8 44-23 44-46 0-28-24-50-64-50z"/></svg>`,
+  youtube: `<svg viewBox="0 0 240 240" width="100%" height="100%"><rect width="240" height="240" rx="56" fill="#FF0000"/><path fill="#fff" d="M100 92l55 28-55 28z"/></svg>`,
+  website: `<svg viewBox="0 0 240 240" width="100%" height="100%"><circle cx="120" cy="120" r="120" fill="#8E00FF"/><circle cx="120" cy="120" r="70" fill="none" stroke="#fff" stroke-width="10"/><ellipse cx="120" cy="120" rx="30" ry="70" fill="none" stroke="#fff" stroke-width="8"/><line x1="50" y1="120" x2="190" y2="120" stroke="#fff" stroke-width="8"/></svg>`
+};

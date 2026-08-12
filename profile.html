@@ -63,8 +63,8 @@
   .investor-teaser-arrow { font-size: 20px; opacity: 0.8; }
   .social-row { display: flex; gap: 12px; justify-content: center; margin-bottom: 20px; }
   .social-icon {
-    width: 48px; height: 48px; border-radius: 14px; background: #f7f7f7; display: flex;
-    align-items: center; justify-content: center; font-size: 22px; text-decoration: none;
+    width: 48px; height: 48px; border-radius: 14px; overflow: hidden; display: flex;
+    align-items: center; justify-content: center; text-decoration: none;
   }
   .section-title { font-size: 14px; font-weight: bold; padding: 14px 16px 8px; color: #333; }
   .row-link { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-top: 1px solid #f5f5f5; cursor: pointer; }
@@ -166,6 +166,7 @@
   <div class="referral-teaser-info">
     <div class="referral-teaser-title">Запроси друзів</div>
     <div class="referral-teaser-points" id="referralPointsTeaser">Завантаження...</div>
+    <div class="referral-teaser-points" id="referralCountTeaser"></div>
   </div>
   <div class="referral-teaser-arrow">›</div>
 </div>
@@ -208,11 +209,11 @@
 </div>
 
 <div class="social-row">
-  <a href="#" target="_blank" class="social-icon">✈️</a>
-  <a href="#" target="_blank" class="social-icon">📷</a>
-  <a href="#" target="_blank" class="social-icon">🎵</a>
-  <a href="#" target="_blank" class="social-icon">🧵</a>
-  <a href="#" target="_blank" class="social-icon">▶️</a>
+  <a href="#" target="_blank" class="social-icon" id="socialTelegram"></a>
+  <a href="#" target="_blank" class="social-icon" id="socialInstagram"></a>
+  <a href="#" target="_blank" class="social-icon" id="socialTiktok"></a>
+  <a href="#" target="_blank" class="social-icon" id="socialThreads"></a>
+  <a href="#" target="_blank" class="social-icon" id="socialYoutube"></a>
 </div>
 
 <div class="notify-row">
@@ -238,6 +239,12 @@
   const sb = window.supabase.createClient(supabaseUrl, supabaseKey);
 
   async function load() {
+    document.getElementById('socialTelegram').innerHTML = SOCIAL_SVG_ICONS.telegram;
+    document.getElementById('socialInstagram').innerHTML = SOCIAL_SVG_ICONS.instagram;
+    document.getElementById('socialTiktok').innerHTML = SOCIAL_SVG_ICONS.tiktok;
+    document.getElementById('socialThreads').innerHTML = SOCIAL_SVG_ICONS.threads;
+    document.getElementById('socialYoutube').innerHTML = SOCIAL_SVG_ICONS.youtube;
+
     const { data: { session } } = await sb.auth.getSession();
     if (!session) { window.location.href = 'register2.html'; return; }
 
@@ -332,6 +339,9 @@
     const { data: refEvents } = await sb.from('referral_events').select('points').eq('referrer_user_id', userId);
     const totalRefPoints = (refEvents || []).reduce((sum, e) => sum + Number(e.points), 0);
     document.getElementById('referralPointsTeaser').textContent = `У вас ${totalRefPoints.toLocaleString('uk-UA')} балів`;
+
+    const { count: invitedCount } = await sb.from('profiles').select('*', { count: 'exact', head: true }).eq('referred_by', userId);
+    document.getElementById('referralCountTeaser').textContent = `${invitedCount || 0} рефералів приєдналося`;
   }
 
   function setBadge(id, count) {

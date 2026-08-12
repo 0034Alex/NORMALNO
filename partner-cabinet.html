@@ -29,7 +29,7 @@
   .hint { font-size: 11px; color: #999; margin: -6px 0 12px; }
 
   .social-input-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-  .social-input-icon { font-size: 20px; width: 30px; text-align: center; }
+  .social-input-icon { width: 30px; height: 30px; flex-shrink: 0; }
   .social-input-row input { margin-bottom: 0; }
 
   .service-row { display: flex; gap: 8px; margin-bottom: 8px; }
@@ -105,12 +105,12 @@
       </div>
 
       <h2>Соціальні мережі та сайт</h2>
-      <div class="social-input-row"><span class="social-input-icon">✈️</span><input type="url" id="socTelegram" placeholder="Посилання на Telegram" value="${partner.telegram_link || ''}"></div>
-      <div class="social-input-row"><span class="social-input-icon">📷</span><input type="url" id="socInstagram" placeholder="Посилання на Instagram" value="${partner.instagram_link || ''}"></div>
-      <div class="social-input-row"><span class="social-input-icon">🎵</span><input type="url" id="socTiktok" placeholder="Посилання на TikTok" value="${partner.tiktok_link || ''}"></div>
-      <div class="social-input-row"><span class="social-input-icon">🧵</span><input type="url" id="socThreads" placeholder="Посилання на Threads" value="${partner.threads_link || ''}"></div>
-      <div class="social-input-row"><span class="social-input-icon">▶️</span><input type="url" id="socYoutube" placeholder="Посилання на YouTube" value="${partner.youtube_link || ''}"></div>
-      <div class="social-input-row"><span class="social-input-icon">🌐</span><input type="url" id="socWebsite" placeholder="Сайт" value="${partner.website || ''}"></div>
+      <div class="social-input-row"><span class="social-input-icon">${SOCIAL_SVG_ICONS.telegram}</span><input type="url" id="socTelegram" placeholder="Посилання на Telegram" value="${partner.telegram_link || ''}"></div>
+      <div class="social-input-row"><span class="social-input-icon">${SOCIAL_SVG_ICONS.instagram}</span><input type="url" id="socInstagram" placeholder="Посилання на Instagram" value="${partner.instagram_link || ''}"></div>
+      <div class="social-input-row"><span class="social-input-icon">${SOCIAL_SVG_ICONS.tiktok}</span><input type="url" id="socTiktok" placeholder="Посилання на TikTok" value="${partner.tiktok_link || ''}"></div>
+      <div class="social-input-row"><span class="social-input-icon">${SOCIAL_SVG_ICONS.threads}</span><input type="url" id="socThreads" placeholder="Посилання на Threads" value="${partner.threads_link || ''}"></div>
+      <div class="social-input-row"><span class="social-input-icon">${SOCIAL_SVG_ICONS.youtube}</span><input type="url" id="socYoutube" placeholder="Посилання на YouTube" value="${partner.youtube_link || ''}"></div>
+      <div class="social-input-row"><span class="social-input-icon">${SOCIAL_SVG_ICONS.website}</span><input type="url" id="socWebsite" placeholder="Сайт" value="${partner.website || ''}"></div>
 
       ${partner.category !== 'Автосалон' ? `
         <h2>Послуги та ціни</h2>

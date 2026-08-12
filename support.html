@@ -89,6 +89,7 @@
 
     msg.textContent = 'Дякуємо! Ми зв\'яжемося з вами найближчим часом.';
     msg.style.color = 'green';
+    setTimeout(() => { window.location.href = 'profile.html'; }, 1500);
   }
 
   if (window.Telegram && window.Telegram.WebApp) {

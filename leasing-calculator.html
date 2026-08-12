@@ -138,6 +138,7 @@
 
     msg.textContent = "Дякуємо! Менеджер зв'яжеться з вами найближчим часом.";
     msg.style.color = 'green';
+    setTimeout(() => { window.location.href = 'index.html'; }, 1500);
   }
 
   async function init() {
