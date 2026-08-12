@@ -51,7 +51,50 @@
   .service-price { font-size: 14px; color: #8E00FF; font-weight: bold; white-space: nowrap; }
 
   .empty { text-align: center; color: #999; padding: 20px; }
-  .full-feed { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .cars-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px; }
+  .size-toggle { display: flex; gap: 4px; }
+  .size-btn { width: 30px; height: 30px; border-radius: 8px; background: #f7f7f7; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 15px; color: #999; }
+  .size-btn.active { background: #f5e6ff; color: #8E00FF; }
+  .sort-select { font-size: 12px; font-weight: bold; color: #8E00FF; background: #f5e6ff; border: none; padding: 6px 10px; border-radius: 20px; max-width: 160px; }
+
+  .full-feed { padding: 0; text-align: left; margin-bottom: 20px; }
+  .ncard { border-radius: 14px; overflow: hidden; border: 1px solid #eee; margin-bottom: 16px; background: #fff; }
+  .ncard-sold { opacity: 0.6; }
+  .ncard-photo { position: relative; width: 100%; aspect-ratio: 16/10; background: #f2f2f2; overflow: hidden; }
+  .ncard-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .ncard-photo-scroll { display: flex; overflow-x: auto; width: 100%; height: 100%; scroll-snap-type: x mandatory; }
+  .ncard-photo-scroll img { flex: 0 0 100%; width: 100%; height: 100%; object-fit: cover; scroll-snap-align: start; }
+  .ncard-dots { position: absolute; bottom: 8px; left: 0; right: 0; display: flex; justify-content: center; gap: 5px; pointer-events: none; }
+  .ncard-dots span { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.6); box-shadow: 0 0 2px rgba(0,0,0,0.4); }
+  .ncard-noimg { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 40px; color: #ccc; }
+  .ncard-heart {
+    position: absolute; top: 10px; right: 10px; width: 34px; height: 34px; border-radius: 50%;
+    background: rgba(255,255,255,0.9); display: flex; align-items: center; justify-content: center;
+    font-size: 18px; color: #8E00FF;
+  }
+  .ncard-body { padding: 12px 14px 14px; }
+  .ncard-title { font-weight: bold; font-size: 16px; margin-bottom: 2px; }
+  .ncard-subtitle { color: #999; font-size: 12px; margin-bottom: 6px; }
+  .ncard-price { color: #8E00FF; font-weight: bold; font-size: 18px; margin-bottom: 8px; }
+  .ncard-price-uah { color: #999; font-weight: normal; font-size: 12px; }
+  .ncard-price-old { color: #999; font-weight: normal; font-size: 13px; text-decoration: line-through; }
+  .ncard-leasing { font-size: 11px; color: #FF7A00; background: #fff0e0; padding: 4px 8px; border-radius: 6px; margin-bottom: 8px; display: inline-block; }
+  .ncard-specs { display: flex; flex-wrap: wrap; gap: 10px; font-size: 12px; color: #555; margin-bottom: 8px; }
+  .ncard-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+  .ncard-badge { background: #f5e6ff; color: #8E00FF; font-size: 11px; font-weight: bold; padding: 4px 10px; border-radius: 20px; }
+  .ncard-time { color: #bbb; font-size: 11px; }
+
+  .full-feed.grid-small { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .full-feed.grid-small .ncard { margin-bottom: 0; }
+  .full-feed.grid-small .ncard-title { font-size: 12px; }
+  .full-feed.grid-small .ncard-subtitle { display: none; }
+  .full-feed.grid-small .ncard-price { font-size: 13px; margin-bottom: 4px; }
+  .full-feed.grid-small .ncard-specs { font-size: 10px; gap: 4px 6px; }
+  .full-feed.grid-small .ncard-specs span:nth-child(3), .full-feed.grid-small .ncard-specs span:nth-child(4) { display: none; }
+  .full-feed.grid-small .ncard-badges { display: none; }
+  .full-feed.grid-small .ncard-time { display: none; }
+  .full-feed.grid-small .ncard-body { padding: 8px 10px 10px; }
 
   .route-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 300; display: flex; align-items: flex-end; justify-content: center; }
   .route-modal-overlay.hidden { display: none; }
@@ -141,10 +184,12 @@
     ).join('');
 
     let bottomSectionHtml = '';
+    let partnerCars = [];
     if (p.category === 'Автосалон') {
       const { count: activeCount } = await sb.from('cars').select('*', { count: 'exact', head: true }).eq('user_id', p.user_id).eq('archived', false);
       const { count: soldCount } = await sb.from('cars').select('*', { count: 'exact', head: true }).eq('user_id', p.user_id).eq('sold', true);
-      const { data: cars } = await sb.from('cars').select('*').eq('user_id', p.user_id).eq('archived', false).order('created_at', { ascending: false }).limit(20);
+      const { data: cars } = await sb.from('cars').select('*').eq('user_id', p.user_id).eq('archived', false).order('created_at', { ascending: false }).limit(40);
+      partnerCars = cars || [];
 
       bottomSectionHtml = `
         <div class="section-title">Статистика</div>
@@ -152,8 +197,26 @@
           <div class="stat-box"><div class="stat-num">${activeCount || 0}</div><div class="stat-label">Авто на продажі</div></div>
           <div class="stat-box"><div class="stat-num">${soldCount || 0}</div><div class="stat-label">Всього продано</div></div>
         </div>
-        <div class="section-title">Авто в наявності</div>
-        <div class="full-feed" id="partnerCars">${(cars && cars.length) ? cars.map(c => renderCarCard(c, null, new Set())).join('') : '<div class="empty">Поки немає авто в наявності</div>'}</div>
+        <div class="cars-toolbar">
+          <div class="section-title" style="margin:0;">Авто в наявності</div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <select id="carsSortSelect" class="sort-select" onchange="renderPartnerCars()">
+              <option value="default">Звичайне</option>
+              <option value="price_asc">Ціна: від дешевих</option>
+              <option value="price_desc">Ціна: від дорогих</option>
+              <option value="date_desc">Дата додавання</option>
+              <option value="year_asc">Рік: зростання</option>
+              <option value="year_desc">Рік: спадання</option>
+              <option value="mileage_asc">Пробіг: зростання</option>
+              <option value="mileage_desc">Пробіг: спадання</option>
+            </select>
+            <div class="size-toggle">
+              <span class="size-btn" id="sizeBig" onclick="setCarsGridSize('big')" title="Великі">▭</span>
+              <span class="size-btn active" id="sizeSmall" onclick="setCarsGridSize('small')" title="Дрібні">▦</span>
+            </div>
+          </div>
+        </div>
+        <div class="full-feed grid-small" id="partnerCars"></div>
       `;
     } else if (p.services && p.services.length > 0) {
       bottomSectionHtml = `
@@ -183,6 +246,32 @@
         ${bottomSectionHtml}
       </div>
     `;
+
+    if (p.category === 'Автосалон') {
+      window.renderPartnerCars = function() {
+        const el = document.getElementById('partnerCars');
+        if (!el) return;
+        let cars = [...partnerCars];
+        const sortBy = document.getElementById('carsSortSelect').value;
+
+        if (sortBy === 'price_asc') cars.sort((a, b) => (convertToUAH(a.price, a.currency) || a.price || 0) - (convertToUAH(b.price, b.currency) || b.price || 0));
+        else if (sortBy === 'price_desc') cars.sort((a, b) => (convertToUAH(b.price, b.currency) || b.price || 0) - (convertToUAH(a.price, a.currency) || a.price || 0));
+        else if (sortBy === 'date_desc') cars.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        else if (sortBy === 'year_asc') cars.sort((a, b) => (a.year || 0) - (b.year || 0));
+        else if (sortBy === 'year_desc') cars.sort((a, b) => (b.year || 0) - (a.year || 0));
+        else if (sortBy === 'mileage_asc') cars.sort((a, b) => (a.mileage || 0) - (b.mileage || 0));
+        else if (sortBy === 'mileage_desc') cars.sort((a, b) => (b.mileage || 0) - (a.mileage || 0));
+
+        el.innerHTML = cars.length ? cars.map(c => renderCarCard(c, null, new Set())).join('') : '<div class="empty">Поки немає авто в наявності</div>';
+      };
+      window.setCarsGridSize = function(size) {
+        document.getElementById('partnerCars').classList.toggle('grid-small', size === 'small');
+        document.getElementById('sizeBig').classList.toggle('active', size === 'big');
+        document.getElementById('sizeSmall').classList.toggle('active', size === 'small');
+      };
+      await ensureRatesLoaded();
+      renderPartnerCars();
+    }
   }
 
   load();
