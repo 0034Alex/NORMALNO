@@ -18,6 +18,7 @@ module.exports = async (req, res) => {
     const admins = await adminsResp.json();
 
     const typeLabel = leadType === 'trade_in' ? 'Trade-in заявка'
+      : leadType === 'urgent_buyout' ? 'Терміновий викуп'
       : leadType === 'leasing' ? 'Заявка на розрахунок лізингу'
       : leadType === 'partner' ? 'Заявка від партнера'
       : leadType === 'investor' ? 'Заявка інвестора'
@@ -26,7 +27,7 @@ module.exports = async (req, res) => {
       : 'Заявка на підбір авто';
 
     const sectionMap = {
-      trade_in: 'leads', leasing: 'leads', car_selection: 'leads',
+      trade_in: 'leads', leasing: 'leads', car_selection: 'leads', urgent_buyout: 'leads',
       partner: 'partners', investor: 'investors', support: 'support', feedback: 'support'
     };
     const section = sectionMap[leadType] || 'leads';
