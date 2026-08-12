@@ -334,8 +334,8 @@
   }
 
   /* ---------- ЗАЯВКИ ---------- */
-  const TYPE_LABELS = { trade_in: 'Trade-in', car_selection: 'Підбір авто', leasing: 'Розрахунок лізингу', partner: 'Заявка партнера' };
-  const LEAD_TYPE_PERM = { trade_in: 'leads_tradein', car_selection: 'leads_carselection', leasing: 'leads_leasing' };
+  const TYPE_LABELS = { trade_in: 'Trade-in', car_selection: 'Підбір авто', leasing: 'Розрахунок лізингу', partner: 'Заявка партнера', urgent_buyout: '⚡ Терміновий викуп' };
+  const LEAD_TYPE_PERM = { trade_in: 'leads_tradein', car_selection: 'leads_carselection', leasing: 'leads_leasing', urgent_buyout: 'leads_tradein' };
   let allLeads = [];
   let leadFilter = 'all';
 
@@ -361,6 +361,11 @@
     renderLeads();
   };
 
+  function linkify(text) {
+    if (!text) return '';
+    return text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" style="color:#8E00FF;">переглянути фото →</a>');
+  }
+
   function renderLeads() {
     const list = document.getElementById('leadsList');
     const filtered = leadFilter === 'all' ? allLeads : allLeads.filter(l => l.status === leadFilter);
@@ -371,7 +376,7 @@
         <div class="card-type">${TYPE_LABELS[l.type] || l.type}</div>
         <div class="card-title">${l.name || '—'}</div>
         <div class="card-sub">${l.phone || '—'}</div>
-        <div class="card-details">${l.details || ''}</div>
+        <div class="card-details">${linkify(l.details)}</div>
         <div class="card-time">${timeAgo(l.created_at)}</div>
         <div class="status-row">
           <button class="status-btn ${l.status === 'new' ? 'active-new' : ''}" onclick="updateLeadStatus(${l.id}, 'new')">Нова</button>
@@ -425,7 +430,7 @@
         <div class="card-type">Інвестор</div>
         <div class="card-title">${l.name || '—'}</div>
         <div class="card-sub">${l.phone || '—'}</div>
-        <div class="card-details">${l.details || ''}</div>
+        <div class="card-details">${linkify(l.details)}</div>
         <div class="card-time">${timeAgo(l.created_at)}</div>
         <div class="status-row">
           <button class="status-btn ${l.status === 'new' ? 'active-new' : ''}" onclick="updateLeadStatus(${l.id}, 'new')">Нова</button>
@@ -440,16 +445,16 @@
   async function loadSupportSection() {
     const body = document.getElementById('sectionBody');
     body.innerHTML = '<div id="supportList">Завантаження...</div>';
-    const { data } = await sb.from('leads').select('*').eq('type', 'support').order('created_at', { ascending: false });
+    const { data } = await sb.from('leads').select('*').in('type', ['support', 'feedback']).order('created_at', { ascending: false });
     const list = document.getElementById('supportList');
     if (!data || data.length === 0) { list.innerHTML = '<div class="empty">Звернень немає</div>'; return; }
 
     list.innerHTML = data.map(l => `
       <div class="card">
-        <div class="card-type">Звернення в підтримку</div>
+        <div class="card-type">${l.type === 'feedback' ? '💡 Пропозиція / відгук' : 'Звернення в підтримку'}</div>
         <div class="card-title">${l.name || 'Без імені'}</div>
         <div class="card-sub">${l.phone || '—'}</div>
-        <div class="card-details">${l.details || ''}</div>
+        <div class="card-details">${linkify(l.details)}</div>
         <div class="card-time">${timeAgo(l.created_at)}</div>
         <div class="status-row">
           <button class="status-btn ${l.status === 'new' ? 'active-new' : ''}" onclick="updateLeadStatus(${l.id}, 'new')">Нове</button>
