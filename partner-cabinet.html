@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#8E00FF">
+<link rel="apple-touch-icon" href="/icons/icon-180.png">
+<title>NORMALNO — Кабінет партнера</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="car-data.js?v=1786440586"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; background: #fff; margin: 0; padding: 20px; padding-bottom: 60px; }
+  .back { color: #FF7A00; text-decoration: none; font-size: 14px; display: inline-block; margin-bottom: 10px; }
+  .logo { font-size: 20px; font-weight: bold; color: #8E00FF; margin-bottom: 4px; }
+  .subtitle { color: #999; font-size: 13px; margin-bottom: 20px; }
+  h2 { font-size: 15px; color: #666; margin: 22px 0 10px; }
+  label { font-size: 12px; color: #999; display: block; margin-bottom: 4px; }
+  input, textarea, select { width: 100%; padding: 14px; margin-bottom: 12px; border: 1px solid #ddd; border-radius: 10px; font-size: 15px; font-family: Arial, sans-serif; }
+  textarea { min-height: 90px; resize: vertical; }
+  .days-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 12px; }
+  .days-row label { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .row { display: flex; gap: 10px; }
+  .row input { flex: 1; }
+
+  #photoPreview { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  #photoPreview img { width: 70px; height: 70px; object-fit: cover; border-radius: 8px; }
+  .hint { font-size: 11px; color: #999; margin: -6px 0 12px; }
+
+  .social-input-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .social-input-icon { font-size: 20px; width: 30px; text-align: center; }
+  .social-input-row input { margin-bottom: 0; }
+
+  .service-row { display: flex; gap: 8px; margin-bottom: 8px; }
+  .service-row input { margin-bottom: 0; }
+  .service-remove { background: #fff0f0; color: #cc0000; border: none; border-radius: 8px; width: 42px; flex-shrink: 0; cursor: pointer; font-size: 16px; }
+  .add-service-btn { background: #f5e6ff; color: #8E00FF; border: none; border-radius: 10px; padding: 10px; width: 100%; font-weight: bold; cursor: pointer; margin-bottom: 16px; }
+
+  button.main { width: 100%; padding: 15px; background: #8E00FF; color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+  .msg { text-align: center; margin-top: 12px; font-size: 14px; }
+</style>
+</head>
+<body>
+
+<a href="profile.html" class="back">&larr; Назад до профілю</a>
+<div class="logo">🏪 Кабінет партнера</div>
+<div class="subtitle">Заповніть сторінку — її бачитимуть усі клієнти NORMALNO</div>
+
+<div id="formArea">Завантаження...</div>
+
+<script>
+  const supabaseUrl = 'https://ipzvgqyjtqofthbpkdsd.supabase.co';
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwenZncXlqdHFvZnRoYnBrZHNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMTEwNjEsImV4cCI6MjEwMTU4NzA2MX0.jbbpKpHaD6S9SJMIbxcwb12ggBCv44J_-s4OQ8ESNfA';
+  const sb = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+  let currentUserId = null;
+  let partnerId = null;
+  let existingPhotos = [];
+  let services = [];
+
+  async function load() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { window.location.href = 'register2.html'; return; }
+    currentUserId = session.user.id;
+
+    const { data: partner, error } = await sb.from('partners').select('*').eq('user_id', currentUserId).eq('status', 'approved').maybeSingle();
+    if (error || !partner) {
+      document.getElementById('formArea').innerHTML = '<div style="text-align:center; color:#999; margin-top:40px;">У вас немає затвердженого партнерського профілю.</div>';
+      return;
+    }
+    partnerId = partner.id;
+    existingPhotos = partner.photos || [];
+    services = partner.services || [];
+
+    document.getElementById('formArea').innerHTML = `
+      <h2>Фото (до 10 шт.)</h2>
+      <input type="file" id="photoFiles" accept="image/*" multiple>
+      <div class="hint">Додайте нові фото, щоб замінити поточні</div>
+      <div id="photoPreview"></div>
+
+      <h2>Про заклад</h2>
+      <label>Назва</label>
+      <input type="text" id="pName" value="${partner.name || ''}">
+      <label>Опис</label>
+      <textarea id="pDescription">${partner.description || ''}</textarea>
+      <label>Телефон</label>
+      <input type="tel" id="pPhone" value="${partner.phone || ''}">
+      <label>Адреса</label>
+      <input type="text" id="pAddress" value="${partner.address || ''}">
+
+      <h2>Графік роботи</h2>
+      <div class="days-row">
+        <label><input type="checkbox" class="workDay" value="mon" ${(partner.work_days || []).includes('mon') ? 'checked' : ''}> Пн</label>
+        <label><input type="checkbox" class="workDay" value="tue" ${(partner.work_days || []).includes('tue') ? 'checked' : ''}> Вт</label>
+        <label><input type="checkbox" class="workDay" value="wed" ${(partner.work_days || []).includes('wed') ? 'checked' : ''}> Ср</label>
+        <label><input type="checkbox" class="workDay" value="thu" ${(partner.work_days || []).includes('thu') ? 'checked' : ''}> Чт</label>
+        <label><input type="checkbox" class="workDay" value="fri" ${(partner.work_days || []).includes('fri') ? 'checked' : ''}> Пт</label>
+        <label><input type="checkbox" class="workDay" value="sat" ${(partner.work_days || []).includes('sat') ? 'checked' : ''}> Сб</label>
+        <label><input type="checkbox" class="workDay" value="sun" ${(partner.work_days || []).includes('sun') ? 'checked' : ''}> Нд</label>
+      </div>
+      <div class="row">
+        <input type="time" id="workFrom" value="${partner.work_from || '09:00'}">
+        <input type="time" id="workTo" value="${partner.work_to || '19:00'}">
+      </div>
+
+      <h2>Соціальні мережі та сайт</h2>
+      <div class="social-input-row"><span class="social-input-icon">✈️</span><input type="url" id="socTelegram" placeholder="Посилання на Telegram" value="${partner.telegram_link || ''}"></div>
+      <div class="social-input-row"><span class="social-input-icon">📷</span><input type="url" id="socInstagram" placeholder="Посилання на Instagram" value="${partner.instagram_link || ''}"></div>
+      <div class="social-input-row"><span class="social-input-icon">🎵</span><input type="url" id="socTiktok" placeholder="Посилання на TikTok" value="${partner.tiktok_link || ''}"></div>
+      <div class="social-input-row"><span class="social-input-icon">🧵</span><input type="url" id="socThreads" placeholder="Посилання на Threads" value="${partner.threads_link || ''}"></div>
+      <div class="social-input-row"><span class="social-input-icon">▶️</span><input type="url" id="socYoutube" placeholder="Посилання на YouTube" value="${partner.youtube_link || ''}"></div>
+      <div class="social-input-row"><span class="social-input-icon">🌐</span><input type="url" id="socWebsite" placeholder="Сайт" value="${partner.website || ''}"></div>
+
+      ${partner.category !== 'Автосалон' ? `
+        <h2>Послуги та ціни</h2>
+        <div id="servicesList"></div>
+        <button type="button" class="add-service-btn" onclick="addServiceRow()">+ Додати послугу</button>
+      ` : `
+        <h2>Ваші авто</h2>
+        <div class="hint">Оголошення, які ви виставляєте як звичайний продавець, автоматично показуються на вашій сторінці партнера.</div>
+      `}
+
+      <button class="main" onclick="savePartner()">Зберегти</button>
+      <div class="msg" id="msg"></div>
+    `;
+
+    renderExistingPhotos();
+    if (partner.category !== 'Автосалон') renderServices();
+
+    document.getElementById('photoFiles').addEventListener('change', function() {
+      const preview = document.getElementById('photoPreview');
+      preview.innerHTML = '';
+      const files = Array.from(this.files).slice(0, 10);
+      if (this.files.length > 10) alert('Можна завантажити максимум 10 фото.');
+      files.forEach(file => {
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(file);
+        preview.appendChild(img);
+      });
+    });
+  }
+
+  function renderExistingPhotos() {
+    document.getElementById('photoPreview').innerHTML = existingPhotos.map(p => `<img src="${p}">`).join('');
+  }
+
+  window.addServiceRow = function() {
+    services.push({ name: '', price: '' });
+    renderServices();
+  };
+  window.removeServiceRow = function(i) {
+    services.splice(i, 1);
+    renderServices();
+  };
+  function renderServices() {
+    const el = document.getElementById('servicesList');
+    if (!el) return;
+    el.innerHTML = services.map((s, i) => `
+      <div class="service-row">
+        <input type="text" placeholder="Назва послуги" value="${s.name || ''}" oninput="services[${i}].name = this.value">
+        <input type="text" placeholder="Ціна (напр. від 300 грн)" value="${s.price || ''}" oninput="services[${i}].price = this.value">
+        <button type="button" class="service-remove" onclick="removeServiceRow(${i})">✕</button>
+      </div>
+    `).join('');
+  }
+
+  async function uploadNewPhotos() {
+    const files = Array.from(document.getElementById('photoFiles').files).slice(0, 10);
+    if (files.length === 0) return null;
+    const urls = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const ext = file.name.split('.').pop();
+      const path = `${currentUserId}/${Date.now()}-${i}.${ext}`;
+      const { error } = await sb.storage.from('partner-photos').upload(path, file);
+      if (error) continue;
+      const { data } = sb.storage.from('partner-photos').getPublicUrl(path);
+      urls.push(data.publicUrl);
+    }
+    return urls;
+  }
+
+  window.savePartner = async function() {
+    const msg = document.getElementById('msg');
+    msg.textContent = 'Зберігаємо...';
+    msg.style.color = '#8E00FF';
+
+    const workDays = Array.from(document.querySelectorAll('.workDay:checked')).map(el => el.value);
+
+    const updateData = {
+      name: document.getElementById('pName').value.trim(),
+      description: document.getElementById('pDescription').value.trim(),
+      phone: document.getElementById('pPhone').value.trim(),
+      address: document.getElementById('pAddress').value.trim(),
+      work_days: workDays,
+      work_from: document.getElementById('workFrom').value,
+      work_to: document.getElementById('workTo').value,
+      telegram_link: document.getElementById('socTelegram').value.trim(),
+      instagram_link: document.getElementById('socInstagram').value.trim(),
+      tiktok_link: document.getElementById('socTiktok').value.trim(),
+      threads_link: document.getElementById('socThreads').value.trim(),
+      youtube_link: document.getElementById('socYoutube').value.trim(),
+      website: document.getElementById('socWebsite').value.trim(),
+      services: services.filter(s => s.name && s.name.trim())
+    };
+
+    const newPhotos = await uploadNewPhotos();
+    if (newPhotos && newPhotos.length > 0) {
+      updateData.photos = newPhotos;
+    }
+
+    const { error } = await sb.from('partners').update(updateData).eq('id', partnerId);
+
+    if (error) {
+      msg.textContent = 'Помилка: ' + error.message;
+      msg.style.color = 'red';
+      return;
+    }
+
+    fetch('/api/geocode-partner', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ partnerId: partnerId, address: updateData.address })
+    }).catch(() => {});
+
+    msg.textContent = 'Збережено!';
+    msg.style.color = 'green';
+  };
+
+  load();
+</script>
+
+</body>
+</html>

@@ -131,6 +131,7 @@
     const workDays = Array.from(document.querySelectorAll('.workDay:checked')).map(el => el.value);
 
     const { data: inserted, error } = await sb.from('partners').insert({
+      user_id: session.user.id,
       name: name,
       category: category,
       contact_person: document.getElementById('contactPerson').value.trim(),

@@ -61,6 +61,11 @@
   .investor-teaser-title { font-weight: bold; font-size: 14px; }
   .investor-teaser-sub { font-size: 12px; opacity: 0.9; }
   .investor-teaser-arrow { font-size: 20px; opacity: 0.8; }
+  .social-row { display: flex; gap: 12px; justify-content: center; margin-bottom: 20px; }
+  .social-icon {
+    width: 48px; height: 48px; border-radius: 14px; background: #f7f7f7; display: flex;
+    align-items: center; justify-content: center; font-size: 22px; text-decoration: none;
+  }
   .section-title { font-size: 14px; font-weight: bold; padding: 14px 16px 8px; color: #333; }
   .row-link { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-top: 1px solid #f5f5f5; cursor: pointer; }
   .row-icon { font-size: 16px; color: #8E00FF; width: 20px; }
@@ -187,6 +192,8 @@
   <div class="investor-teaser-arrow">›</div>
 </div>
 
+<div id="partnerCabinetTeaser"></div>
+
 <div class="section-box">
   <div class="section-title">Допомога та підтримка</div>
   <div class="row-link" onclick="window.location.href='support.html'">
@@ -198,6 +205,14 @@
   <div class="row-link" onclick="window.location.href='about.html'">
     <span class="row-icon">ℹ️</span><span class="row-label">Про додаток</span><span class="row-extra">v1.0.0</span><span class="row-arrow">›</span>
   </div>
+</div>
+
+<div class="social-row">
+  <a href="#" target="_blank" class="social-icon">✈️</a>
+  <a href="#" target="_blank" class="social-icon">📷</a>
+  <a href="#" target="_blank" class="social-icon">🎵</a>
+  <a href="#" target="_blank" class="social-icon">🧵</a>
+  <a href="#" target="_blank" class="social-icon">▶️</a>
 </div>
 
 <div class="notify-row">
@@ -238,6 +253,20 @@
     }
     document.getElementById('profileEmail').textContent = session.user.email || '';
     document.getElementById('profilePhone').textContent = (profile && profile.phone) ? profile.phone : '';
+
+    const { data: myPartner } = await sb.from('partners').select('id, status').eq('user_id', session.user.id).eq('status', 'approved').maybeSingle();
+    if (myPartner) {
+      document.getElementById('partnerCabinetTeaser').innerHTML = `
+        <div class="investor-teaser" style="background: linear-gradient(135deg, #1a8f2a, #4ade80);" onclick="window.location.href='partner-cabinet.html'">
+          <div class="investor-teaser-icon">🏪</div>
+          <div class="investor-teaser-info">
+            <div class="investor-teaser-title">Кабінет партнера</div>
+            <div class="investor-teaser-sub">Наповніть свою сторінку для клієнтів</div>
+          </div>
+          <div class="investor-teaser-arrow">›</div>
+        </div>
+      `;
+    }
 
     const { count } = await sb.from('cars').select('*', { count: 'exact', head: true }).eq('user_id', session.user.id).eq('sold', true);
     const soldCount = count || 0;

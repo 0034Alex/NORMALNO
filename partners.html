@@ -61,6 +61,7 @@
   .partners-list.grid-small .partner-desc { display: none; }
   .partners-list.grid-small .partner-meta { font-size: 10px; }
   .partners-list.grid-small .partner-btn { font-size: 10px; padding: 6px 4px; }
+  .partners-list.grid-small .partner-btn-details { font-size: 10px; padding: 8px; }
 
   /* Партнери поруч */
   .section-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
@@ -98,6 +99,7 @@
   .partner-btn { flex: 1; min-width: 0; text-align: center; padding: 8px; border-radius: 8px; font-size: 12px; font-weight: bold; text-decoration: none; border: none; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .btn-call { background: #f5e6ff; color: #8E00FF; }
   .btn-route { background: #fff0e0; color: #FF7A00; }
+  .partner-btn-details { width: 100%; margin-top: 6px; padding: 10px; background: #8E00FF; color: #fff; border: none; border-radius: 8px; font-weight: bold; font-size: 12px; cursor: pointer; }
 
   .empty { text-align: center; color: #999; margin: 20px 0; }
 
@@ -326,12 +328,12 @@
           ${p.description ? `<div class="partner-desc">${p.description}</div>` : ''}
           ${p.address ? `<div class="partner-meta">📍 ${p.address}</div>` : ''}
           ${p.phone ? `<div class="partner-meta">📞 ${p.phone}</div>` : ''}
-          ${p.website ? `<div class="partner-meta">🌐 <a href="${p.website.startsWith('http') ? p.website : 'https://' + p.website}" target="_blank">${p.website}</a></div>` : ''}
           ${hoursText ? `<div class="partner-meta">🕐 ${hoursText} ${statusHtml}</div>` : ''}
           <div class="partner-actions">
             ${p.phone ? `<a class="partner-btn btn-call" href="tel:${p.phone}">Подзвонити</a>` : ''}
             ${p.address ? `<button class="partner-btn btn-route" onclick="openRouteMenuByAddress('${p.address.replace(/'/g, "\\'")}')">Маршрут</button>` : ''}
           </div>
+          <button class="partner-btn-details" onclick="window.location.href='partner-page.html?id=${p.id}'">Детальніше про партнера</button>
         </div>
       </div>
     `;
