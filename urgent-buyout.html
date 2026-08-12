@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#8E00FF">
+<link rel="apple-touch-icon" href="/icons/icon-180.png">
+<title>NORMALNO — Терміновий викуп</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="car-data.js?v=1786440586"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; background: #fff; margin: 0; padding: 20px; padding-bottom: 40px; }
+  .back { color: #FF7A00; text-decoration: none; font-size: 14px; display: inline-block; margin-bottom: 10px; }
+  .logo { font-size: 20px; font-weight: bold; color: #8E00FF; margin-bottom: 4px; }
+  .subtitle { color: #666; font-size: 13px; margin-bottom: 20px; line-height: 1.5; }
+  h2 { font-size: 15px; color: #666; margin: 20px 0 10px; }
+  label { font-size: 12px; color: #999; display: block; margin-bottom: 4px; }
+  input, textarea, select { width: 100%; padding: 14px; margin-bottom: 12px; border: 1px solid #ddd; border-radius: 10px; font-size: 15px; font-family: Arial, sans-serif; }
+  textarea { min-height: 80px; resize: vertical; }
+  .row { display: flex; gap: 10px; }
+  .row input { flex: 1; }
+
+  #photoPreview { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  #photoPreview img { width: 70px; height: 70px; object-fit: cover; border-radius: 8px; }
+  .hint { font-size: 11px; color: #999; margin: -6px 0 12px; }
+
+  button.main { width: 100%; padding: 15px; background: #FF7A00; color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+  .msg { text-align: center; margin-top: 12px; font-size: 14px; }
+</style>
+</head>
+<body>
+
+<a href="index.html" class="back">&larr; Назад на головну</a>
+<div class="logo">⚡ Терміновий викуп авто</div>
+<div class="subtitle">Потрібно продати авто швидко? Заповніть анкету — наш менеджер оцінить авто і зв'яжеться з вами найближчим часом для швидкого викупу.</div>
+
+<h2>Ваші контакти</h2>
+<input type="text" id="name" placeholder="Ваше ім'я">
+<input type="tel" id="phone" placeholder="Номер телефону">
+
+<h2>Дані авто</h2>
+<div class="picker-field ph" id="brandField" onclick="openBrandPicker()">
+  <span class="picker-value" id="brandField_value">Марка — оберіть</span>
+  <span class="picker-arrow">▾</span>
+</div>
+<div class="picker-field ph disabled" id="modelField" onclick="openModelPicker()">
+  <span class="picker-value" id="modelField_value">Спочатку оберіть марку</span>
+  <span class="picker-arrow">▾</span>
+</div>
+<div class="row">
+  <input type="number" id="year" placeholder="Рік випуску">
+  <input type="number" id="mileage" placeholder="Пробіг, км">
+</div>
+<select id="condition">
+  <option value="">Стан авто — оберіть</option>
+  <option value="new">Відмінний</option>
+  <option value="used">Хороший</option>
+  <option value="imported">Потребує ремонту</option>
+</select>
+<textarea id="comment" placeholder="Додаткові деталі про авто (комплектація, несправності тощо)"></textarea>
+
+<h2>Фото авто</h2>
+<input type="file" id="photoFiles" accept="image/*" multiple>
+<div class="hint">До 10 фото — чим більше, тим точніша оцінка</div>
+<div id="photoPreview"></div>
+
+<button class="main" onclick="submitUrgentBuyout()">Надіслати заявку</button>
+<div class="msg" id="msg"></div>
+
+<script>
+  const supabaseUrl = 'https://ipzvgqyjtqofthbpkdsd.supabase.co';
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwenZncXlqdHFvZnRoYnBrZHNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMTEwNjEsImV4cCI6MjEwMTU4NzA2MX0.jbbpKpHaD6S9SJMIbxcwb12ggBCv44J_-s4OQ8ESNfA';
+  const sb = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+  let selectedBrand = '';
+  let selectedModel = '';
+  let currentModelsList = [];
+  let sessionUserId = null;
+
+  async function openBrandPicker() {
+    const brands = await fetchAllBrands();
+    openSearchPicker('Марка авто', brands, selectedBrand, (val) => {
+      selectedBrand = val;
+      document.getElementById('brandField_value').textContent = val;
+      document.getElementById('brandField').classList.remove('ph');
+      onBrandChange();
+    });
+  }
+
+  async function onBrandChange() {
+    selectedModel = '';
+    const modelField = document.getElementById('modelField');
+    modelField.classList.add('disabled');
+    document.getElementById('modelField_value').textContent = 'Завантаження моделей...';
+    currentModelsList = await fetchModelsForBrand(selectedBrand);
+    modelField.classList.remove('disabled');
+    modelField.classList.add('ph');
+    document.getElementById('modelField_value').textContent = 'Модель — оберіть';
+  }
+
+  function openModelPicker() {
+    if (!selectedBrand) return;
+    openSearchPicker('Модель', currentModelsList, selectedModel, (val) => {
+      selectedModel = val;
+      document.getElementById('modelField_value').textContent = val;
+      document.getElementById('modelField').classList.remove('ph');
+    });
+  }
+
+  document.getElementById('photoFiles').addEventListener('change', function() {
+    const preview = document.getElementById('photoPreview');
+    preview.innerHTML = '';
+    const files = Array.from(this.files).slice(0, 10);
+    if (this.files.length > 10) alert('Можна завантажити максимум 10 фото.');
+    files.forEach(file => {
+      const img = document.createElement('img');
+      img.src = URL.createObjectURL(file);
+      preview.appendChild(img);
+    });
+  });
+
+  async function uploadPhotos() {
+    const files = Array.from(document.getElementById('photoFiles').files).slice(0, 10);
+    if (files.length === 0) return [];
+    const urls = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const ext = file.name.split('.').pop();
+      const path = `${sessionUserId}/urgent-${Date.now()}-${i}.${ext}`;
+      const { error } = await sb.storage.from('car-photos').upload(path, file);
+      if (error) continue;
+      const { data } = sb.storage.from('car-photos').getPublicUrl(path);
+      urls.push(data.publicUrl);
+    }
+    return urls;
+  }
+
+  async function submitUrgentBuyout() {
+    const msg = document.getElementById('msg');
+    const name = document.getElementById('name').value.trim();
+    const phone = document.getElementById('phone').value.trim();
+
+    if (!name || !phone || !selectedBrand || !selectedModel) {
+      msg.textContent = "Заповніть ім'я, телефон, марку і модель";
+      msg.style.color = 'red';
+      return;
+    }
+
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { window.location.href = 'register2.html'; return; }
+    sessionUserId = session.user.id;
+
+    msg.textContent = 'Завантажуємо фото...';
+    msg.style.color = '#8E00FF';
+    const photoUrls = await uploadPhotos();
+
+    const details = `Авто: ${selectedBrand} ${selectedModel}, ${document.getElementById('year').value || '—'} рік, ${document.getElementById('mileage').value || '—'} км. Стан: ${document.getElementById('condition').value || '—'}. Коментар: ${document.getElementById('comment').value || '—'}. Фото: ${photoUrls.length} шт.\n${photoUrls.join('\n')}`;
+
+    const { error } = await sb.from('leads').insert({
+      type: 'urgent_buyout',
+      user_id: sessionUserId,
+      name: name,
+      phone: phone,
+      details: details
+    });
+
+    if (error) {
+      msg.textContent = error.message;
+      msg.style.color = 'red';
+      return;
+    }
+
+    fetch('/api/notify-lead', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ leadType: 'urgent_buyout', name, phone, summary: details })
+    }).catch(() => {});
+
+    msg.textContent = 'Дякуємо! Менеджер оцінить авто і зв\'яжеться з вами.';
+    msg.style.color = 'green';
+    setTimeout(() => { window.location.href = 'index.html'; }, 1800);
+  }
+</script>
+
+</body>
+</html>

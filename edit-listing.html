@@ -132,10 +132,6 @@
   <label for="customsCleared">Розмитнене</label>
 </div>
 <div class="check-row">
-  <input type="checkbox" id="isUrgent">
-  <label for="isUrgent">Терміновий продаж</label>
-</div>
-<div class="check-row">
   <input type="checkbox" id="isHot">
   <label for="isHot">Гаряча пропозиція</label>
 </div>
@@ -287,7 +283,6 @@
     document.getElementById('description').value = car.description || '';
     document.getElementById('exchangePossible').checked = !!car.exchange_possible;
     document.getElementById('customsCleared').checked = !!car.customs_cleared;
-    document.getElementById('isUrgent').checked = !!car.is_urgent;
     document.getElementById('isHot').checked = !!car.is_hot;
 
     if (car.transport_type) {
@@ -373,7 +368,6 @@
       description: document.getElementById('description').value,
       exchange_possible: document.getElementById('exchangePossible').checked,
       customs_cleared: document.getElementById('customsCleared').checked,
-      is_urgent: document.getElementById('isUrgent').checked,
       is_hot: document.getElementById('isHot').checked
     };
 

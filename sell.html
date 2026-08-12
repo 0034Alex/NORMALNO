@@ -172,10 +172,6 @@
   <label for="customsCleared">Розмитнене</label>
 </div>
 <div class="check-row">
-  <input type="checkbox" id="isUrgent">
-  <label for="isUrgent">Терміновий продаж</label>
-</div>
-<div class="check-row">
   <input type="checkbox" id="isHot">
   <label for="isHot">Гаряча пропозиція</label>
 </div>
@@ -417,7 +413,6 @@
       doors: parseInt(document.getElementById('doors').value) || null,
       exchange_possible: document.getElementById('exchangePossible').checked,
       customs_cleared: document.getElementById('customsCleared').checked,
-      is_urgent: document.getElementById('isUrgent').checked,
       is_hot: document.getElementById('isHot').checked,
       listing_type: listingType
     };
