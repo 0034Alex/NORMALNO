@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#8E00FF">
+<link rel="apple-touch-icon" href="/icons/icon-180.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="NORMALNO">
+
+<title>NORMALNO — Профіль</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="car-data.js?v=1786440586"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; background: #fff; margin: 0; padding: 16px; padding-bottom: 90px; }
+  .title { font-size: 24px; font-weight: bold; color: #8E00FF; margin-bottom: 20px; }
+
+  .profile-head { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
+  .avatar { width: 64px; height: 64px; border-radius: 50%; background: #f5e6ff; color: #8E00FF; display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: bold; flex-shrink: 0; }
+  .profile-info { flex: 1; min-width: 0; }
+  .profile-name { font-size: 18px; font-weight: bold; margin-bottom: 4px; }
+  .profile-contact { font-size: 13px; color: #999; }
+
+  .status-panel { background: #f5e6ff; border-radius: 14px; padding: 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 14px; }
+  .status-text { flex: 1; }
+  .status-level { font-weight: bold; color: #8E00FF; font-size: 15px; margin-bottom: 2px; }
+  .status-hint { font-size: 12px; color: #666; margin-bottom: 8px; }
+  .status-bar { height: 6px; background: #e5cfff; border-radius: 4px; overflow: hidden; }
+  .status-bar-fill { height: 100%; background: #8E00FF; }
+  .status-hex { width: 44px; height: 44px; border-radius: 12px; background: #8E00FF; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px; flex-shrink: 0; }
+
+  .actions-title { font-size: 15px; font-weight: bold; margin-bottom: 12px; }
+  .actions-grid { display: flex; gap: 6px; margin-bottom: 24px; }
+  .action-btn { flex: 1; min-width: 0; text-align: center; cursor: pointer; position: relative; }
+  .action-icon { width: 42px; height: 42px; border-radius: 13px; background: #f5e6ff; display: flex; align-items: center; justify-content: center; font-size: 18px; margin: 0 auto 5px; position: relative; }
+  .badge { position: absolute; top: -4px; right: -4px; background: #FF7A00; color: #fff; font-size: 10px; font-weight: bold; min-width: 16px; height: 16px; border-radius: 8px; display: flex; align-items: center; justify-content: center; padding: 0 3px; }
+  .badge.hidden { display: none; }
+  .action-label { font-size: 9px; font-weight: bold; color: #333; line-height: 1.2; }
+  .action-badge { position: absolute; top: -4px; right: 10px; background: #8E00FF; color: #fff; font-size: 10px; font-weight: bold; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+
+  .section-box { border: 1px solid #eee; border-radius: 14px; margin-bottom: 16px; overflow: hidden; }
+  .referral-teaser {
+    display: flex; align-items: center; gap: 12px; background: linear-gradient(135deg, #8E00FF, #b347ff);
+    border-radius: 14px; padding: 14px 16px; margin-bottom: 16px; cursor: pointer; color: #fff;
+  }
+  .referral-teaser-icon { font-size: 26px; }
+  .referral-teaser-info { flex: 1; }
+  .referral-teaser-title { font-weight: bold; font-size: 14px; }
+  .referral-teaser-points { font-size: 12px; opacity: 0.9; }
+  .referral-teaser-arrow { font-size: 20px; opacity: 0.8; }
+  .investor-teaser {
+    display: flex; align-items: center; gap: 12px; background: linear-gradient(135deg, #FF7A00, #ffab4d);
+    border-radius: 14px; padding: 14px 16px; margin-bottom: 16px; cursor: pointer; color: #fff;
+  }
+  .investor-teaser-icon { font-size: 26px; }
+  .investor-teaser-info { flex: 1; }
+  .investor-teaser-title { font-weight: bold; font-size: 14px; }
+  .investor-teaser-sub { font-size: 12px; opacity: 0.9; }
+  .investor-teaser-arrow { font-size: 20px; opacity: 0.8; }
+  .social-row { display: flex; gap: 12px; justify-content: center; margin-bottom: 20px; }
+  .social-icon {
+    width: 48px; height: 48px; border-radius: 14px; overflow: hidden; display: flex;
+    align-items: center; justify-content: center; text-decoration: none;
+  }
+  .section-title { font-size: 14px; font-weight: bold; padding: 14px 16px 8px; color: #333; }
+  .row-link { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-top: 1px solid #f5f5f5; cursor: pointer; }
+  .row-icon { font-size: 16px; color: #8E00FF; width: 20px; }
+  .row-label { flex: 1; font-size: 14px; }
+  .row-extra { font-size: 12px; color: #999; }
+  .row-arrow { color: #ccc; }
+
+  .logout-btn { width: 100%; padding: 14px; background: #fff0f0; color: #cc0000; border: none; border-radius: 12px; font-weight: bold; font-size: 14px; cursor: pointer; }
+  .notify-row { display: flex; align-items: center; justify-content: space-between; padding: 14px; background: #f5e6ff; border-radius: 12px; margin-bottom: 12px; }
+  .notify-label { font-size: 14px; font-weight: bold; color: #333; }
+  .toggle-switch { position: relative; width: 46px; height: 26px; flex-shrink: 0; }
+  .toggle-switch input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider { position: absolute; cursor: pointer; inset: 0; background: #ccc; border-radius: 26px; transition: 0.2s; }
+  .toggle-slider::before { content: ""; position: absolute; height: 20px; width: 20px; left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: 0.2s; }
+  .toggle-switch input:checked + .toggle-slider { background: #8E00FF; }
+  .toggle-switch input:checked + .toggle-slider::before { transform: translateX(20px); }
+
+  .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; display: flex; background: white; border-top: 1px solid #eee; padding: 8px 0; }
+  .nav-item { flex: 1; text-align: center; padding: 8px 0; cursor: pointer; color: #999; font-size: 11px; position: relative; }
+  .nav-item .icon { font-size: 20px; display: block; margin-bottom: 2px; }
+  .nav-item.active { color: #8E00FF; font-weight: bold; }
+  .nav-item.active::before { content: ''; position: absolute; top: -8px; left: 20%; right: 20%; height: 3px; background: #FF7A00; border-radius: 3px; }
+
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(3px);
+    display: flex; align-items: flex-end; justify-content: center; z-index: 100;
+  }
+  .modal-overlay.hidden { display: none; }
+  .modal-sheet { background: #fff; width: 100%; max-width: 520px; border-radius: 20px 20px 0 0; padding: 20px; max-height: 75vh; overflow-y: auto; }
+  .modal-close { float: right; font-size: 18px; color: #999; cursor: pointer; background: none; border: none; padding: 4px 8px; }
+  .level-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-top: 1px solid #f5f5f5; font-size: 13px; }
+  .level-row.current { background: #f5e6ff; border-radius: 8px; padding: 10px 8px; margin: 2px -8px; }
+  .level-name { font-weight: bold; }
+  .level-cond { color: #999; font-size: 11px; }
+</style>
+</head>
+<body>
+
+<div class="title">Профіль</div>
+
+<div class="profile-head">
+  <div class="avatar" id="avatarLetter">?</div>
+  <div class="profile-info">
+    <div class="profile-name" id="profileName">Завантаження...</div>
+    <div class="profile-contact" id="profileEmail"></div>
+    <div class="profile-contact" id="profilePhone"></div>
+  </div>
+</div>
+
+<div class="status-panel">
+  <div class="status-text">
+    <div class="status-level">Ваш рівень: <span id="statusName">...</span> <span onclick="openLevelInfo()" style="cursor:pointer; color:#8E00FF; font-size:13px;">ⓘ</span></div>
+    <div class="status-hint" id="statusHint">Розміщуйте авто, продавайте та підвищуйте рівень</div>
+    <div class="status-bar"><div class="status-bar-fill" id="statusBarFill" style="width:0%"></div></div>
+  </div>
+  <div class="status-hex" id="statusHex">1</div>
+</div>
+
+<div class="modal-overlay hidden" id="levelModal" onclick="if(event.target===this) closeLevelInfo()">
+  <div class="modal-sheet">
+    <button type="button" class="modal-close" onclick="closeLevelInfo()">✕</button>
+    <div style="font-size:17px; font-weight:bold; margin-bottom:6px;">Рівні продавця</div>
+    <div style="font-size:13px; color:#666; margin-bottom:16px;">Чим більше авто ви успішно продали через платформу — тим вищий ваш рівень. Вищий рівень дає більше безкоштовних оголошень на місяць і дешевшу ціну за оголошення понад ліміт.</div>
+    <div id="levelTable"></div>
+  </div>
+</div>
+
+<div class="actions-title">Мої дії</div>
+<div class="actions-grid">
+  <div class="action-btn" onclick="window.location.href='my-listings.html'">
+    <div class="action-icon">📋<span class="badge hidden" id="badgeListings"></span></div>
+    <div class="action-label">Мої оголошення</div>
+  </div>
+  <div class="action-btn" onclick="window.location.href='my-auctions.html'">
+    <div class="action-icon">🔨<span class="badge hidden" id="badgeAuctions"></span></div>
+    <div class="action-label">Мої аукціони</div>
+  </div>
+  <div class="action-btn" onclick="window.location.href='my-bids.html'">
+    <div class="action-icon">💰<span class="badge hidden" id="badgeBids"></span></div>
+    <div class="action-label">Мої ставки</div>
+  </div>
+  <div class="action-btn" onclick="window.location.href='favorites.html?from=profile'">
+    <div class="action-icon">❤️<span class="badge hidden" id="badgeFavorites"></span></div>
+    <div class="action-label">Обране</div>
+  </div>
+  <div class="action-btn" onclick="window.location.href='chats-list.html'">
+    <div class="action-icon">💬<span class="badge hidden" id="badgeMessages"></span></div>
+    <div class="action-label">Повідомлення</div>
+  </div>
+  <div class="action-btn" onclick="window.location.href='my-archive.html'">
+    <div class="action-icon">🗄️</div>
+    <div class="action-label">Архів</div>
+  </div>
+</div>
+
+<div class="referral-teaser" onclick="window.location.href='referrals.html'">
+  <div class="referral-teaser-icon">🎁</div>
+  <div class="referral-teaser-info">
+    <div class="referral-teaser-title">Запроси друзів</div>
+    <div class="referral-teaser-points" id="referralPointsTeaser">Завантаження...</div>
+    <div class="referral-teaser-points" id="referralCountTeaser"></div>
+  </div>
+  <div class="referral-teaser-arrow">›</div>
+</div>
+
+<div class="section-box">
+  <div class="section-title">Особиста інформація</div>
+  <div class="row-link" onclick="window.location.href='personal-info.html'">
+    <span class="row-icon">👤</span><span class="row-label">Особисті дані</span><span class="row-arrow">›</span>
+  </div>
+  <div class="row-link" onclick="window.location.href='verification.html'">
+    <span class="row-icon">🛡️</span><span class="row-label">Верифікація</span><span class="row-arrow">›</span>
+  </div>
+  <div class="row-link" onclick="window.location.href='payment-methods.html'">
+    <span class="row-icon">💳</span><span class="row-label">Платіжні методи</span><span class="row-arrow">›</span>
+  </div>
+</div>
+
+<div class="investor-teaser" onclick="window.location.href='investor.html'">
+  <div class="investor-teaser-icon">💼</div>
+  <div class="investor-teaser-info">
+    <div class="investor-teaser-title">Стати інвестором</div>
+    <div class="investor-teaser-sub">Дізнайтесь про можливості співпраці</div>
+  </div>
+  <div class="investor-teaser-arrow">›</div>
+</div>
+
+<div id="partnerCabinetTeaser"></div>
+
+<div class="section-box">
+  <div class="section-title">Допомога та підтримка</div>
+  <div class="row-link" onclick="window.location.href='support.html'">
+    <span class="row-icon">❓</span><span class="row-label">Підтримка</span><span class="row-arrow">›</span>
+  </div>
+  <div class="row-link" onclick="window.location.href='feedback.html'">
+    <span class="row-icon">💡</span><span class="row-label">Пропозиції та відгуки</span><span class="row-arrow">›</span>
+  </div>
+  <div class="row-link" onclick="window.location.href='faq.html'">
+    <span class="row-icon">📖</span><span class="row-label">FAQ</span><span class="row-arrow">›</span>
+  </div>
+  <div class="row-link" onclick="window.location.href='about.html'">
+    <span class="row-icon">ℹ️</span><span class="row-label">Про додаток</span><span class="row-extra">v1.0.0</span><span class="row-arrow">›</span>
+  </div>
+</div>
+
+<div class="social-row">
+  <a href="#" target="_blank" class="social-icon" id="socialTelegram"></a>
+  <a href="#" target="_blank" class="social-icon" id="socialInstagram"></a>
+  <a href="#" target="_blank" class="social-icon" id="socialTiktok"></a>
+  <a href="#" target="_blank" class="social-icon" id="socialThreads"></a>
+  <a href="#" target="_blank" class="social-icon" id="socialYoutube"></a>
+</div>
+
+<div class="notify-row">
+  <span class="notify-label">🔔 Push-сповіщення</span>
+  <label class="toggle-switch">
+    <input type="checkbox" id="notifyToggle" onchange="togglePush(this.checked)">
+    <span class="toggle-slider"></span>
+  </label>
+</div>
+<button class="logout-btn" onclick="logout()">⏻ Вийти з акаунту</button>
+
+<div class="bottom-nav">
+  <div class="nav-item" onclick="window.location.href='index.html'"><span class="icon">🏠</span>Головна</div>
+  <div class="nav-item" onclick="window.location.href='auction.html'"><span class="icon">🔨</span>Аукціон</div>
+  <div class="nav-item" onclick="window.location.href='sell.html'"><span class="icon">➕</span>Продати</div>
+  <div class="nav-item" onclick="window.location.href='partners.html'"><span class="icon">🤝</span>Партнери</div>
+  <div class="nav-item active"><span class="icon">👤</span>Профіль</div>
+</div>
+
+<script>
+  const supabaseUrl = 'https://ipzvgqyjtqofthbpkdsd.supabase.co';
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwenZncXlqdHFvZnRoYnBrZHNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMTEwNjEsImV4cCI6MjEwMTU4NzA2MX0.jbbpKpHaD6S9SJMIbxcwb12ggBCv44J_-s4OQ8ESNfA';
+  const sb = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+  async function load() {
+    document.getElementById('socialTelegram').innerHTML = SOCIAL_SVG_ICONS.telegram;
+    document.getElementById('socialInstagram').innerHTML = SOCIAL_SVG_ICONS.instagram;
+    document.getElementById('socialTiktok').innerHTML = SOCIAL_SVG_ICONS.tiktok;
+    document.getElementById('socialThreads').innerHTML = SOCIAL_SVG_ICONS.threads;
+    document.getElementById('socialYoutube').innerHTML = SOCIAL_SVG_ICONS.youtube;
+
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { window.location.href = 'register2.html'; return; }
+
+    const { data: profile } = await sb.from('profiles').select('name, phone, telegram_username, avatar_url').eq('user_id', session.user.id).maybeSingle();
+
+    const displayName = (profile && profile.name) ? profile.name : ((profile && profile.telegram_username) ? '@' + profile.telegram_username : 'Без імені');
+    document.getElementById('profileName').textContent = displayName;
+
+    if (profile && profile.avatar_url) {
+      document.getElementById('avatarLetter').innerHTML = `<img src="${profile.avatar_url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+    } else {
+      document.getElementById('avatarLetter').textContent = displayName.charAt(0).toUpperCase();
+    }
+    document.getElementById('profileEmail').textContent = session.user.email || '';
+    document.getElementById('profilePhone').textContent = (profile && profile.phone) ? profile.phone : '';
+
+    const { data: myPartner } = await sb.from('partners').select('id, status').eq('user_id', session.user.id).eq('status', 'approved').maybeSingle();
+    if (myPartner) {
+      document.getElementById('partnerCabinetTeaser').innerHTML = `
+        <div class="investor-teaser" style="background: linear-gradient(135deg, #1a8f2a, #4ade80);" onclick="window.location.href='partner-cabinet.html'">
+          <div class="investor-teaser-icon">🏪</div>
+          <div class="investor-teaser-info">
+            <div class="investor-teaser-title">Кабінет партнера</div>
+            <div class="investor-teaser-sub">Наповніть свою сторінку для клієнтів</div>
+          </div>
+          <div class="investor-teaser-arrow">›</div>
+        </div>
+      `;
+    }
+
+    const { count } = await sb.from('cars').select('*', { count: 'exact', head: true }).eq('user_id', session.user.id).eq('sold', true);
+    const soldCount = count || 0;
+    const status = getStatusForCount(soldCount);
+    document.getElementById('statusName').textContent = status.name;
+    document.getElementById('statusHex').textContent = STATUS_TIERS.indexOf(status) + 1;
+
+    document.getElementById('levelTable').innerHTML = STATUS_TIERS.map(t => {
+      const range = t.max === Infinity ? `${t.min}+ авто` : `${t.min}-${t.max} авто`;
+      const quota = t.freeQuota ? `${t.freeQuota} безкоштовних оголошень/міс` : 'Індивідуальні умови';
+      const price = t.extraPrice ? `$${t.extraPrice} за оголошення понад ліміт` : 'За домовленістю';
+      return `
+        <div class="level-row ${t.name === status.name ? 'current' : ''}">
+          <div>
+            <div class="level-name">${t.name}${t.name === status.name ? ' (ваш рівень)' : ''}</div>
+            <div class="level-cond">Продано: ${range}</div>
+          </div>
+          <div style="text-align:right;">
+            <div>${quota}</div>
+            <div class="level-cond">${price}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    if (status.max === Infinity) {
+      document.getElementById('statusHint').textContent = 'Максимальний рівень досягнуто!';
+      document.getElementById('statusBarFill').style.width = '100%';
+    } else {
+      const nextThreshold = status.max + 1;
+      const progress = Math.min(100, Math.round((soldCount / nextThreshold) * 100));
+      document.getElementById('statusHint').textContent = `Продайте ще ${Math.max(nextThreshold - soldCount, 0)} авто до наступного рівня`;
+      document.getElementById('statusBarFill').style.width = progress + '%';
+    }
+
+    const userId = session.user.id;
+
+    const { count: listingsCount } = await sb.from('cars').select('*', { count: 'exact', head: true }).eq('user_id', userId).neq('listing_type', 'auction').eq('archived', false);
+    const { count: auctionsCount } = await sb.from('cars').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('listing_type', 'auction').eq('archived', false);
+    const { data: myBids } = await sb.from('bids').select('car_id').eq('user_id', userId);
+    const activeBidCarIds = [...new Set((myBids || []).map(b => b.car_id))];
+    let activeBidsCount = 0;
+    if (activeBidCarIds.length) {
+      const { data: bidCars } = await sb.from('cars').select('id, auction_ends_at, archived').in('id', activeBidCarIds);
+      activeBidsCount = (bidCars || []).filter(c => !c.archived && new Date(c.auction_ends_at) > new Date()).length;
+    }
+    const { count: favCount2 } = await sb.from('favorites').select('*', { count: 'exact', head: true }).eq('user_id', userId);
+
+    const { data: myChats } = await sb.from('chats').select('id').or(`buyer_id.eq.${userId},seller_id.eq.${userId}`);
+    let unreadCount = 0;
+    if (myChats && myChats.length) {
+      const chatIds = myChats.map(c => c.id);
+      const { count } = await sb.from('messages').select('*', { count: 'exact', head: true }).in('chat_id', chatIds).eq('read', false).neq('sender_id', userId);
+      unreadCount = count || 0;
+    }
+
+    setBadge('badgeListings', listingsCount);
+    setBadge('badgeAuctions', auctionsCount);
+    setBadge('badgeBids', activeBidsCount);
+    setBadge('badgeFavorites', favCount2);
+    setBadge('badgeMessages', unreadCount);
+
+    const { data: refEvents } = await sb.from('referral_events').select('points').eq('referrer_user_id', userId);
+    const totalRefPoints = (refEvents || []).reduce((sum, e) => sum + Number(e.points), 0);
+    document.getElementById('referralPointsTeaser').textContent = `У вас ${totalRefPoints.toLocaleString('uk-UA')} балів`;
+
+    const { count: invitedCount } = await sb.from('profiles').select('*', { count: 'exact', head: true }).eq('referred_by', userId);
+    document.getElementById('referralCountTeaser').textContent = `${invitedCount || 0} рефералів приєдналося`;
+  }
+
+  function setBadge(id, count) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (count && count > 0) {
+      el.textContent = count;
+      el.classList.remove('hidden');
+    } else {
+      el.classList.add('hidden');
+    }
+  }
+
+  window.openLevelInfo = function() {
+    document.getElementById('levelModal').classList.remove('hidden');
+  };
+  window.closeLevelInfo = function() {
+    document.getElementById('levelModal').classList.add('hidden');
+  };
+
+  async function logout() {
+    await sb.auth.signOut();
+    window.location.href = 'register2.html';
+  }
+
+  window.togglePush = async function(checked) {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) return;
+    const toggle = document.getElementById('notifyToggle');
+
+    if (checked) {
+      const ok = await subscribeToPush(sb, session.user.id);
+      if (!ok) toggle.checked = false;
+    } else {
+      await unsubscribeFromPush(sb);
+    }
+  };
+
+  async function checkPushStatus() {
+    const subscribed = await isPushSubscribed();
+    document.getElementById('notifyToggle').checked = subscribed;
+  }
+  checkPushStatus();
+
+  load();
+</script>
+
+</body>
+</html>

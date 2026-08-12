@@ -22,11 +22,12 @@ module.exports = async (req, res) => {
       : leadType === 'partner' ? 'Заявка від партнера'
       : leadType === 'investor' ? 'Заявка інвестора'
       : leadType === 'support' ? 'Звернення в підтримку'
+      : leadType === 'feedback' ? 'Пропозиція / відгук'
       : 'Заявка на підбір авто';
 
     const sectionMap = {
       trade_in: 'leads', leasing: 'leads', car_selection: 'leads',
-      partner: 'partners', investor: 'investors', support: 'support'
+      partner: 'partners', investor: 'investors', support: 'support', feedback: 'support'
     };
     const section = sectionMap[leadType] || 'leads';
 
