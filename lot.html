@@ -139,8 +139,10 @@
 
     const status = lotStatus(car);
     const statusArea = document.getElementById('statusArea');
+    const inGraceWindow = car.ended_visible_until && new Date(car.ended_visible_until) > new Date();
     let statusHtml = '';
     if (status === 'awaiting') statusHtml = `<div class="status-msg awaiting">Торги ще не почались</div>`;
+    else if (status === 'reserve_not_met' && inGraceWindow) statusHtml = `<div class="status-msg reserve">Резерв не пройдено — але ще можна викупити за фіксованою ціною протягом доби</div>`;
     else if (status === 'reserve_not_met') statusHtml = `<div class="status-msg reserve">Резерв не пройдено — угода не відбулась</div>`;
     else if (status === 'sold') statusHtml = `<div class="status-msg sold">Торги завершено — лот продано</div>`;
     else if (car.reserve_price) {
@@ -166,18 +168,24 @@
 
     const bidForm = document.getElementById('bidForm');
     const buyoutBtn = document.getElementById('buyoutBtn');
-    if (status !== 'active') {
-      bidForm.classList.add('hidden');
-      buyoutBtn.classList.add('hidden');
-    } else {
+    if (status === 'active') {
       bidForm.classList.remove('hidden');
       document.getElementById('bidAmount').placeholder = `Від ${Number(bid + getBidStep(bid)).toLocaleString('uk-UA')}`;
       if (car.buyout_price) {
         buyoutBtn.classList.remove('hidden');
         buyoutBtn.textContent = `Купити зараз за ${Number(car.buyout_price).toLocaleString('uk-UA')} ${car.currency}`;
+        buyoutBtn.onclick = buyout;
       } else {
         buyoutBtn.classList.add('hidden');
       }
+    } else if (status === 'reserve_not_met' && inGraceWindow && car.buyout_price) {
+      bidForm.classList.add('hidden');
+      buyoutBtn.classList.remove('hidden');
+      buyoutBtn.textContent = `Викупити за фіксованою ціною ${Number(car.buyout_price).toLocaleString('uk-UA')} ${car.currency}`;
+      buyoutBtn.onclick = postAuctionBuyout;
+    } else {
+      bidForm.classList.add('hidden');
+      buyoutBtn.classList.add('hidden');
     }
 
     updateTimer();
@@ -262,6 +270,18 @@
 
     msgEl.textContent = 'Вітаємо, ви купили авто!';
     msgEl.style.color = 'green';
+    await loadCar();
+  }
+
+  async function postAuctionBuyout() {
+    const msgEl = document.getElementById('bidMsg') || document.getElementById('statusArea');
+    if (!currentUserId) { window.location.href = 'register2.html'; return; }
+    if (!confirm('Викупити це авто за фіксованою ціною зараз?')) return;
+
+    const { error } = await sb.rpc('post_auction_buyout', { p_car_id: parseInt(carId) });
+    if (error) { alert(error.message); return; }
+
+    alert('Вітаємо, ви викупили авто!');
     await loadCar();
   }
 

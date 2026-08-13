@@ -99,12 +99,10 @@
     let referredBy = null;
     let referredByPartner = null;
     if (refCode) {
-      const { data: referrer } = await sb.from('profiles').select('user_id').eq('referral_code', refCode.toUpperCase()).maybeSingle();
-      if (referrer) {
-        referredBy = referrer.user_id;
-      } else {
-        const { data: partnerReferrer } = await sb.from('partners').select('id').eq('referral_code', refCode.toUpperCase()).maybeSingle();
-        if (partnerReferrer) referredByPartner = partnerReferrer.id;
+      const { data: resolved } = await sb.rpc('resolve_referral_code', { code_input: refCode.toUpperCase() });
+      if (resolved && resolved[0]) {
+        referredBy = resolved[0].user_id;
+        referredByPartner = resolved[0].partner_id;
       }
     }
 

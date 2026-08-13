@@ -146,6 +146,7 @@
         } catch (rpcErr) {
           // не критично для показу лічильника — просто не інкрементуємо мовчки
         }
+        if (currentUserId) logCarView(sb, currentUserId, carId);
       }
       await loadViewsAndFavorites(displayViews);
     } catch (e) {

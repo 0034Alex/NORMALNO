@@ -565,12 +565,37 @@ async function ensureReferralCode(sbClient, userId) {
   return code;
 }
 
-/* ---------- Брендовані іконки соцмереж ---------- */
+/* ---------- Брендовані іконки соцмереж (спрощені, надійні) ---------- */
 const SOCIAL_SVG_ICONS = {
-  telegram: `<svg viewBox="0 0 240 240" width="100%" height="100%"><circle cx="120" cy="120" r="120" fill="#229ED9"/><path fill="#fff" d="M167 72l-23 109c-1.7 7.7-6.3 9.6-12.7 6l-35-25.8-17 16.4c-1.9 1.9-3.5 3.5-7.1 3.5l2.5-36 65.5-59.2c2.8-2.6-.6-4-4.4-1.4l-81 51-35-11c-7.6-2.4-7.7-7.6 1.6-11.2l137-52.8c6.3-2.3 11.8 1.5 9.6 11.5z"/></svg>`,
-  instagram: `<svg viewBox="0 0 240 240" width="100%" height="100%"><defs><linearGradient id="igGrad" x1="0%" y1="100%" x2="100%" y2="0%"><stop offset="0%" stop-color="#FFDC80"/><stop offset="25%" stop-color="#FCAF45"/><stop offset="50%" stop-color="#E1306C"/><stop offset="75%" stop-color="#C13584"/><stop offset="100%" stop-color="#833AB4"/></linearGradient></defs><rect width="240" height="240" rx="56" fill="url(#igGrad)"/><rect x="62" y="62" width="116" height="116" rx="32" fill="none" stroke="#fff" stroke-width="12"/><circle cx="120" cy="120" r="32" fill="none" stroke="#fff" stroke-width="12"/><circle cx="164" cy="76" r="8" fill="#fff"/></svg>`,
-  tiktok: `<svg viewBox="0 0 240 240" width="100%" height="100%"><rect width="240" height="240" rx="56" fill="#010101"/><path fill="#25F4EE" d="M146 52c6 20 20 33 43 35v25c-15 1-29-4-43-13v55c0 32-26 55-56 55-15 0-29-6-39-16 12 5 27 3 38-6 12-10 17-25 15-40l0-108h27z"/><path fill="#FE2C55" d="M139 52c6 20 20 33 43 35v25c-15 1-29-4-43-13v55c0 32-26 55-56 55-32 0-58-26-58-58 0-30 23-54 52-57v27c-14 3-25 15-25 30 0 17 14 31 31 31s31-14 31-31V52h25z"/><path fill="#fff" d="M143 52c6 20 20 33 43 35v25c-15 1-29-4-43-13v55c0 32-26 55-56 55-32 0-58-26-58-58 0-30 23-54 52-57v27c-14 3-25 15-25 30 0 17 14 31 31 31s31-14 31-31V52h25z" opacity="0"/></svg>`,
-  threads: `<svg viewBox="0 0 240 240" width="100%" height="100%"><rect width="240" height="240" rx="56" fill="#000"/><path fill="#fff" d="M122 55c-38 0-62 24-64 62h20c2-27 17-43 44-43 25 0 40 13 40 30 0 13-7 21-24 26l-19 5c-27 7-42 20-42 41 0 24 20 40 51 40 30 0 51-15 55-42h-20c-3 15-15 24-35 24-18 0-29-8-29-21 0-11 8-17 24-21l19-5c30-8 44-23 44-46 0-28-24-50-64-50z"/></svg>`,
-  youtube: `<svg viewBox="0 0 240 240" width="100%" height="100%"><rect width="240" height="240" rx="56" fill="#FF0000"/><path fill="#fff" d="M100 92l55 28-55 28z"/></svg>`,
-  website: `<svg viewBox="0 0 240 240" width="100%" height="100%"><circle cx="120" cy="120" r="120" fill="#8E00FF"/><circle cx="120" cy="120" r="70" fill="none" stroke="#fff" stroke-width="10"/><ellipse cx="120" cy="120" rx="30" ry="70" fill="none" stroke="#fff" stroke-width="8"/><line x1="50" y1="120" x2="190" y2="120" stroke="#fff" stroke-width="8"/></svg>`
+  telegram: `<svg viewBox="0 0 48 48" width="100%" height="100%"><circle cx="24" cy="24" r="24" fill="#26A5E4"/><path fill="#fff" d="M35 14.5L30.8 34.2c-.3 1.4-1.1 1.7-2.3 1.1l-6.3-4.6-3 2.9c-.3.3-.6.6-1.3.6l.5-6.6 12-10.8c.5-.5-.1-.7-.8-.3L14.8 25l-6.3-2c-1.4-.4-1.4-1.4.3-2.1l24.6-9.5c1.1-.4 2.1.3 1.6 2.1z"/></svg>`,
+  instagram: `<svg viewBox="0 0 48 48" width="100%" height="100%"><defs><linearGradient id="igGrad2" x1="0" y1="1" x2="1" y2="0"><stop offset="0%" stop-color="#FEDA75"/><stop offset="40%" stop-color="#D62976"/><stop offset="100%" stop-color="#4F5BD5"/></linearGradient></defs><rect width="48" height="48" rx="12" fill="url(#igGrad2)"/><rect x="13" y="13" width="22" height="22" rx="7" fill="none" stroke="#fff" stroke-width="2.5"/><circle cx="24" cy="24" r="6" fill="none" stroke="#fff" stroke-width="2.5"/><circle cx="32.5" cy="15.5" r="1.6" fill="#fff"/></svg>`,
+  tiktok: `<svg viewBox="0 0 48 48" width="100%" height="100%"><rect width="48" height="48" rx="12" fill="#000"/><path fill="#25F4EE" d="M28 10h4.2c.3 3 2.2 5.4 5.3 6v4.4c-2.1 0-4-.6-5.5-1.7v9c0 5.3-4.3 9.5-9.6 9.5-5.3 0-9.6-4.2-9.6-9.5s4.3-9.5 9.6-9.5c.5 0 1 0 1.4.1v4.5c-.5-.1-.9-.2-1.4-.2-2.7 0-4.9 2.2-4.9 4.9s2.2 5 4.9 5c2.7 0 5-2.1 5-4.9V10z"/><path fill="#FE2C55" d="M26.3 10h4.2c.3 3 2.2 5.4 5.3 6v4.4c-2.1 0-4-.6-5.5-1.7v9c0 5.3-4.3 9.5-9.6 9.5-2.4 0-4.6-.9-6.3-2.4 1.5.6 3.3.5 4.8-.4 2-1.1 3.2-3.2 3.2-5.5V10z"/></svg>`,
+  threads: `<svg viewBox="0 0 48 48" width="100%" height="100%"><rect width="48" height="48" rx="12" fill="#000"/><text x="24" y="33" font-size="26" font-weight="bold" text-anchor="middle" fill="#fff" font-family="Arial, sans-serif">@</text></svg>`,
+  youtube: `<svg viewBox="0 0 48 48" width="100%" height="100%"><rect width="48" height="48" rx="12" fill="#FF0000"/><polygon points="19,15 34,24 19,33" fill="#fff"/></svg>`,
+  website: `<svg viewBox="0 0 48 48" width="100%" height="100%"><rect width="48" height="48" rx="12" fill="#8E00FF"/><circle cx="24" cy="24" r="12" fill="none" stroke="#fff" stroke-width="2"/><ellipse cx="24" cy="24" rx="5" ry="12" fill="none" stroke="#fff" stroke-width="1.8"/><line x1="12" y1="24" x2="36" y2="24" stroke="#fff" stroke-width="1.8"/></svg>`
 };
+
+/* ---------- Лічильник встановлень PWA ---------- */
+window.addEventListener('appinstalled', async () => {
+  try {
+    if (window._sbClientForInstallLog) {
+      const { data: { session } } = await window._sbClientForInstallLog.auth.getSession();
+      await window._sbClientForInstallLog.from('pwa_installs').insert({ user_id: session ? session.user.id : null });
+    }
+  } catch (e) {}
+});
+
+function registerInstallTracking(sbClient) {
+  window._sbClientForInstallLog = sbClient;
+}
+
+/* ---------- Легка активність клієнта (сторінки + перегляди авто) ---------- */
+function logPageVisit(sbClient, userId, page) {
+  if (!userId) return;
+  sbClient.from('page_visits').insert({ user_id: userId, page }).then(() => {}).catch(() => {});
+}
+
+function logCarView(sbClient, userId, carId) {
+  if (!userId) return;
+  sbClient.from('car_views_log').insert({ user_id: userId, car_id: carId }).then(() => {}).catch(() => {});
+}

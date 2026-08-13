@@ -112,6 +112,7 @@
     { key: 'support', label: 'Підтримка' },
     { key: 'broadcast', label: 'Розсилка' },
     { key: 'stats', label: 'Статистика' },
+    { key: 'finance', label: 'Фінанси' },
     { key: 'content', label: 'Контент' }
   ];
   const ROLE_LABELS = { owner: 'Власник', administrator: 'Адміністратор', manager: 'Менеджер', accountant: 'Бухгалтер', pending: 'Очікує призначення' };
@@ -160,12 +161,12 @@
 
   const SECTION_ICONS = {
     dashboard: '📊', leads: '📋', partners: '🤝', listings: '🚗', auction: '🔨',
-    users: '👥', investors: '💼', support: '🎫', broadcast: '📢', stats: '📈', content: '📝', staff: '👤'
+    users: '👥', investors: '💼', support: '🎫', broadcast: '📢', stats: '📈', finance: '💰', content: '📝', staff: '👤'
   };
   const SECTION_LABELS = {
     dashboard: 'Dashboard', leads: 'Заявки', partners: 'Партнери', listings: 'Оголошення',
     auction: 'Аукціон', users: 'Користувачі', investors: 'Інвестори', support: 'Підтримка',
-    broadcast: 'Розсилка', stats: 'Статистика', content: 'Контент', staff: 'Персонал'
+    broadcast: 'Розсилка', stats: 'Статистика', finance: 'Фінанси', content: 'Контент', staff: 'Персонал'
   };
 
   function buildLayout() {
@@ -179,6 +180,7 @@
     if (hasPerm('investors')) tabs.push('investors');
     if (hasPerm('support')) tabs.push('support');
     if (hasPerm('broadcast')) tabs.push('broadcast');
+    if (hasPerm('finance')) tabs.push('finance');
     if (hasPerm('content')) tabs.push('content');
     if (myRole === 'owner') tabs.push('staff');
 
@@ -252,7 +254,7 @@
     const loaders = {
       dashboard: loadDashboardSection, leads: loadLeadsSection, partners: loadPartnersSection, listings: loadListingsSection,
       auction: loadAuctionSection, users: loadUsersSection, investors: loadInvestorsSection, support: loadSupportSection,
-      broadcast: loadBroadcastSection, content: loadContentSection, staff: loadStaffSection
+      broadcast: loadBroadcastSection, finance: loadFinanceSection, content: loadContentSection, staff: loadStaffSection
     };
     if (loaders[section]) loaders[section]();
   };
@@ -307,13 +309,14 @@
   }
 
   async function loadGeneralStats() {
-    const [{ count: totalActive }, { count: soldPlatform }, { count: soldOther }, { count: activeAuctions }, { count: totalUsers }, { count: totalPartners }] = await Promise.all([
+    const [{ count: totalActive }, { count: soldPlatform }, { count: soldOther }, { count: activeAuctions }, { count: totalUsers }, { count: totalPartners }, { count: pwaInstalls }] = await Promise.all([
       sb.from('cars').select('*', { count: 'exact', head: true }).eq('archived', false),
       sb.from('cars').select('*', { count: 'exact', head: true }).eq('sold', true).eq('sold_via', 'platform'),
       sb.from('cars').select('*', { count: 'exact', head: true }).eq('sold', true).neq('sold_via', 'platform'),
       sb.from('cars').select('*', { count: 'exact', head: true }).eq('listing_type', 'auction').eq('archived', false),
       sb.from('profiles').select('*', { count: 'exact', head: true }),
-      sb.from('partners').select('*', { count: 'exact', head: true }).eq('status', 'approved')
+      sb.from('partners').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
+      sb.from('pwa_installs').select('*', { count: 'exact', head: true })
     ]);
 
     const wrap = document.getElementById('generalStatsWrap');
@@ -328,6 +331,7 @@
         <div class="stat-box"><div class="stat-num">${soldOther || 0}</div><div class="stat-label">Продано самостійно</div></div>
         <div class="stat-box"><div class="stat-num">${totalUsers || 0}</div><div class="stat-label">Користувачів</div></div>
         <div class="stat-box"><div class="stat-num">${totalPartners || 0}</div><div class="stat-label">Партнерів</div></div>
+        <div class="stat-box"><div class="stat-num">${pwaInstalls || 0}</div><div class="stat-label">Встановлень застосунку (PWA)</div></div>
       </div>
       <p style="font-size:12px; color:#666; margin-top:16px; text-align:center;">Фінансова статистика зʼявиться після підключення платежів.</p>
     `;
@@ -520,10 +524,32 @@
   window.rejectPartnerAdmin = async function(id) { await sb.from('partners').update({ status: 'pending' }).eq('id', id); loadPartnersSection(); };
 
   /* ---------- ОГОЛОШЕННЯ ---------- */
+  let listingsFilter = 'sale';
+  let allListingsData = [];
+
   async function loadListingsSection() {
     const body = document.getElementById('sectionBody');
-    body.innerHTML = '<div id="listingsList">Завантаження...</div>';
-    const { data } = await sb.from('cars').select('*').eq('archived', false).order('created_at', { ascending: false }).limit(100);
+    body.innerHTML = `
+      <div class="tabs">
+        <div class="tab ${listingsFilter === 'sale' ? 'active' : ''}" id="lt_sale" onclick="setListingsFilter('sale')">Продаж</div>
+        <div class="tab ${listingsFilter === 'auction' ? 'active' : ''}" id="lt_auction" onclick="setListingsFilter('auction')">Аукціон</div>
+      </div>
+      <div id="listingsList">Завантаження...</div>
+    `;
+    const { data } = await sb.from('cars').select('*').eq('archived', false).order('created_at', { ascending: false }).limit(200);
+    allListingsData = data || [];
+    renderListings();
+  }
+
+  window.setListingsFilter = function(filter) {
+    listingsFilter = filter;
+    document.getElementById('lt_sale').classList.toggle('active', filter === 'sale');
+    document.getElementById('lt_auction').classList.toggle('active', filter === 'auction');
+    renderListings();
+  };
+
+  function renderListings() {
+    const data = allListingsData.filter(c => listingsFilter === 'auction' ? c.listing_type === 'auction' : c.listing_type !== 'auction');
     const list = document.getElementById('listingsList');
     if (!data || data.length === 0) { list.innerHTML = '<div class="empty">Немає активних оголошень</div>'; return; }
 
@@ -535,7 +561,7 @@
         <div class="card-details">${c.region || '—'} · ${c.is_urgent ? '🏷️ Термінове ' : ''}${c.is_hot ? '🔥 Гаряче' : ''}</div>
         <div class="card-time">${timeAgo(c.created_at)}</div>
         <div class="status-row">
-          <button class="status-btn" onclick="window.open('car.html?id=${c.id}', '_blank')">Переглянути</button>
+          <button class="status-btn" onclick="window.open('${c.listing_type === 'auction' ? 'lot.html' : 'car.html'}?id=${c.id}', '_blank')">Переглянути</button>
           <button class="status-btn active-new" onclick="unpublishListing(${c.id})">Зняти з публікації</button>
         </div>
       </div>
@@ -590,8 +616,8 @@
 
     list.innerHTML = data.map(u => `
       <div class="card">
-        <div class="card-title">${u.name || 'Без імені'}${u.blocked ? ' 🚫' : ''}${staffIds.has(u.user_id) ? ' 👤 (персонал)' : ''}</div>
-        <div class="card-details">📞 ${u.phone || '—'}\n📱 Telegram: ${u.telegram_username ? '@' + u.telegram_username : '—'}</div>
+        <div class="card-title" style="cursor:pointer; color:#8E00FF;" onclick="openUserDetail('${u.user_id}')">${u.name || 'Без імені'}${u.blocked ? ' 🚫' : ''}${staffIds.has(u.user_id) ? ' 👤 (персонал)' : ''} ›</div>
+        <div class="card-details">📞 ${u.phone || '—'}\n📱 Telegram: ${u.telegram_username ? '@' + u.telegram_username : '—'}\n🕐 Останній вхід: ${u.last_login_at ? timeAgo(u.last_login_at) : 'ніколи'}</div>
         <div class="status-row">
           <button class="status-btn ${u.blocked ? 'active-new' : ''}" onclick="toggleBlockUser('${u.user_id}', ${!u.blocked})">${u.blocked ? 'Розблокувати' : 'Заблокувати'}</button>
           <button class="status-btn active-new" onclick="deleteUserAccount('${u.user_id}')">Видалити назавжди</button>
@@ -600,6 +626,101 @@
       </div>
     `).join('');
   }
+
+  window.openUserDetail = async function(userId) {
+    const body = document.getElementById('sectionBody');
+    body.innerHTML = '<div class="empty">Завантаження картки клієнта...</div>';
+
+    const [
+      { data: profile }, { data: listings }, { data: auctionLots }, { data: wonLots },
+      { data: leads }, { data: favs }, { count: chatsCount }, { count: msgCount },
+      { data: refEvents }, { count: invitedCount }, { data: visits }, { data: viewedCarsLog }
+    ] = await Promise.all([
+      sb.from('profiles').select('*').eq('user_id', userId).maybeSingle(),
+      sb.from('cars').select('*').eq('user_id', userId).neq('listing_type', 'auction').order('created_at', { ascending: false }),
+      sb.from('cars').select('*').eq('user_id', userId).eq('listing_type', 'auction').order('created_at', { ascending: false }),
+      sb.from('cars').select('*').eq('current_bid_user_id', userId).eq('sold', true),
+      sb.from('leads').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
+      sb.from('favorites').select('*', { count: 'exact', head: true }).eq('user_id', userId),
+      sb.from('chats').select('*', { count: 'exact', head: true }).or(`buyer_id.eq.${userId},seller_id.eq.${userId}`),
+      sb.from('messages').select('*', { count: 'exact', head: true }).eq('sender_id', userId),
+      sb.from('referral_events').select('*').eq('referrer_user_id', userId),
+      sb.from('profiles').select('*', { count: 'exact', head: true }).eq('referred_by', userId),
+      sb.from('page_visits').select('page, created_at').eq('user_id', userId).order('created_at', { ascending: false }),
+      sb.from('car_views_log').select('car_id, created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(10)
+    ]);
+
+    const visitCounts = {};
+    (visits || []).forEach(v => { visitCounts[v.page] = (visitCounts[v.page] || 0) + 1; });
+    const PAGE_LABELS = { index: 'Головна', search: 'Пошук', auction: 'Аукціон' };
+
+    let viewedCarsHtml = '<div class="empty">Ще нічого не переглядав</div>';
+    if (viewedCarsLog && viewedCarsLog.length) {
+      const carIds = [...new Set(viewedCarsLog.map(v => v.car_id))];
+      const { data: viewedCarsData } = await sb.from('cars').select('id, brand, model, year').in('id', carIds);
+      const carMap = {};
+      (viewedCarsData || []).forEach(c => { carMap[c.id] = c; });
+      viewedCarsHtml = viewedCarsLog.map(v => {
+        const c = carMap[v.car_id];
+        return `<div class="card-details">${c ? `${c.brand} ${c.model}, ${c.year}` : 'Авто #' + v.car_id} · ${timeAgo(v.created_at)}</div>`;
+      }).join('');
+    }
+
+    let referredByName = '—';
+    if (profile && profile.referred_by) {
+      const { data: refP } = await sb.from('profiles').select('name').eq('user_id', profile.referred_by).maybeSingle();
+      referredByName = (refP && refP.name) || 'користувач';
+    }
+
+    const totalRefPoints = (refEvents || []).reduce((sum, e) => sum + Number(e.points), 0);
+    const soldListings = (listings || []).filter(c => c.sold).length;
+    const activeListings = (listings || []).filter(c => !c.archived).length;
+
+    body.innerHTML = `
+      <button class="status-btn" style="margin-bottom:14px;" onclick="loadUsersSection()">← Назад до списку</button>
+
+      <div class="card">
+        <div class="card-title" style="font-size:18px;">${profile ? (profile.name || 'Без імені') : '—'}</div>
+        <div class="card-details">📞 ${profile ? (profile.phone || '—') : '—'}\n📱 Telegram: ${profile && profile.telegram_username ? '@' + profile.telegram_username : '—'}\n🕐 Останній вхід: ${profile && profile.last_login_at ? new Date(profile.last_login_at).toLocaleString('uk-UA') : 'ніколи'}\n📅 Реєстрація: ${profile ? new Date(profile.created_at).toLocaleDateString('uk-UA') : '—'}</div>
+      </div>
+
+      <div class="stats-grid" style="margin-top:14px;">
+        <div class="stat-box"><div class="stat-num">${activeListings}</div><div class="stat-label">Активних оголошень</div></div>
+        <div class="stat-box"><div class="stat-num">${soldListings}</div><div class="stat-label">Продано</div></div>
+        <div class="stat-box"><div class="stat-num">${(auctionLots || []).length}</div><div class="stat-label">Аукціонних лотів</div></div>
+        <div class="stat-box"><div class="stat-num">${(wonLots || []).length}</div><div class="stat-label">Виграно аукціонів</div></div>
+        <div class="stat-box"><div class="stat-num">${favs ? favs.count || 0 : 0}</div><div class="stat-label">В обраному</div></div>
+        <div class="stat-box"><div class="stat-num">${chatsCount || 0}</div><div class="stat-label">Чатів (${msgCount || 0} повід.)</div></div>
+      </div>
+
+      <div class="section-title" style="margin-top:20px;">🎁 Реферальна програма</div>
+      <div class="card-details" style="margin-bottom:14px;">Запросив: ${referredByName}\nЗапросив сам: ${invitedCount || 0} людей\nЗароблено балів: ${totalRefPoints}</div>
+
+      <div class="section-title">📊 Активність</div>
+      <div class="card-details" style="margin-bottom:8px;">Відвідувань сторінок: ${(visits || []).length}${Object.keys(visitCounts).length ? ' (' + Object.entries(visitCounts).map(([k, v]) => `${PAGE_LABELS[k] || k}: ${v}`).join(', ') + ')' : ''}</div>
+      <div class="card-details" style="margin-bottom:14px; font-weight:bold; font-size:12px; color:#666;">Останні переглянуті авто:</div>
+      ${viewedCarsHtml}
+
+      <div class="section-title" style="margin-top:20px;">📋 Заявки клієнта (${(leads || []).length})</div>
+      ${(leads || []).length === 0 ? '<div class="empty">Заявок немає</div>' : (leads || []).map(l => `
+        <div class="card">
+          <div class="card-type">${TYPE_LABELS[l.type] || l.type}</div>
+          <div class="card-details">${linkify(l.details)}</div>
+          <div class="card-time">${timeAgo(l.created_at)} · статус: ${l.status}</div>
+        </div>
+      `).join('')}
+
+      <div class="section-title">🚗 Оголошення (${(listings || []).length + (auctionLots || []).length})</div>
+      ${[...(listings || []), ...(auctionLots || [])].length === 0 ? '<div class="empty">Оголошень немає</div>' : [...(listings || []), ...(auctionLots || [])].map(c => `
+        <div class="card">
+          <div class="card-type">${c.listing_type === 'auction' ? 'Аукціон' : 'Продаж'}${c.sold ? ' · продано' : ''}${c.archived ? ' · архів' : ''}</div>
+          <div class="card-title">${c.brand} ${c.model}, ${c.year}</div>
+          <div class="card-sub">${Number(c.price || c.start_price || 0).toLocaleString('uk-UA')} ${c.currency || ''}</div>
+          <div class="card-time">${timeAgo(c.created_at)}</div>
+        </div>
+      `).join('')}
+    `;
+  };
 
   window.makeStaff = async function(userId) {
     if (!confirm('Призначити цього користувача співробітником? Далі перейдіть у розділ "Персонал", щоб дати конкретну роль і права.')) return;
@@ -667,6 +788,39 @@
     document.getElementById('broadcastTitle').value = '';
     document.getElementById('broadcastBody').value = '';
   };
+
+  /* ---------- ФІНАНСИ (заготовка структури, чекає реальних платежів) ---------- */
+  async function loadFinanceSection() {
+    const body = document.getElementById('sectionBody');
+    body.innerHTML = '<div class="empty">Рахуємо...</div>';
+
+    const { count: soldPlatform } = await sb.from('cars').select('*', { count: 'exact', head: true }).eq('sold', true).eq('sold_via', 'platform');
+    const { count: soldOther } = await sb.from('cars').select('*', { count: 'exact', head: true }).eq('sold', true).neq('sold_via', 'platform');
+    const { count: leasingSigned } = await sb.from('leads').select('*', { count: 'exact', head: true }).eq('type', 'leasing').eq('referral_bonus_given', true);
+    const { data: refEvents } = await sb.from('referral_events').select('points');
+    const totalRefPointsIssued = (refEvents || []).reduce((sum, e) => sum + Number(e.points), 0);
+
+    body.innerHTML = `
+      <p style="font-size:13px; color:#666; margin-bottom:16px; line-height:1.5;">Цей розділ показує реальні показники, які вже можна рахувати зараз, і структуру для майбутніх фінансових метрик — вони запрацюють одразу після підключення платежів.</p>
+
+      <div class="section-title">Доступно вже зараз</div>
+      <div class="stats-grid">
+        <div class="stat-box"><div class="stat-num">${soldPlatform || 0}</div><div class="stat-label">Продано через NORMALNO</div></div>
+        <div class="stat-box"><div class="stat-num">${soldOther || 0}</div><div class="stat-label">Продано самостійно</div></div>
+        <div class="stat-box"><div class="stat-num">${leasingSigned || 0}</div><div class="stat-label">Підписано лізингових угод</div></div>
+        <div class="stat-box"><div class="stat-num">${totalRefPointsIssued}</div><div class="stat-label">Нараховано реферальних балів</div></div>
+      </div>
+
+      <div class="section-title" style="margin-top:24px;">Чекає підключення платежів</div>
+      <div class="stats-grid">
+        <div class="stat-box"><div class="stat-num">$0</div><div class="stat-label">Дохід сьогодні</div></div>
+        <div class="stat-box"><div class="stat-num">$0</div><div class="stat-label">Дохід за місяць</div></div>
+        <div class="stat-box"><div class="stat-num">$0</div><div class="stat-label">Витрати за місяць</div></div>
+        <div class="stat-box"><div class="stat-num">$0</div><div class="stat-label">Прибуток</div></div>
+      </div>
+      <p style="font-size:12px; color:#999; margin-top:10px;">Розбивка доходу за джерелом (платні розміщення / VIP / комісія аукціону / підписки партнерів), витрати вручну, заборгованості, історія транзакцій по кожному клієнту — з'являться разом з підключенням реальної оплати.</p>
+    `;
+  }
 
   /* ---------- КОНТЕНТ (заглушка) ---------- */
   function loadContentSection() {
