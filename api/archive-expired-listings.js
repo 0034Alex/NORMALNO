@@ -13,19 +13,20 @@ module.exports = async (req, res) => {
       { method: 'PATCH', headers: { ...headers, Prefer: 'return=minimal' }, body: JSON.stringify({ archived: true, archived_at: new Date().toISOString() }) }
     );
 
-    // 2) Завершені аукціони (час вийшов), ще не в архіві — обробляємо по одному, щоб визначити переможця
+    // 2) Аукціони, що ЩОЙНО завершились — визначаємо результат, лишаємо видимими 24 години
     const now = new Date().toISOString();
-    const endedResp = await fetch(
-      `${SUPABASE_URL}/rest/v1/cars?listing_type=eq.auction&archived=eq.false&auction_ends_at=lt.${now}&select=*`,
+    const justEndedResp = await fetch(
+      `${SUPABASE_URL}/rest/v1/cars?listing_type=eq.auction&archived=eq.false&auction_ends_at=lt.${now}&ended_visible_until=is.null&select=*`,
       { headers }
     );
-    const endedLots = await endedResp.json();
+    const justEndedLots = await justEndedResp.json();
 
-    for (const lot of endedLots || []) {
+    for (const lot of justEndedLots || []) {
       const reserveMet = !lot.reserve_price || (lot.current_bid || 0) >= lot.reserve_price;
       const won = lot.bid_count > 0 && reserveMet && lot.current_bid_user_id;
 
-      const updateData = { archived: true, archived_at: new Date().toISOString() };
+      const endedVisibleUntil = new Date(new Date(lot.auction_ends_at).getTime() + 24 * 60 * 60 * 1000).toISOString();
+      const updateData = { ended_visible_until: endedVisibleUntil };
       if (won) {
         updateData.sold = true;
         updateData.sold_via = 'auction';
@@ -42,6 +43,19 @@ module.exports = async (req, res) => {
           url: `/lot.html?id=${lot.id}`
         }).catch(() => {});
       }
+    }
+
+    // 2б) Лоти де 24-годинне вікно вже минуло — тепер архівуємо остаточно
+    const expiredGraceResp = await fetch(
+      `${SUPABASE_URL}/rest/v1/cars?listing_type=eq.auction&archived=eq.false&ended_visible_until=lt.${now}&select=id`,
+      { headers }
+    );
+    const expiredGraceLots = await expiredGraceResp.json();
+    for (const lot of expiredGraceLots || []) {
+      await fetch(`${SUPABASE_URL}/rest/v1/cars?id=eq.${lot.id}`, {
+        method: 'PATCH', headers: { ...headers, Prefer: 'return=minimal' },
+        body: JSON.stringify({ archived: true, archived_at: new Date().toISOString() })
+      });
     }
 
     // 3) Нагадування за ~10 хвилин до завершення торгів, ще не надіслане
@@ -70,7 +84,7 @@ module.exports = async (req, res) => {
       });
     }
 
-    res.status(200).json({ ok: true, ended: (endedLots || []).length, soon: (soonLots || []).length });
+    res.status(200).json({ ok: true, justEnded: (justEndedLots || []).length, archived: (expiredGraceLots || []).length, soon: (soonLots || []).length });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
