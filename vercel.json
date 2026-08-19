@@ -1,6 +1,6 @@
 {
   "crons": [
-    { "path": "/api/check-auction-starts", "schedule": "*/10 * * * *" },
-    { "path": "/api/archive-expired-listings", "schedule": "*/5 * * * *" }
+    { "path": "/api/check-auction-starts", "schedule": "0 3 * * *" },
+    { "path": "/api/archive-expired-listings", "schedule": "0 4 * * *" }
   ]
 }
