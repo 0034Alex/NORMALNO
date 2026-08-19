@@ -106,7 +106,8 @@
       const endsAt = new Date(startsAt.getTime() + duration * 24 * 60 * 60 * 1000);
       await sb.from('cars').update({
         archived: false, sold: false, current_bid: null, current_bid_user_id: null, bid_count: 0,
-        auction_starts_at: startsAt.toISOString(), auction_ends_at: endsAt.toISOString(), start_notified: false
+        auction_starts_at: startsAt.toISOString(), auction_ends_at: endsAt.toISOString(),
+        start_notified: false, ending_soon_notified: false, ended_visible_until: null
       }).eq('id', carId);
     } else {
       await sb.from('cars').update({

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#8E00FF">
+<link rel="apple-touch-icon" href="/icons/icon-180.png">
+<title>NORMALNO — Редагувати лот</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="car-data.js?v=1786440586"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; background: #fff; margin: 0; padding: 20px; padding-bottom: 40px; }
+  .back { color: #FF7A00; text-decoration: none; font-size: 14px; display: inline-block; margin-bottom: 10px; }
+  .logo { font-size: 20px; font-weight: bold; color: #8E00FF; margin-bottom: 20px; }
+  label { font-size: 12px; color: #999; display: block; margin-bottom: 4px; }
+  input, textarea, select { width: 100%; padding: 14px; margin-bottom: 14px; border: 1px solid #ddd; border-radius: 10px; font-size: 15px; font-family: Arial, sans-serif; }
+  textarea { min-height: 100px; resize: vertical; }
+  .row { display: flex; gap: 10px; }
+  .row input { flex: 1; }
+  #photoPreview { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  #photoPreview img { width: 70px; height: 70px; object-fit: cover; border-radius: 8px; }
+  .hint { font-size: 11px; color: #999; margin: -6px 0 12px; }
+  button.main { width: 100%; padding: 15px; background: #8E00FF; color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; }
+  .msg { text-align: center; margin-top: 12px; font-size: 14px; }
+</style>
+</head>
+<body>
+
+<a href="my-auctions.html" class="back">&larr; Назад до моїх аукціонів</a>
+<div class="logo">Редагувати лот</div>
+
+<label>Стартова ціна</label>
+<div class="row">
+  <input type="number" id="startPrice">
+  <select id="currency">
+    <option value="USD">$</option>
+    <option value="EUR">€</option>
+    <option value="UAH">грн</option>
+  </select>
+</div>
+<label>Резервна ціна (необов'язково)</label>
+<input type="number" id="reservePrice" placeholder="Мінімум, нижче якого не продавати">
+<label>Блиц-ціна миттєвого викупу (необов'язково)</label>
+<input type="number" id="buyoutPrice" placeholder="Сума миттєвого викупу">
+<label>Тривалість торгів</label>
+<select id="duration">
+  <option value="3">3 дні</option>
+  <option value="5">5 днів</option>
+  <option value="7">7 днів</option>
+</select>
+
+<label>Опис</label>
+<textarea id="description"></textarea>
+
+<label>Фото (додайте нові — замінять поточні)</label>
+<input type="file" id="photoFiles" accept="image/*" multiple>
+<div class="hint">До 10 фото</div>
+<div id="photoPreview"></div>
+
+<button class="main" onclick="saveLot()">Зберегти</button>
+<div class="msg" id="msg"></div>
+
+<script>
+  const supabaseUrl = 'https://ipzvgqyjtqofthbpkdsd.supabase.co';
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwenZncXlqdHFvZnRoYnBrZHNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMTEwNjEsImV4cCI6MjEwMTU4NzA2MX0.jbbpKpHaD6S9SJMIbxcwb12ggBCv44J_-s4OQ8ESNfA';
+  const sb = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+  const params = new URLSearchParams(window.location.search);
+  const carId = params.get('id');
+  let sessionUserId = null;
+  let existingPhotos = [];
+
+  async function load() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { window.location.href = 'register2.html'; return; }
+    sessionUserId = session.user.id;
+
+    const { data: car, error } = await sb.from('cars').select('*').eq('id', carId).single();
+    if (error || !car || car.user_id !== sessionUserId || car.listing_type !== 'auction') {
+      document.body.innerHTML = '<div style="text-align:center; margin-top:60px; color:#999;">Лот не знайдено або немає доступу</div>';
+      return;
+    }
+    if ((car.bid_count || 0) > 0) {
+      document.body.innerHTML = '<div style="text-align:center; margin-top:60px; color:#999;">На цей лот вже зроблені ставки — редагування недоступне.<br><br><a href="my-auctions.html" style="color:#8E00FF;">← Назад</a></div>';
+      return;
+    }
+
+    document.getElementById('startPrice').value = car.start_price || '';
+    document.getElementById('currency').value = car.currency || 'USD';
+    document.getElementById('reservePrice').value = car.reserve_price || '';
+    document.getElementById('buyoutPrice').value = car.buyout_price || '';
+    document.getElementById('duration').value = car.auction_duration_days || 5;
+    document.getElementById('description').value = car.description || '';
+
+    existingPhotos = carPhotos(car);
+    document.getElementById('photoPreview').innerHTML = existingPhotos.map(p => `<img src="${p}">`).join('');
+  }
+
+  document.getElementById('photoFiles').addEventListener('change', function() {
+    const preview = document.getElementById('photoPreview');
+    preview.innerHTML = '';
+    const files = Array.from(this.files).slice(0, 10);
+    if (this.files.length > 10) alert('Можна завантажити максимум 10 фото.');
+    files.forEach(file => {
+      const img = document.createElement('img');
+      img.src = URL.createObjectURL(file);
+      preview.appendChild(img);
+    });
+  });
+
+  async function uploadNewPhotos() {
+    const files = Array.from(document.getElementById('photoFiles').files).slice(0, 10);
+    if (files.length === 0) return null;
+    const urls = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const ext = file.name.split('.').pop();
+      const path = `${sessionUserId}/${Date.now()}-${i}.${ext}`;
+      const { error } = await sb.storage.from('car-photos').upload(path, file);
+      if (error) continue;
+      const { data } = sb.storage.from('car-photos').getPublicUrl(path);
+      urls.push(data.publicUrl);
+    }
+    return urls;
+  }
+
+  async function saveLot() {
+    const msg = document.getElementById('msg');
+    const startPrice = parseFloat(document.getElementById('startPrice').value);
+
+    if (!startPrice) {
+      msg.textContent = 'Вкажіть стартову ціну';
+      msg.style.color = 'red';
+      return;
+    }
+
+    msg.textContent = 'Зберігаємо...';
+    msg.style.color = '#8E00FF';
+
+    const updateData = {
+      start_price: startPrice,
+      currency: document.getElementById('currency').value,
+      reserve_price: parseFloat(document.getElementById('reservePrice').value) || null,
+      buyout_price: parseFloat(document.getElementById('buyoutPrice').value) || null,
+      auction_duration_days: parseInt(document.getElementById('duration').value),
+      description: document.getElementById('description').value
+    };
+
+    const newPhotos = await uploadNewPhotos();
+    if (newPhotos && newPhotos.length > 0) {
+      updateData.photos = newPhotos;
+      updateData.photo_url = newPhotos[0];
+    }
+
+    const { error } = await sb.from('cars').update(updateData).eq('id', carId);
+
+    if (error) {
+      msg.textContent = error.message;
+      msg.style.color = 'red';
+      return;
+    }
+
+    msg.textContent = 'Збережено!';
+    msg.style.color = 'green';
+    setTimeout(() => { window.location.href = 'my-auctions.html'; }, 1000);
+  }
+
+  load();
+</script>
+
+</body>
+</html>

@@ -32,7 +32,9 @@
   .listing-badge { font-size: 10px; font-weight: bold; padding: 3px 8px; border-radius: 10px; }
   .badge-auction { background: #f5e6ff; color: #8E00FF; }
   .badge-sold { background: #eafbe9; color: #1a8f2a; }
-  .sold-btn { width: 100%; padding: 8px; background: #fff; border: 1px solid #8E00FF; color: #8E00FF; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; }
+  .sold-btn { flex: 1; padding: 8px; background: #fff; border: 1px solid #8E00FF; color: #8E00FF; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; }
+  .edit-btn { flex: 1; padding: 8px; background: #fff0e0; border: none; color: #FF7A00; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; }
+  .listing-actions { display: flex; gap: 6px; margin-top: 8px; }
 </style>
 </head>
 <body>
@@ -83,11 +85,25 @@
                 <span class="listing-badge badge-auction">Аукціон · ${car.bid_count || 0} ставок</span>
               </div>
             </div>
+            <div class="listing-actions">
+              ${(car.bid_count || 0) === 0
+                ? `<button class="edit-btn" onclick="window.location.href='edit-auction.html?id=${car.id}'">Редагувати</button>
+                   <button class="sold-btn" style="border-color:#cc0000; color:#cc0000;" onclick="deleteLot(${car.id})">Видалити</button>`
+                : `<span style="font-size:11px; color:#999;">Вже є ставки — редагування недоступне</span>`
+              }
+            </div>
           </div>
         </div>
       `;
     }).join('');
   }
+
+  window.deleteLot = async function(carId) {
+    if (!confirm('Видалити цей лот назавжди? Це незворотньо.')) return;
+    const { error } = await sb.from('cars').delete().eq('id', carId);
+    if (error) { alert('Помилка: ' + error.message); return; }
+    load();
+  };
 
   load();
 </script>
