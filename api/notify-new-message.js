@@ -1,4 +1,4 @@
-const { sendPushToUsers } = require('./push-helper');
+const { sendPushToUsers } = require('../lib/push-helper');
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {

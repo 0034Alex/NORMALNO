@@ -1,4 +1,4 @@
-const { sendPushToAll } = require('./push-helper');
+const { sendPushToAll } = require('../lib/push-helper');
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
