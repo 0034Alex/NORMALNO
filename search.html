@@ -279,6 +279,7 @@
     const { data: cars } = await sb.from('cars').select('*').neq('listing_type', 'auction').eq('archived', false).order('created_at', { ascending: false });
     allCars = cars || [];
     updateCount();
+    initCompareWidget();
   }
 
   window.toggleFavorite = async function(carId) {

@@ -228,6 +228,7 @@ function renderCarCard(car, currentUserId, favoritedIds) {
         </div>
         ${badges.length ? `<div class="ncard-badges">${badges.map(b => `<span class="ncard-badge">${b}</span>`).join('')}</div>` : ''}
         <div class="ncard-time">🕐 ${timeAgo(car.created_at)}</div>
+        <button class="ncard-compare-btn ${isInCompareList(car.id) ? 'active' : ''}" data-compare-id="${car.id}" onclick="event.stopPropagation(); toggleCompare(${car.id})">⚖️ ${isInCompareList(car.id) ? 'У порівнянні' : 'Порівняти'}</button>
       </div>
     </div>
   `;
@@ -598,4 +599,90 @@ function logPageVisit(sbClient, userId, page) {
 function logCarView(sbClient, userId, carId) {
   if (!userId) return;
   sbClient.from('car_views_log').insert({ user_id: userId, car_id: carId }).then(() => {}).catch(() => {});
+}
+
+/* ---------- Порівняння авто (до 3 одночасно, зберігається на пристрої) ---------- */
+const COMPARE_MAX = 3;
+const COMPARE_KEY = 'normalno_compare_list';
+
+function getCompareList() {
+  try { return JSON.parse(localStorage.getItem(COMPARE_KEY) || '[]'); } catch (e) { return []; }
+}
+
+function isInCompareList(carId) {
+  return getCompareList().includes(carId);
+}
+
+function saveCompareList(list) {
+  localStorage.setItem(COMPARE_KEY, JSON.stringify(list));
+  updateCompareWidget();
+}
+
+window.toggleCompare = function(carId) {
+  let list = getCompareList();
+  if (list.includes(carId)) {
+    list = list.filter(id => id !== carId);
+  } else {
+    if (list.length >= COMPARE_MAX) {
+      alert(`Можна порівняти максимум ${COMPARE_MAX} авто. Спочатку приберіть одне зі списку порівняння, щоб додати нове.`);
+      return;
+    }
+    list.push(carId);
+  }
+  saveCompareList(list);
+
+  document.querySelectorAll(`[data-compare-id="${carId}"]`).forEach(btn => {
+    const active = list.includes(carId);
+    btn.classList.toggle('active', active);
+    btn.textContent = active ? '⚖️ У порівнянні' : '⚖️ Порівняти';
+  });
+};
+
+function injectCompareStyles() {
+  if (document.getElementById('compare-widget-styles')) return;
+  const style = document.createElement('style');
+  style.id = 'compare-widget-styles';
+  style.textContent = `
+    .ncard-compare-btn {
+      width: 100%; margin-top: 8px; padding: 8px; border-radius: 8px; border: 1px solid #ddd;
+      background: #fff; color: #666; font-size: 11px; font-weight: bold; cursor: pointer;
+    }
+    .ncard-compare-btn.active { background: #f5e6ff; border-color: #8E00FF; color: #8E00FF; }
+    #compareFab {
+      position: fixed; right: 16px; bottom: 90px; width: 56px; height: 56px; border-radius: 50%;
+      background: #fff; box-shadow: 0 4px 14px rgba(0,0,0,0.2); display: none; align-items: center;
+      justify-content: center; z-index: 400; cursor: pointer; padding: 8px;
+    }
+    #compareFab img { width: 100%; height: 100%; object-fit: contain; }
+    .compare-fab-badge {
+      position: absolute; top: -4px; right: -4px; background: #FF7A00; color: #fff; font-size: 11px;
+      font-weight: bold; min-width: 20px; height: 20px; border-radius: 10px; display: flex;
+      align-items: center; justify-content: center; padding: 0 4px;
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+function initCompareWidget() {
+  if (document.getElementById('compareFab')) { updateCompareWidget(); return; }
+  injectCompareStyles();
+  const fab = document.createElement('div');
+  fab.id = 'compareFab';
+  fab.innerHTML = `<img src="/logo-watermark.png" alt=""><span class="compare-fab-badge" id="compareFabBadge"></span>`;
+  fab.onclick = () => { window.location.href = 'compare.html'; };
+  document.body.appendChild(fab);
+  updateCompareWidget();
+}
+
+function updateCompareWidget() {
+  const fab = document.getElementById('compareFab');
+  if (!fab) return;
+  const count = getCompareList().length;
+  const badge = document.getElementById('compareFabBadge');
+  if (count > 0) {
+    fab.style.display = 'flex';
+    if (badge) badge.textContent = count;
+  } else {
+    fab.style.display = 'none';
+  }
 }

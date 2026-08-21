@@ -144,6 +144,7 @@
   function render(cars) {
     const feed = document.getElementById('feed');
     feed.innerHTML = cars.map(car => renderCarCard(car, currentUserId, favoritedIds)).join('');
+    initCompareWidget();
   }
 
   window.toggleFavorite = async function(carId) {

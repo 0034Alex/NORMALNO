@@ -321,6 +321,7 @@
     favoritedIds = new Set((favs || []).map(f => f.car_id));
 
     autoRequestPushOnInstall(sb, currentUserId);
+    initCompareWidget();
     registerInstallTracking(sb);
     sb.from('profiles').update({ last_login_at: new Date().toISOString() }).eq('user_id', currentUserId).then(() => {});
     logPageVisit(sb, currentUserId, 'index');

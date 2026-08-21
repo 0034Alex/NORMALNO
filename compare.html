@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#8E00FF">
+<link rel="apple-touch-icon" href="/icons/icon-180.png">
+<title>NORMALNO — Порівняння авто</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="car-data.js?v=1786440586"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; background: #fff; margin: 0; padding: 20px; padding-bottom: 40px; }
+  .back { color: #FF7A00; text-decoration: none; font-size: 14px; display: inline-block; margin-bottom: 10px; }
+  .logo { font-size: 20px; font-weight: bold; color: #8E00FF; margin-bottom: 4px; }
+  .subtitle { color: #999; font-size: 13px; margin-bottom: 20px; }
+  .empty { text-align: center; color: #999; margin-top: 60px; }
+
+  .compare-scroll { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 10px; }
+  .compare-col { flex: 0 0 78vw; max-width: 300px; border: 1px solid #eee; border-radius: 14px; overflow: hidden; }
+  .compare-photo { width: 100%; aspect-ratio: 4/3; background: #f2f2f2; position: relative; }
+  .compare-photo img { width: 100%; height: 100%; object-fit: cover; }
+  .compare-remove {
+    position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; border-radius: 50%;
+    background: rgba(255,255,255,0.9); display: flex; align-items: center; justify-content: center;
+    font-size: 14px; color: #cc0000; cursor: pointer; border: none;
+  }
+  .compare-title { font-weight: bold; font-size: 15px; padding: 10px 12px 2px; }
+  .compare-price { color: #8E00FF; font-weight: bold; font-size: 16px; padding: 0 12px 10px; }
+
+  .compare-row { display: flex; border-top: 1px solid #f5f5f5; overflow-x: hidden; }
+  .compare-cell { flex: 0 0 78vw; max-width: 300px; padding: 8px 12px; font-size: 13px; color: #444; }
+  .compare-label { font-size: 11px; color: #999; margin-bottom: 2px; }
+  .compare-desc { padding: 10px 12px; font-size: 13px; color: #444; line-height: 1.4; }
+
+  .clear-btn { display: block; margin: 20px auto 0; padding: 12px 24px; background: #fff0f0; color: #cc0000; border: none; border-radius: 10px; font-weight: bold; font-size: 13px; cursor: pointer; }
+  .hint { font-size: 11px; color: #bbb; text-align: center; margin-top: 8px; }
+</style>
+</head>
+<body>
+
+<a href="index.html" class="back">&larr; Назад на головну</a>
+<div class="logo">⚖️ Порівняння авто</div>
+<div class="subtitle">Гортайте вбік, щоб побачити всі авто</div>
+
+<div id="content">Завантаження...</div>
+
+<script>
+  const supabaseUrl = 'https://ipzvgqyjtqofthbpkdsd.supabase.co';
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwenZncXlqdHFvZnRoYnBrZHNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMTEwNjEsImV4cCI6MjEwMTU4NzA2MX0.jbbpKpHaD6S9SJMIbxcwb12ggBCv44J_-s4OQ8ESNfA';
+  const sb = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+  const SPEC_ROWS = [
+    ['Рік випуску', c => c.year || '—'],
+    ['Пробіг', c => c.mileage ? Number(c.mileage).toLocaleString('uk-UA') + ' км' : '—'],
+    ['Двигун', c => c.engine_volume ? c.engine_volume + ' л' : '—'],
+    ['Потужність', c => c.power_hp ? c.power_hp + ' к.с.' : '—'],
+    ['Паливо', c => FUEL_LABELS[c.fuel_type] || '—'],
+    ['Коробка', c => TRANSMISSION_LABELS[c.transmission] || '—'],
+    ['Привід', c => ({ front: 'Передній', rear: 'Задній', all: 'Повний' }[c.drive_type]) || '—'],
+    ['Кузов', c => c.body_type || '—'],
+    ['Колір', c => c.color || '—'],
+    ['Регіон', c => c.region || '—'],
+    ['Стан', c => CONDITION_LABELS[c.condition] || '—'],
+    ['Обмін', c => c.exchange_possible ? 'Можливий' : 'Ні'],
+    ['Розмитнення', c => c.customs_cleared ? 'Так' : 'Ні']
+  ];
+
+  async function load() {
+    await ensureRatesLoaded();
+    const ids = getCompareList();
+    const content = document.getElementById('content');
+
+    if (ids.length === 0) {
+      content.innerHTML = '<div class="empty">Список порівняння порожній.<br>Додайте авто кнопкою "Порівняти" на карточці.</div>';
+      return;
+    }
+
+    const { data: cars } = await sb.from('cars').select('*').in('id', ids);
+    if (!cars || cars.length === 0) {
+      content.innerHTML = '<div class="empty">Авто не знайдено</div>';
+      return;
+    }
+
+    const orderedCars = ids.map(id => cars.find(c => c.id === id)).filter(Boolean);
+
+    const photoRow = orderedCars.map(c => {
+      const photo = carPhotos(c, 1)[0];
+      return `
+        <div class="compare-col">
+          <div class="compare-photo">
+            ${photo ? `<img src="${photo}">` : ''}
+            <button class="compare-remove" onclick="removeFromCompare(${c.id})">✕</button>
+          </div>
+          <div class="compare-title">${c.brand} ${c.model}</div>
+          <div class="compare-price">${Number(c.price || 0).toLocaleString('uk-UA')} ${c.currency || ''}</div>
+        </div>
+      `;
+    }).join('');
+
+    const specRows = SPEC_ROWS.map(([label, fn]) => `
+      <div class="compare-row">
+        ${orderedCars.map(c => `<div class="compare-cell"><div class="compare-label">${label}</div>${fn(c)}</div>`).join('')}
+      </div>
+    `).join('');
+
+    const descRow = `
+      <div class="compare-row">
+        ${orderedCars.map(c => `<div class="compare-cell compare-desc"><div class="compare-label">Опис</div>${c.description || '—'}</div>`).join('')}
+      </div>
+    `;
+
+    content.innerHTML = `
+      <div class="compare-scroll" id="compareScrollTop">${photoRow}</div>
+      <div id="compareScrollBottom">
+        ${specRows}
+        ${descRow}
+      </div>
+      <button class="clear-btn" onclick="clearCompare()">Очистити порівняння</button>
+      <div class="hint">Гортайте вбік — все синхронізовано</div>
+    `;
+
+    const top = document.getElementById('compareScrollTop');
+    const bottomRows = document.querySelectorAll('.compare-row');
+    top.addEventListener('scroll', () => {
+      bottomRows.forEach(row => { row.scrollLeft = top.scrollLeft; });
+    });
+    bottomRows.forEach(row => {
+      row.style.overflowX = 'auto';
+      row.addEventListener('scroll', () => {
+        top.scrollLeft = row.scrollLeft;
+        bottomRows.forEach(r => { if (r !== row) r.scrollLeft = row.scrollLeft; });
+      });
+    });
+  }
+
+  window.removeFromCompare = function(carId) {
+    const list = getCompareList().filter(id => id !== carId);
+    saveCompareList(list);
+    load();
+  };
+
+  window.clearCompare = function() {
+    saveCompareList([]);
+    load();
+  };
+
+  load();
+</script>
+
+</body>
+</html>

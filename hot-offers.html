@@ -90,6 +90,7 @@
       return;
     }
     feed.innerHTML = cars.map(car => renderCarCard(car, currentUserId, favoritedIds)).join('');
+    initCompareWidget();
   }
 
   window.toggleFavorite = async function(carId) {
