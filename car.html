@@ -16,19 +16,27 @@
 <script src="car-data.js?v=1786440586"></script>
 <style>
   * { box-sizing: border-box; }
+  html, body { overflow-x: hidden; max-width: 100vw; }
   body { font-family: Arial, sans-serif; background: #fff; margin: 0; padding: 20px; max-width: 520px; margin-left: auto; margin-right: auto; padding-bottom: 40px; }
   .back { color: #FF7A00; text-decoration: none; font-size: 14px; display: inline-block; margin-bottom: 10px; }
 
-  .gallery { position: relative; width: 100%; aspect-ratio: 4/3; border-radius: 14px; margin-bottom: 12px; margin-top: 8px; background: transparent; }
+  .gallery { position: relative; width: 100%; aspect-ratio: 4/3; border-radius: 14px; margin-bottom: 12px; margin-top: 8px; background: transparent; overflow: hidden; }
   .gallery-stack-photo {
-    position: absolute; top: 0; width: 78%; height: 100%; object-fit: cover;
-    border-radius: 16px; transition: all 0.3s ease; left: 11%;
+    position: absolute; top: 0; width: 66%; height: 100%; object-fit: cover;
+    border-radius: 16px; transition: all 0.3s ease; left: 17%;
     box-shadow: 0 6px 16px rgba(0,0,0,0.25);
   }
-  .gallery-stack-photo.pos-prev { transform: translateX(-58%) scale(0.85) rotate(-6deg); z-index: 1; opacity: 0.85; }
+  .gallery-stack-photo.pos-prev { transform: translateX(-72%) scale(0.8) rotate(-6deg); z-index: 1; opacity: 0.85; }
   .gallery-stack-photo.pos-current { transform: translateX(0) scale(1) rotate(0deg); z-index: 3; opacity: 1; }
-  .gallery-stack-photo.pos-next { transform: translateX(58%) scale(0.85) rotate(6deg); z-index: 1; opacity: 0.85; }
+  .gallery-stack-photo.pos-next { transform: translateX(72%) scale(0.8) rotate(6deg); z-index: 1; opacity: 0.85; }
   .gallery-stack-photo.pos-hidden { transform: translateX(0) scale(0.7); z-index: 0; opacity: 0; }
+  .gallery-nav-arrow {
+    position: absolute; top: 50%; transform: translateY(-50%); width: 36px; height: 36px; border-radius: 50%;
+    background: rgba(255,255,255,0.9); display: flex; align-items: center; justify-content: center;
+    font-size: 16px; color: #8E00FF; cursor: pointer; z-index: 10; box-shadow: 0 2px 8px rgba(0,0,0,0.2); border: none;
+  }
+  .gallery-nav-arrow.left { left: 8px; }
+  .gallery-nav-arrow.right { right: 8px; }
   .gallery-noimg { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 50px; color: #ccc; }
   .gallery-logo {
     position: absolute; top: 12px; left: 12px; width: 52px; height: auto;
@@ -263,8 +271,12 @@
         ${stackHtml}
         <img class="gallery-logo" src="/logo-watermark.png" alt="">
         <div class="gallery-heart" onclick="event.stopPropagation(); toggleFav()">${isFav ? '❤️' : '♡'}</div>
+        ${photos.length > 1 ? `
+          <button class="gallery-nav-arrow left" onclick="event.stopPropagation(); swipeGallery('right')">‹</button>
+          <button class="gallery-nav-arrow right" onclick="event.stopPropagation(); swipeGallery('left')">›</button>
+        ` : ''}
       </div>
-      ${photos.length > 1 ? `<div class="gallery-count">📷 ${photos.length} фото — гортайте вбік</div>` : ''}
+      ${photos.length > 1 ? `<div class="gallery-count">📷 ${photos.length} фото — гортайте вбік або натисніть стрілку</div>` : ''}
       <div class="views-fav-stats" id="viewsFavStats"></div>
 
       <h1>${car.brand} ${car.model}, ${car.year}</h1>

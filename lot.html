@@ -16,10 +16,27 @@
 <script src="car-data.js?v=1786440586"></script>
 <style>
   * { box-sizing: border-box; }
+  html, body { overflow-x: hidden; max-width: 100vw; }
   body { font-family: Arial, sans-serif; background: #fff; margin: 0; padding: 20px; max-width: 480px; margin-left: auto; margin-right: auto; }
   .back { color: #FF7A00; text-decoration: none; font-size: 14px; display: inline-block; margin-bottom: 10px; }
 
-  .photo { position: relative; width: 100%; aspect-ratio: 16/10; background: #f2f2f2; border-radius: 14px; overflow: hidden; margin-bottom: 14px; }
+  .photo { position: relative; width: 100%; aspect-ratio: 16/10; background: transparent; border-radius: 14px; overflow: hidden; margin-bottom: 14px; }
+  .gallery-stack-photo {
+    position: absolute; top: 0; width: 66%; height: 100%; object-fit: cover;
+    border-radius: 16px; transition: all 0.3s ease; left: 17%;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.25);
+  }
+  .gallery-stack-photo.pos-prev { transform: translateX(-72%) scale(0.8) rotate(-6deg); z-index: 1; opacity: 0.85; }
+  .gallery-stack-photo.pos-current { transform: translateX(0) scale(1) rotate(0deg); z-index: 3; opacity: 1; }
+  .gallery-stack-photo.pos-next { transform: translateX(72%) scale(0.8) rotate(6deg); z-index: 1; opacity: 0.85; }
+  .gallery-stack-photo.pos-hidden { transform: translateX(0) scale(0.7); z-index: 0; opacity: 0; }
+  .gallery-nav-arrow {
+    position: absolute; top: 50%; transform: translateY(-50%); width: 36px; height: 36px; border-radius: 50%;
+    background: rgba(255,255,255,0.9); display: flex; align-items: center; justify-content: center;
+    font-size: 16px; color: #8E00FF; cursor: pointer; z-index: 10; box-shadow: 0 2px 8px rgba(0,0,0,0.2); border: none;
+  }
+  .gallery-nav-arrow.left { left: 8px; }
+  .gallery-nav-arrow.right { right: 8px; }
   .photo img { width: 100%; height: 100%; object-fit: cover; }
   .photo-scroll { display: flex; overflow-x: auto; width: 100%; height: 100%; scroll-snap-type: x mandatory; }
   .photo-scroll img { flex: 0 0 100%; width: 100%; height: 100%; object-fit: cover; scroll-snap-align: start; }
@@ -103,6 +120,58 @@
   let car = null;
   const leaderNamesCache = {};
   let currentUserId = null;
+  let galleryIndex = 0;
+
+  function initGallerySwipe() {
+    const photos = carPhotos(car);
+    if (photos.length <= 1) return;
+    galleryIndex = 0;
+    renderGalleryPositions();
+
+    const stack = document.getElementById('photoWrap');
+    let startX = 0;
+    let dragging = false;
+
+    stack.addEventListener('touchstart', (e) => { startX = e.touches[0].clientX; dragging = true; }, { passive: true });
+    stack.addEventListener('touchend', (e) => {
+      if (!dragging) return;
+      dragging = false;
+      const diff = e.changedTouches[0].clientX - startX;
+      if (diff < -40) swipeGallery('left');
+      else if (diff > 40) swipeGallery('right');
+    }, { passive: true });
+
+    stack.addEventListener('click', (e) => {
+      const img = e.target.closest('.gallery-stack-photo');
+      if (!img) return;
+      if (img.classList.contains('pos-next')) swipeGallery('left');
+      else if (img.classList.contains('pos-prev')) swipeGallery('right');
+    });
+  }
+
+  function renderGalleryPositions() {
+    const photos = carPhotos(car);
+    const n = photos.length;
+    const imgs = document.querySelectorAll('.gallery-stack-photo');
+
+    imgs.forEach(img => {
+      const idx = parseInt(img.dataset.idx);
+      img.classList.remove('pos-prev', 'pos-current', 'pos-next', 'pos-hidden');
+      if (idx === galleryIndex) img.classList.add('pos-current');
+      else if (idx === (galleryIndex - 1 + n) % n) img.classList.add('pos-prev');
+      else if (idx === (galleryIndex + 1) % n) img.classList.add('pos-next');
+      else img.classList.add('pos-hidden');
+    });
+  }
+
+  window.swipeGallery = function(direction) {
+    const photos = carPhotos(car);
+    const n = photos.length;
+    if (direction === 'left') galleryIndex = (galleryIndex + 1) % n;
+    else galleryIndex = (galleryIndex - 1 + n) % n;
+    renderGalleryPositions();
+  };
+
   let timerInterval = null;
 
   function getBidStep(amount) {
@@ -130,12 +199,16 @@
     const photoWrap = document.getElementById('photoWrap');
     const photos = carPhotos(car);
     const photoHtml = photos.length
-      ? `<div class="photo-scroll">${photos.map(p => `<img src="${p}" onerror="this.style.display='none'">`).join('')}</div>` +
-        (photos.length > 1 ? `<div class="photo-dots">${photos.map(() => '<span></span>').join('')}</div>` : '')
+      ? photos.map((p, i) => `<img class="gallery-stack-photo" data-idx="${i}" src="${p}" onerror="this.style.display='none'">`).join('') +
+        (photos.length > 1 ? `
+          <button class="gallery-nav-arrow left" onclick="event.stopPropagation(); swipeGallery('right')">‹</button>
+          <button class="gallery-nav-arrow right" onclick="event.stopPropagation(); swipeGallery('left')">›</button>
+        ` : '')
       : `<div class="noimg">🚗</div>`;
     photoWrap.innerHTML = photoHtml +
       `<div class="badge-condition">${CONDITION_LABELS[car.condition] || 'Стан невідомий'}</div>` +
       `<div class="badge-timer" id="timerBadge"></div>`;
+    initGallerySwipe();
 
     const status = lotStatus(car);
     const statusArea = document.getElementById('statusArea');
