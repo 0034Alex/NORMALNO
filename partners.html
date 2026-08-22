@@ -117,6 +117,7 @@
   /* Меню маршруту */
   .route-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 300; display: flex; align-items: flex-end; justify-content: center; }
   .route-modal-overlay.hidden { display: none; }
+  .banner-carousel.hidden { display: none; }
   .route-modal-sheet { background: #fff; width: 100%; max-width: 480px; border-radius: 20px 20px 0 0; padding: 20px; }
   .route-modal-title { font-size: 16px; font-weight: bold; margin-bottom: 14px; }
   .route-app-btn { display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 12px; border: 1px solid #eee; margin-bottom: 10px; text-decoration: none; color: #222; font-weight: bold; font-size: 15px; }
@@ -360,8 +361,12 @@
   }
 
   async function loadBanners() {
-    const { data: banners } = await sb.from('banners').select('*').eq('active', true).order('order_index', { ascending: true }).limit(5);
     const box = document.getElementById('bannerCarousel');
+
+    const { data: settings } = await sb.from('app_settings').select('banners_enabled').eq('id', 1).maybeSingle();
+    if (!settings || !settings.banners_enabled) { box.classList.add('hidden'); return; }
+
+    const { data: banners } = await sb.from('banners').select('*').eq('active', true).order('order_index', { ascending: true }).limit(5);
     if (!banners || banners.length === 0) { box.classList.add('hidden'); return; }
 
     box.classList.remove('hidden');
