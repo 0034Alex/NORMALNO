@@ -399,16 +399,23 @@
     }
 
     if (priceDropped) {
-      fetch('/api/notify-price-drop', {
+      fetch('/api/notify-events', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          kind: 'price_drop',
           carId: carId,
           carLabel: `${currentCar.brand} ${currentCar.model}, ${currentCar.year}`,
           oldPrice: currentCar.price,
           newPrice: newPrice,
           currency: currentCar.currency
         })
+      }).catch(() => {});
+
+      fetch('/api/post-to-partner-channel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ carId: carId, eventType: 'price_drop' })
       }).catch(() => {});
     }
 

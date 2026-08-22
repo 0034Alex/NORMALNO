@@ -112,6 +112,11 @@
       <div class="social-input-row"><span class="social-input-icon">${SOCIAL_SVG_ICONS.youtube}</span><input type="url" id="socYoutube" placeholder="Посилання на YouTube" value="${partner.youtube_link || ''}"></div>
       <div class="social-input-row"><span class="social-input-icon">${SOCIAL_SVG_ICONS.website}</span><input type="url" id="socWebsite" placeholder="Сайт" value="${partner.website || ''}"></div>
 
+      <h2>Автопостинг у Telegram-канал</h2>
+      <label>Username вашого каналу (наприклад @moy_avtosalon)</label>
+      <input type="text" id="telegramChannel" placeholder="@username_каналу" value="${partner.telegram_channel || ''}">
+      <div class="hint">Додайте бота @Normalno_avtobot у свій канал адміністратором з правом публікації — і кожне ваше нове авто, зниження ціни чи продаж автоматично з'являтиметься в каналі.</div>
+
       ${partner.category !== 'Автосалон' ? `
         <h2>Послуги та ціни</h2>
         <div id="servicesList"></div>
@@ -202,6 +207,7 @@
       threads_link: document.getElementById('socThreads').value.trim(),
       youtube_link: document.getElementById('socYoutube').value.trim(),
       website: document.getElementById('socWebsite').value.trim(),
+      telegram_channel: document.getElementById('telegramChannel').value.trim(),
       services: services.filter(s => s.name && s.name.trim())
     };
 

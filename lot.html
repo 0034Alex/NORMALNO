@@ -244,10 +244,11 @@
     setTimeout(() => { toast.style.display = 'none'; }, 3000);
 
     if (data.previous_leader) {
-      fetch('/api/notify-outbid', {
+      fetch('/api/notify-events', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          kind: 'outbid',
           previousUserId: data.previous_leader,
           carLabel: `${car.brand} ${car.model}, ${car.year}`,
           newBid: data.new_bid,

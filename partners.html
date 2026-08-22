@@ -14,6 +14,12 @@
   .logo { font-size: 22px; font-weight: bold; color: #8E00FF; margin-bottom: 16px; }
 
   /* Офіс */
+  .banner-carousel { position: relative; width: 100%; aspect-ratio: 16/6; border-radius: 14px; overflow: hidden; margin-bottom: 18px; }
+  .banner-carousel img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.6s; cursor: pointer; }
+  .banner-carousel img.active { opacity: 1; }
+  .banner-dots { position: absolute; bottom: 8px; left: 0; right: 0; display: flex; justify-content: center; gap: 5px; z-index: 2; }
+  .banner-dots span { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.6); }
+  .banner-dots span.active { background: #fff; }
   .office-card { border: 2px solid #8E00FF; border-radius: 16px; padding: 12px; margin-bottom: 18px; background: #f9f2ff; }
   .office-row { display: flex; gap: 12px; align-items: center; }
   #officeMap { width: 64px; height: 64px; border-radius: 10px; flex-shrink: 0; z-index: 1; }
@@ -127,6 +133,8 @@
 <body>
 
 <div class="logo">Партнери</div>
+
+<div class="banner-carousel hidden" id="bannerCarousel"></div>
 
 <div class="office-card">
   <div class="office-row">
@@ -351,8 +359,30 @@
     renderAll();
   }
 
+  async function loadBanners() {
+    const { data: banners } = await sb.from('banners').select('*').eq('active', true).order('order_index', { ascending: true }).limit(5);
+    const box = document.getElementById('bannerCarousel');
+    if (!banners || banners.length === 0) { box.classList.add('hidden'); return; }
+
+    box.classList.remove('hidden');
+    box.innerHTML = banners.map((b, i) => `<img src="${b.image_url}" class="${i === 0 ? 'active' : ''}" onclick="${b.link_url ? `window.open('${b.link_url}', '_blank')` : ''}">`).join('') +
+      `<div class="banner-dots">${banners.map((b, i) => `<span class="${i === 0 ? 'active' : ''}"></span>`).join('')}</div>`;
+
+    let current = 0;
+    setInterval(() => {
+      const imgs = box.querySelectorAll('img');
+      const dots = box.querySelectorAll('.banner-dots span');
+      imgs[current].classList.remove('active');
+      dots[current].classList.remove('active');
+      current = (current + 1) % imgs.length;
+      imgs[current].classList.add('active');
+      dots[current].classList.add('active');
+    }, 4000);
+  }
+
   initOfficeMap();
   load();
+  loadBanners();
 </script>
 
 </body>

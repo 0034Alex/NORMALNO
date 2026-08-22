@@ -881,9 +881,73 @@
   }
 
   /* ---------- КОНТЕНТ (заглушка) ---------- */
-  function loadContentSection() {
-    document.getElementById('sectionBody').innerHTML = '<div class="empty">🚧 Редагування контенту сторінок (FAQ, Підтримка) в розробці.</div>';
+  async function loadContentSection() {
+    const body = document.getElementById('sectionBody');
+    body.innerHTML = '<div class="empty">Завантаження...</div>';
+
+    const { data: banners } = await sb.from('banners').select('*').order('order_index', { ascending: true });
+
+    body.innerHTML = `
+      <div class="section-title">Банери на сторінці партнерів</div>
+      <p style="font-size:12px; color:#999; margin-bottom:14px;">До 5 банерів, гортаються автоматично на partners.html</p>
+      <div id="bannersList">${(banners || []).map(b => `
+        <div class="card">
+          <img src="${b.image_url}" style="width:100%; border-radius:8px; margin-bottom:8px;" onerror="this.style.display='none'">
+          <div class="card-details">Посилання: ${b.link_url || '—'}\nПорядок: ${b.order_index}</div>
+          <div class="status-row">
+            <button class="status-btn ${b.active ? 'active-closed' : ''}" onclick="toggleBanner(${b.id}, ${!b.active})">${b.active ? 'Активний' : 'Вимкнено'}</button>
+            <button class="status-btn active-new" onclick="deleteBanner(${b.id})">Видалити</button>
+          </div>
+        </div>
+      `).join('') || '<div class="empty">Банерів ще немає</div>'}</div>
+
+      <div class="section-title" style="margin-top:20px;">Додати банер</div>
+      <input type="file" id="bannerFile" accept="image/*">
+      <input type="url" id="bannerLink" placeholder="Посилання (необов'язково)">
+      <input type="number" id="bannerOrder" placeholder="Порядок показу (напр. 1)" value="${(banners || []).length}">
+      <button class="action-btn" style="width:100%;" onclick="addBanner()">Додати банер</button>
+      <div class="msg" id="bannerMsg" style="text-align:center; margin-top:10px; font-size:13px;"></div>
+    `;
   }
+
+  window.toggleBanner = async function(id, active) {
+    await sb.from('banners').update({ active }).eq('id', id);
+    loadContentSection();
+  };
+
+  window.deleteBanner = async function(id) {
+    if (!confirm('Видалити цей банер?')) return;
+    await sb.from('banners').delete().eq('id', id);
+    loadContentSection();
+  };
+
+  window.addBanner = async function() {
+    const msg = document.getElementById('bannerMsg');
+    const file = document.getElementById('bannerFile').files[0];
+    if (!file) { msg.textContent = 'Оберіть зображення'; msg.style.color = 'red'; return; }
+
+    msg.textContent = 'Завантажуємо...';
+    msg.style.color = '#8E00FF';
+
+    const ext = file.name.split('.').pop();
+    const path = `banner-${Date.now()}.${ext}`;
+    const { error: uploadError } = await sb.storage.from('partner-photos').upload(path, file);
+    if (uploadError) { msg.textContent = uploadError.message; msg.style.color = 'red'; return; }
+
+    const { data: urlData } = sb.storage.from('partner-photos').getPublicUrl(path);
+
+    const { error } = await sb.from('banners').insert({
+      image_url: urlData.publicUrl,
+      link_url: document.getElementById('bannerLink').value.trim() || null,
+      order_index: parseInt(document.getElementById('bannerOrder').value) || 0
+    });
+
+    if (error) { msg.textContent = error.message; msg.style.color = 'red'; return; }
+
+    msg.textContent = 'Додано!';
+    msg.style.color = 'green';
+    setTimeout(loadContentSection, 800);
+  };
 
   /* ---------- ПЕРСОНАЛ (тільки власник) ---------- */
   async function loadStaffSection() {

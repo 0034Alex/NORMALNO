@@ -425,6 +425,13 @@ function openSoldModal(carId, sbClient, onDone) {
     await sbClient.from('cars').update({
       sold: true, archived: true, archived_at: new Date().toISOString(), sold_via: via
     }).eq('id', carId);
+
+    fetch('/api/post-to-partner-channel', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ carId: carId, eventType: 'sold' })
+    }).catch(() => {});
+
     overlay.remove();
     if (onDone) onDone();
   }

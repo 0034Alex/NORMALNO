@@ -451,7 +451,7 @@
     insertData.photos = photoUrls;
     insertData.photo_url = photoUrls[0] || '';
 
-    const { error } = await sb.from('cars').insert(insertData);
+    const { data: insertedCar, error } = await sb.from('cars').insert(insertData).select().single();
 
     if (error) {
       msg.textContent = error.message;
@@ -460,6 +460,14 @@
     }
 
     checkFirstListingBonus(session.user.id);
+
+    if (insertedCar) {
+      fetch('/api/post-to-partner-channel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ carId: insertedCar.id, eventType: 'new' })
+      }).catch(() => {});
+    }
 
     msg.textContent = "Готово! Оголошення опубліковано.";
     msg.style.color = 'green';
