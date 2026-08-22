@@ -196,6 +196,7 @@ function renderCarCard(car, currentUserId, favoritedIds) {
 
   const badges = [];
   if (condition) badges.push(condition);
+  if (car.is_official) badges.push('✅ Офіційне авто');
   if (car.exchange_possible) badges.push('Можливий обмін');
   if (car.customs_cleared) badges.push('Розмитнено');
   if (car.sold) badges.push('Продано');
@@ -653,7 +654,6 @@ function injectCompareStyles() {
       background: #fff; box-shadow: 0 4px 14px rgba(0,0,0,0.2); display: none; align-items: center;
       justify-content: center; z-index: 400; cursor: pointer; padding: 8px;
     }
-    #compareFab img { width: 100%; height: 100%; object-fit: contain; }
     .compare-fab-badge {
       position: absolute; top: -4px; right: -4px; background: #FF7A00; color: #fff; font-size: 11px;
       font-weight: bold; min-width: 20px; height: 20px; border-radius: 10px; display: flex;
@@ -668,7 +668,7 @@ function initCompareWidget() {
   injectCompareStyles();
   const fab = document.createElement('div');
   fab.id = 'compareFab';
-  fab.innerHTML = `<img src="/logo-watermark.png" alt=""><span class="compare-fab-badge" id="compareFabBadge"></span>`;
+  fab.innerHTML = `<span style="font-size:26px;">⚖️</span><span class="compare-fab-badge" id="compareFabBadge"></span>`;
   fab.onclick = () => { window.location.href = 'compare.html'; };
   document.body.appendChild(fab);
   updateCompareWidget();

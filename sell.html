@@ -175,6 +175,10 @@
   <input type="checkbox" id="isHot">
   <label for="isHot">Гаряча пропозиція</label>
 </div>
+<div class="check-row">
+  <input type="checkbox" id="isOfficial">
+  <label for="isOfficial">Офіційне авто (з офіційного дилерського центру)</label>
+</div>
 
 <h2>Фото та опис</h2>
 <input type="file" id="photoFiles" accept="image/*" multiple>
@@ -414,6 +418,7 @@
       exchange_possible: document.getElementById('exchangePossible').checked,
       customs_cleared: document.getElementById('customsCleared').checked,
       is_hot: document.getElementById('isHot').checked,
+      is_official: document.getElementById('isOfficial').checked,
       listing_type: listingType
     };
 

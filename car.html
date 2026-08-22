@@ -53,6 +53,11 @@
 
   .seller-box { border: 1px solid #eee; border-radius: 12px; padding: 14px; margin-bottom: 16px; }
   .views-fav-stats { font-size: 12px; color: #999; margin-bottom: 12px; }
+  .car-id-row { display: flex; align-items: center; gap: 10px; font-size: 12px; color: #999; margin-bottom: 16px; }
+  .car-id-copy { background: #f5e6ff; color: #8E00FF; border: none; border-radius: 8px; padding: 6px 10px; font-size: 11px; font-weight: bold; cursor: pointer; }
+  .section-title { font-size: 16px; font-weight: bold; }
+  .similar-cars-row { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 8px; }
+  .similar-cars-row .ncard { flex: 0 0 65vw; max-width: 220px; margin-bottom: 0; }
   .seller-name { font-weight: bold; font-size: 16px; margin: 4px 0 10px; }
   .seller-actions { display: flex; gap: 8px; }
   .seller-btn { flex: 1; text-align: center; padding: 12px; border-radius: 10px; font-weight: bold; font-size: 13px; text-decoration: none; border: none; cursor: pointer; }
@@ -103,6 +108,7 @@
   const carId = params.get('id');
   let currentUserId = null;
   let isFav = false;
+  let currentCarData = null;
 
   const TRANSMISSION_LABELS2 = { manual: 'Механіка', automatic: 'Автомат', variator: 'Варіатор' };
   const FUEL_LABELS2 = { petrol: 'Бензин', diesel: 'Дизель', hybrid: 'Гібрид', gas: 'Газ', electric: 'Електро' };
@@ -130,8 +136,11 @@
       document.getElementById('content').innerHTML = '<div class="empty">Оголошення не знайдено</div>';
       return;
     }
+    currentCarData = car;
     render(car);
     loadSellerInfo(car.user_id);
+    initCompareWidget();
+    loadSimilarCars(car);
 
     const el = document.getElementById('viewsFavStats');
     if (el) el.textContent = '⏳ рахуємо перегляди...';
@@ -179,6 +188,10 @@
       callBtn.href = 'tel:' + seller.phone;
       callBtn.classList.remove('hidden');
     }
+
+    if (currentUserId && currentUserId !== sellerId) {
+      sb.from('contact_views_log').insert({ car_id: carId, user_id: currentUserId }).then(() => {});
+    }
   }
 
   window.openChatWithSeller = async function() {
@@ -214,6 +227,7 @@
 
     const badges = [];
     if (CONDITION_LABELS[car.condition]) badges.push(CONDITION_LABELS[car.condition]);
+    if (car.is_official) badges.push('✅ Офіційне авто');
     if (car.exchange_possible) badges.push('Можливий обмін');
     if (car.customs_cleared) badges.push('Розмитнено');
     if (car.is_urgent) badges.push('🏷️ Терміново');
@@ -252,6 +266,8 @@
 
       ${badges.length ? `<div class="badges">${badges.map(b => `<span class="badge">${b}</span>`).join('')}</div>` : ''}
 
+      <button class="ncard-compare-btn ${isInCompareList(car.id) ? 'active' : ''}" data-compare-id="${car.id}" style="width:100%; margin-bottom:16px; padding:12px; font-size:13px;" onclick="toggleCompare(${car.id})">⚖️ ${isInCompareList(car.id) ? 'У порівнянні' : 'Додати до порівняння'}</button>
+
       <div class="specs-grid">
         ${specs.map(([label, value]) => `
           <div class="spec-item">
@@ -263,6 +279,13 @@
 
       ${car.description ? `<div class="desc-title">Опис від продавця</div><div class="desc-text">${car.description}</div>` : ''}
 
+      <div class="car-id-row">
+        ID оголошення: <b>${car.id}</b>
+        <button class="car-id-copy" onclick="copyCarId(${car.id})">📋 Копіювати</button>
+      </div>
+
+      <button class="ncard-compare-btn" style="width:100%; margin-bottom:12px; padding:12px; font-size:13px; background:#26A5E4; color:#fff; border:none;" onclick="shareToTelegram(${car.id})">✈️ Поділитися в Telegram</button>
+
       <button class="leasing-btn" onclick="openLeasingModal()">📊 Розрахувати в лізинг</button>
 
       <div class="seller-box">
@@ -273,6 +296,8 @@
           <button class="seller-btn seller-btn-chat" onclick="openChatWithSeller()">💬 Написати</button>
         </div>
       </div>
+
+      <div id="similarCarsSection"></div>
 
       <div class="modal-overlay hidden" id="leasingModal" onclick="if(event.target===this) closeLeasingModal()">
         <div class="modal-sheet">
@@ -334,6 +359,7 @@
       name: userName,
       phone: phone,
       budget: result.monthlyPayment,
+      car_id: carId,
       details: details
     });
 
@@ -367,6 +393,31 @@
     document.getElementById('calcDown').textContent = result.downPayment.toLocaleString('uk-UA') + ' грн';
     document.getElementById('calcMonthly').textContent = result.monthlyPayment.toLocaleString('uk-UA') + ' грн';
     document.getElementById('calcTotal').textContent = result.totalPayment.toLocaleString('uk-UA') + ' грн';
+  };
+
+  async function loadSimilarCars(car) {
+    const { data: similar } = await sb.from('cars').select('*')
+      .eq('brand', car.brand).neq('id', car.id).eq('archived', false).neq('listing_type', 'auction')
+      .limit(3);
+
+    const section = document.getElementById('similarCarsSection');
+    if (!similar || similar.length === 0) { section.innerHTML = ''; return; }
+
+    section.innerHTML = `
+      <div class="section-title" style="margin:20px 0 10px;">Схожі авто</div>
+      <div class="similar-cars-row">${similar.map(c => renderCarCard(c, currentUserId, new Set())).join('')}</div>
+    `;
+  }
+
+  window.copyCarId = function(carId) {
+    navigator.clipboard.writeText(String(carId)).then(() => alert('ID скопійовано: ' + carId));
+  };
+
+  window.shareToTelegram = function(carId) {
+    const url = `https://normalno-a55.vercel.app/car.html?id=${carId}`;
+    const c = currentCarData;
+    const text = c ? `${c.brand} ${c.model}, ${c.year} — ${Number(c.price || 0).toLocaleString('uk-UA')} ${c.currency || ''}` : 'Погляньте на це авто на NORMALNO!';
+    window.open(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`, '_blank');
   };
 
   window.toggleFav = async function() {

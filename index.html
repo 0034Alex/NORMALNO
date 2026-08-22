@@ -257,6 +257,13 @@
   <button class="promo-btn" onclick="window.location.href='sell.html'">+ Додати авто</button>
 </div>
 
+<div class="section hidden" id="searchHistoryBox">
+  <div class="section-head">
+    <div class="section-title">🕐 Ви шукали</div>
+  </div>
+  <div class="chips" id="searchHistoryChips"></div>
+</div>
+
 <div class="section">
   <div class="section-head">
     <div class="section-title">Популярні запити</div>
@@ -322,6 +329,7 @@
 
     autoRequestPushOnInstall(sb, currentUserId);
     initCompareWidget();
+    loadSearchHistory();
     registerInstallTracking(sb);
     sb.from('profiles').update({ last_login_at: new Date().toISOString() }).eq('user_id', currentUserId).then(() => {});
     logPageVisit(sb, currentUserId, 'index');
@@ -405,6 +413,7 @@
             <div class="hcard-price">${Number(car.price || 0).toLocaleString('uk-UA')} ${car.currency || ''}${(() => { const uah = convertToUAH(car.price, car.currency); return uah ? ` <span style="color:#999;font-weight:normal;font-size:10px;">(≈${uah.toLocaleString('uk-UA')})</span>` : ''; })()}</div>
             ${leasingLineHtml(car)}
             <div class="hcard-mileage">🛣️ ${car.mileage ? Number(car.mileage).toLocaleString('uk-UA') + ' км' : '—'}</div>
+            <button class="ncard-compare-btn ${isInCompareList(car.id) ? 'active' : ''}" data-compare-id="${car.id}" style="margin-top:6px;" onclick="event.stopPropagation(); toggleCompare(${car.id})">⚖️ ${isInCompareList(car.id) ? 'У порівнянні' : 'Порівняти'}</button>
           </div>
         </div>
       `;
@@ -430,6 +439,25 @@
     if (!query) { renderFullFeed(allCars); return; }
     renderFullFeed(allCars.filter(car => matchesQuery(car.brand, query)));
     document.getElementById('fullFeedTitle').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    saveSearchHistory(query);
+  }
+
+  function saveSearchHistory(query) {
+    if (!currentUserId || !query) return;
+    sb.from('search_history').insert({ user_id: currentUserId, query }).then(() => { loadSearchHistory(); });
+  }
+
+  async function loadSearchHistory() {
+    if (!currentUserId) return;
+    const { data } = await sb.from('search_history').select('query').eq('user_id', currentUserId).order('created_at', { ascending: false }).limit(30);
+    const box = document.getElementById('searchHistoryBox');
+    if (!data || data.length === 0) { box.classList.add('hidden'); return; }
+
+    const uniqueQueries = [...new Set(data.map(d => d.query))].slice(0, 8);
+    box.classList.remove('hidden');
+    document.getElementById('searchHistoryChips').innerHTML = uniqueQueries.map(q => `
+      <span class="chip" onclick="document.getElementById('brandSearch').value='${q.replace(/'/g, "\\'")}'; filterByBrand();">${q}</span>
+    `).join('');
   }
 
   function showAll() {
