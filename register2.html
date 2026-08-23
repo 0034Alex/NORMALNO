@@ -88,45 +88,33 @@
       return;
     }
 
-    const { data, error } = await sb.auth.signUp({ email, password });
-    if (error) {
-      msg.textContent = error.message;
+    msg.textContent = 'Створюємо акаунт...';
+    msg.style.color = '#999';
+
+    const refCode = new URLSearchParams(window.location.search).get('ref');
+
+    const resp = await fetch('/api/telegram-auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'register', name, phone, email, password, refCode })
+    });
+    const result = await resp.json();
+    if (result.error) {
+      msg.textContent = result.error;
       msg.style.color = 'red';
       return;
     }
 
-    const refCode = new URLSearchParams(window.location.search).get('ref');
-    let referredBy = null;
-    let referredByPartner = null;
-    if (refCode) {
-      const { data: resolved } = await sb.rpc('resolve_referral_code', { code_input: refCode.toUpperCase() });
-      if (resolved && resolved[0]) {
-        referredBy = resolved[0].user_id;
-        referredByPartner = resolved[0].partner_id;
-      }
+    const { error: signInError } = await sb.auth.signInWithPassword({ email: result.email, password: result.password });
+    if (signInError) {
+      msg.textContent = 'Акаунт створено, але не вдалося увійти автоматично. Спробуйте увійти вручну.';
+      msg.style.color = 'red';
+      return;
     }
 
-    await sb.from('profiles').insert({
-      user_id: data.user.id,
-      name: name,
-      phone: phone,
-      referred_by: referredBy,
-      referred_by_partner: referredByPartner,
-      referral_code: generateReferralCode()
-    });
-
-    if (referredBy || referredByPartner) {
-      await sb.from('referral_events').insert({
-        referrer_user_id: referredBy,
-        referrer_partner_id: referredByPartner,
-        referred_user_id: data.user.id,
-        event_type: 'registration',
-        points: REFERRAL_POINTS.registration
-      });
-    }
-
-    msg.textContent = 'Готово! Перевірте email для підтвердження.';
+    msg.textContent = 'Готово! Виконуємо вхід...';
     msg.style.color = 'green';
+    window.location.href = 'index.html';
   }
 
   async function resolveEmail(identifier) {
