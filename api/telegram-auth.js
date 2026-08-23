@@ -2,6 +2,100 @@ const crypto = require('crypto');
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const SB_HEADERS = { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json' };
+
+async function sendTG(chatId, text) {
+  try {
+    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text })
+    });
+  } catch (e) { /* ignore send errors */ }
+}
+
+// ===== Обробка вхідних повідомлень боту (Telegram webhook) =====
+// Використовується для сценарію "скидання паролю через бота": якщо у користувача
+// є активний pending-запит на скидання паролю для цього chat_id — наступне його
+// текстове повідомлення трактується як новий пароль.
+async function handleBotMessage(message, res) {
+  const chatId = String(message.chat.id);
+  const text = (message.text || '').trim();
+
+  const reqResp = await fetch(
+    `${SUPABASE_URL}/rest/v1/password_reset_requests?telegram_chat_id=eq.${chatId}&status=eq.pending&order=created_at.desc&limit=1`,
+    { headers: SB_HEADERS }
+  );
+  const reqs = await reqResp.json();
+  const pending = Array.isArray(reqs) ? reqs[0] : null;
+
+  if (pending && new Date(pending.expires_at) > new Date()) {
+    if (!text || text.length < 6) {
+      await sendTG(chatId, 'Пароль має містити мінімум 6 символів. Напишіть, будь ласка, ще раз.');
+    } else {
+      const updResp = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${pending.user_id}`, {
+        method: 'PUT',
+        headers: SB_HEADERS,
+        body: JSON.stringify({ password: text })
+      });
+      if (updResp.ok) {
+        await fetch(`${SUPABASE_URL}/rest/v1/password_reset_requests?id=eq.${pending.id}`, {
+          method: 'PATCH', headers: SB_HEADERS, body: JSON.stringify({ status: 'used' })
+        });
+        await sendTG(chatId, '✅ Пароль змінено! Тепер увійдіть на сайті з новим паролем.');
+      } else {
+        await sendTG(chatId, 'Сталася помилка при зміні паролю. Спробуйте пізніше або зверніться в підтримку.');
+      }
+    }
+  }
+  // Telegram завжди очікує 200, інакше почне повторно слати update
+  res.status(200).json({ ok: true });
+}
+
+// ===== Запит на скидання паролю (викликається з forgotPassword() на сайті) =====
+async function handlePasswordResetRequest(identifier, res) {
+  if (!identifier) { res.status(200).json({ error: 'Введіть email або телефон' }); return; }
+
+  let userId = null;
+  if (identifier.includes('@')) {
+    const listResp = await fetch(`${SUPABASE_URL}/auth/v1/admin/users?email=${encodeURIComponent(identifier)}`, { headers: SB_HEADERS });
+    const listData = await listResp.json();
+    const u = (listData.users || []).find(u => u.email === identifier);
+    if (u) userId = u.id;
+  } else {
+    const profResp = await fetch(`${SUPABASE_URL}/rest/v1/profiles?phone=eq.${encodeURIComponent(identifier)}&select=user_id`, { headers: SB_HEADERS });
+    const profs = await profResp.json();
+    userId = profs && profs[0] && profs[0].user_id;
+  }
+
+  if (!userId) { res.status(200).json({ error: 'Користувача не знайдено' }); return; }
+
+  const profResp2 = await fetch(`${SUPABASE_URL}/rest/v1/profiles?user_id=eq.${userId}&select=telegram_user_id`, { headers: SB_HEADERS });
+  const profs2 = await profResp2.json();
+  const telegramChatId = profs2 && profs2[0] && profs2[0].telegram_user_id;
+
+  if (!telegramChatId) {
+    res.status(200).json({ error: 'До вашого акаунта не прив\'язано Telegram. Увійдіть один раз через кнопку "Telegram" на сайті, щоб прив\'язати, потім спробуйте скинути пароль знову.' });
+    return;
+  }
+
+  // деактивуємо попередні незавершені запити цього користувача
+  await fetch(`${SUPABASE_URL}/rest/v1/password_reset_requests?user_id=eq.${userId}&status=eq.pending`, {
+    method: 'PATCH', headers: SB_HEADERS, body: JSON.stringify({ status: 'expired' })
+  });
+
+  const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+  await fetch(`${SUPABASE_URL}/rest/v1/password_reset_requests`, {
+    method: 'POST',
+    headers: { ...SB_HEADERS, Prefer: 'return=minimal' },
+    body: JSON.stringify({ user_id: userId, telegram_chat_id: String(telegramChatId), status: 'pending', expires_at: expiresAt })
+  });
+
+  await sendTG(telegramChatId, 'Ви запросили скидання паролю на NORMALNO.\n\nНапишіть сюди одним повідомленням новий пароль (мінімум 6 символів). Запит дійсний 15 хвилин. Якщо це були не ви — просто ігноруйте це повідомлення.');
+
+  res.status(200).json({ ok: true });
+}
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
@@ -10,6 +104,19 @@ module.exports = async (req, res) => {
   }
 
   try {
+    // 1) Вхідне повідомлення від Telegram (webhook update від бота)
+    if (req.body && req.body.message) {
+      await handleBotMessage(req.body.message, res);
+      return;
+    }
+
+    // 2) Запит на скидання паролю з сайту
+    if (req.body && req.body.action === 'password_reset_request') {
+      await handlePasswordResetRequest(req.body.identifier, res);
+      return;
+    }
+
+    // 3) Стандартний вхід через Telegram Mini App (initData)
     const { initData, startParam } = req.body;
     if (!initData) {
       res.status(400).json({ error: 'No initData' });
