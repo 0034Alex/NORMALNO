@@ -24,8 +24,9 @@
   .tab.active { color: #8E00FF; border-bottom: 3px solid #FF7A00; }
   input { width: 100%; padding: 14px; margin-bottom: 12px; border: 1px solid #ddd; border-radius: 10px; font-size: 16px; }
   button.main { width: 100%; padding: 15px; background: #8E00FF; color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; }
+  button.main:disabled { opacity: 0.6; }
   .forgot { text-align: center; margin-top: 12px; color: #FF7A00; font-size: 14px; cursor: pointer; }
-  .msg { text-align: center; margin-top: 12px; font-size: 14px; }
+  .msg { text-align: center; margin-top: 12px; font-size: 14px; white-space: pre-wrap; }
   .hidden { display: none; }
 </style>
 </head>
@@ -43,19 +44,30 @@
   <input type="tel" id="regPhone" placeholder="Номер телефону">
   <input type="email" id="regEmail" placeholder="Email">
   <input type="password" id="regPassword" placeholder="Придумайте пароль">
-  <button class="main" onclick="register()">Зареєструватися</button>
+  <button class="main" id="regBtn" onclick="register()">Зареєструватися</button>
   <div class="msg" id="regMsg"></div>
 </div>
 
 <div id="loginForm" class="hidden">
   <input type="text" id="loginIdentifier" placeholder="Email або номер телефону">
   <input type="password" id="loginPassword" placeholder="Пароль">
-  <button class="main" onclick="login()">Увійти</button>
+  <button class="main" id="loginBtn" onclick="login()">Увійти</button>
   <div class="forgot" onclick="forgotPassword()">Забули пароль?</div>
   <div class="msg" id="loginMsg"></div>
 </div>
 
 <script>
+  // ===== Базові налаштування =====
+  // ВАЖЛИВО: адреси API збираємо як АБСОЛЮТНІ (через origin), а не відносні ("/api/...").
+  // Всередині Telegram Mini App (WKWebView на iOS) відносні адреси іноді ламають fetch()
+  // з незрозумілою помилкою "The string did not match the expected pattern" ще ДО відправки
+  // запиту. Абсолютна адреса цю проблему знімає.
+  const API_BASE = window.location.origin;
+
+  const supabaseUrl = 'https://ipzvgqyjtqofthbpkdsd.supabase.co';
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwenZncXlqdHFvZnRoYnBrZHNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMTEwNjEsImV4cCI6MjEwMTU4NzA2MX0.jbbpKpHaD6S9SJMIbxcwb12ggBCv44J_-s4OQ8ESNfA';
+  const sb = window.supabase.createClient(supabaseUrl, supabaseKey);
+
   let tgUser = null;
   if (window.Telegram && window.Telegram.WebApp) {
     const tg = window.Telegram.WebApp;
@@ -66,18 +78,37 @@
     tgUser = tg.initDataUnsafe && tg.initDataUnsafe.user;
   }
 
-  const supabaseUrl = 'https://ipzvgqyjtqofthbpkdsd.supabase.co';
-  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwenZncXlqdHFvZnRoYnBrZHNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMTEwNjEsImV4cCI6MjEwMTU4NzA2MX0.jbbpKpHaD6S9SJMIbxcwb12ggBCv44J_-s4OQ8ESNfA';
-  const sb = window.supabase.createClient(supabaseUrl, supabaseKey);
+  // Телефон нормалізуємо однаково і при реєстрації, і при вході, і при скиданні паролю
+  // (лишаємо тільки цифри) — щоб "050...", "+380 50...", "380-50..." рахувались одним номером.
+  // Той самий алгоритм застосовано на сервері (api/telegram-auth.js, api/resolve-login-email.js).
+  function normalizePhone(raw) {
+    return String(raw || '').replace(/\D/g, '');
+  }
 
-  // ПРИМІТКА: раніше тут був автоперехід в index.html, якщо в цьому браузері/Mini App
-  // вже була збережена сесія. Прибрано: якщо на цьому пристрої лишалась стара сесія
-  // (з періоду ДО зміни паролю), вона могла непомітно "перехопити" перехід саме в
-  // момент, коли людина вводить НОВИЙ пароль на цій сторінці — форма мовчки не
-  // реагувала. Тепер форма входу показується завжди явно.
+  async function apiPost(path, body) {
+    const resp = await fetch(API_BASE + path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    let data;
+    try { data = await resp.json(); }
+    catch (e) { throw new Error('Сервер повернув некоректну відповідь (HTTP ' + resp.status + ')'); }
+    if (!resp.ok && !data.error) data.error = 'Помилка сервера (HTTP ' + resp.status + ')';
+    return data;
+  }
+
+  // Якщо вхід/реєстрація формально "впала" з помилкою браузера, але сесія на сервері
+  // все ж встановилась — не лякаємо людину помилкою, а пускаємо в застосунок.
+  async function hasActiveSession() {
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      return !!session;
+    } catch (e) { return false; }
+  }
 
   // Прив'язуємо Telegram до профілю (потрібно, щоб бот міг присилати скидання паролю
-  // і повідомлення). Робиться після успішного входу/реєстрації.
+  // і повідомлення). Робиться після успішного входу/реєстрації, не блокує процес.
   async function linkTelegramIfPresent(userId) {
     if (!tgUser || !userId) return;
     try {
@@ -85,11 +116,10 @@
         telegram_user_id: String(tgUser.id),
         telegram_username: tgUser.username || ''
       }).eq('user_id', userId);
-    } catch (e) { /* не критично, не блокуємо вхід */ }
+    } catch (e) { console.error('linkTelegramIfPresent failed', e); }
   }
 
-  // Автопідстановка імені з Telegram при першому дотику — поле лишається редагованим,
-  // людині не треба вводити ім'я вручну, але вона може його змінити.
+  // Автопідстановка імені з Telegram при першому дотику — поле лишається редагованим.
   if (tgUser) {
     const nameField = document.getElementById('regName');
     if (nameField) {
@@ -106,29 +136,31 @@
 
   async function register() {
     const name = document.getElementById('regName').value.trim();
-    const phone = document.getElementById('regPhone').value.trim();
+    const phone = normalizePhone(document.getElementById('regPhone').value);
     const email = document.getElementById('regEmail').value.trim();
     const password = document.getElementById('regPassword').value;
     const msg = document.getElementById('regMsg');
+    const btn = document.getElementById('regBtn');
 
     if (!name || !phone || !email || !password) {
       msg.textContent = "Заповніть ім'я, телефон, email і пароль";
       msg.style.color = 'red';
       return;
     }
+    if (password.length < 6) {
+      msg.textContent = 'Пароль має містити мінімум 6 символів';
+      msg.style.color = 'red';
+      return;
+    }
 
+    btn.disabled = true;
     msg.textContent = 'Створюємо акаунт...';
     msg.style.color = '#999';
 
     try {
       const refCode = new URLSearchParams(window.location.search).get('ref');
+      const result = await apiPost('/api/telegram-auth', { action: 'register', name, phone, email, password, refCode });
 
-      const resp = await fetch('/api/telegram-auth', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'register', name, phone, email, password, refCode })
-      });
-      const result = await resp.json();
       if (result.error) {
         msg.textContent = result.error;
         msg.style.color = 'red';
@@ -137,7 +169,8 @@
 
       const { data: signInData, error: signInError } = await sb.auth.signInWithPassword({ email: result.email, password: result.password });
       if (signInError) {
-        msg.textContent = 'Акаунт створено, але не вдалося увійти автоматично. Спробуйте увійти вручну.';
+        if (await hasActiveSession()) { window.location.href = 'index.html'; return; }
+        msg.textContent = 'Акаунт створено, але не вдалося увійти автоматично. Перейдіть на вкладку "Вхід" і увійдіть вручну.';
         msg.style.color = 'red';
         return;
       }
@@ -148,81 +181,69 @@
       window.location.href = 'index.html';
     } catch (e) {
       console.error('register() error', e);
-      // Можливий glitch Safari при обробці токена — перевіримо, чи сесія все ж з'явилась.
-      try {
-        const { data: { session: checkSession } } = await sb.auth.getSession();
-        if (checkSession) { window.location.href = 'index.html'; return; }
-      } catch (e2) { /* ігноруємо */ }
+      if (await hasActiveSession()) { window.location.href = 'index.html'; return; }
       msg.textContent = 'Сталася помилка: ' + (e && e.message ? e.message : String(e));
       msg.style.color = 'red';
+    } finally {
+      btn.disabled = false;
     }
   }
 
   async function resolveEmail(identifier) {
     if (identifier.includes('@')) return { email: identifier };
-    const resp = await fetch('/api/resolve-login-email', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ identifier })
-    });
-    return await resp.json();
+    return await apiPost('/api/resolve-login-email', { identifier: normalizePhone(identifier) });
   }
 
   async function login() {
-    const identifier = document.getElementById('loginIdentifier').value.trim();
+    const identifierRaw = document.getElementById('loginIdentifier').value.trim();
     const password = document.getElementById('loginPassword').value;
     const msg = document.getElementById('loginMsg');
+    const btn = document.getElementById('loginBtn');
 
-    if (!identifier || !password) {
+    if (!identifierRaw || !password) {
       msg.textContent = 'Введіть email/телефон і пароль';
       msg.style.color = 'red';
       return;
     }
 
+    btn.disabled = true;
     msg.textContent = 'Входимо...';
     msg.style.color = '#999';
 
-    let resolved;
     try {
-      resolved = await resolveEmail(identifier);
-    } catch (e) {
-      console.error('login(): resolveEmail failed', e);
-      msg.textContent = 'Помилка пошуку акаунта: ' + (e && e.message ? e.message : String(e));
-      msg.style.color = 'red';
-      return;
-    }
-
-    console.log('login(): resolved =', resolved);
-
-    if (resolved.error || !resolved.email || typeof resolved.email !== 'string') {
-      msg.textContent = resolved.error || 'Користувача не знайдено';
-      msg.style.color = 'red';
-      return;
-    }
-
-    try {
-      const { data: signInData, error } = await sb.auth.signInWithPassword({ email: resolved.email, password });
-      if (error) {
-        msg.textContent = error.message;
+      let resolved;
+      try {
+        resolved = await resolveEmail(identifierRaw);
+      } catch (e) {
+        console.error('login(): resolveEmail failed', e);
+        msg.textContent = 'Помилка пошуку акаунта: ' + (e && e.message ? e.message : String(e));
         msg.style.color = 'red';
         return;
       }
-      await linkTelegramIfPresent(signInData.user.id);
-      window.location.href = 'index.html';
-    } catch (e) {
-      console.error('login(): signInWithPassword failed', e, 'email used:', resolved.email);
-      // Відомий глюк Safari/WebKit при обробці токена: сесія на сервері могла
-      // створитися успішно, а браузер лише "спіткнувся" на обробці відповіді.
-      // Перевіряємо — може, вхід насправді відбувся.
+
+      if (resolved.error || !resolved.email || typeof resolved.email !== 'string') {
+        msg.textContent = resolved.error || 'Користувача не знайдено';
+        msg.style.color = 'red';
+        return;
+      }
+
       try {
-        const { data: { session: checkSession } } = await sb.auth.getSession();
-        if (checkSession) {
-          window.location.href = 'index.html';
+        const { data: signInData, error } = await sb.auth.signInWithPassword({ email: resolved.email, password });
+        if (error) {
+          msg.textContent = error.message;
+          msg.style.color = 'red';
           return;
         }
-      } catch (e2) { /* ігноруємо, покажемо початкову помилку нижче */ }
-      msg.textContent = 'Помилка входу (' + resolved.email + '): ' + (e && e.message ? e.message : String(e));
-      msg.style.color = 'red';
+        await linkTelegramIfPresent(signInData.user.id);
+        window.location.href = 'index.html';
+      } catch (e) {
+        console.error('login(): signInWithPassword failed', e, 'email used:', resolved.email);
+        if (await hasActiveSession()) { window.location.href = 'index.html'; return; }
+        msg.textContent = 'Помилка входу: ' + (e && e.message ? e.message : String(e));
+        msg.style.color = 'red';
+      }
+    } finally {
+      btn.disabled = false;
     }
   }
 
@@ -233,12 +254,8 @@
       return;
     }
     try {
-      const resp = await fetch('/api/telegram-auth', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'password_reset_request', identifier })
-      });
-      const result = await resp.json();
+      const normalized = identifier.includes('@') ? identifier : normalizePhone(identifier);
+      const result = await apiPost('/api/telegram-auth', { action: 'password_reset_request', identifier: normalized });
       if (result.error) {
         alert(result.error);
         return;
