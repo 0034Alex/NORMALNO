@@ -56,17 +56,38 @@
 </div>
 
 <script>
+  let tgUser = null;
   if (window.Telegram && window.Telegram.WebApp) {
     const tg = window.Telegram.WebApp;
     try { tg.expand(); } catch (e) {}
     if (tg.isVersionAtLeast && tg.isVersionAtLeast('7.7') && tg.disableVerticalSwipes) {
       try { tg.disableVerticalSwipes(); } catch (e) {}
     }
+    tgUser = tg.initDataUnsafe && tg.initDataUnsafe.user;
   }
 
   const supabaseUrl = 'https://ipzvgqyjtqofthbpkdsd.supabase.co';
   const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwenZncXlqdHFvZnRoYnBrZHNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMTEwNjEsImV4cCI6MjEwMTU4NzA2MX0.jbbpKpHaD6S9SJMIbxcwb12ggBCv44J_-s4OQ8ESNfA';
   const sb = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+  // Якщо сесія вже активна (людина вже входила раніше на цьому пристрої/в цьому Mini App) —
+  // одразу пускаємо в застосунок, форму не показуємо.
+  (async () => {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) window.location.href = 'index.html';
+  })();
+
+  // Прив'язуємо Telegram до профілю (потрібно, щоб бот міг присилати скидання паролю
+  // і повідомлення). Робиться після успішного входу/реєстрації.
+  async function linkTelegramIfPresent(userId) {
+    if (!tgUser || !userId) return;
+    try {
+      await sb.from('profiles').update({
+        telegram_user_id: String(tgUser.id),
+        telegram_username: tgUser.username || ''
+      }).eq('user_id', userId);
+    } catch (e) { /* не критично, не блокуємо вхід */ }
+  }
 
   function showTab(tab) {
     document.getElementById('tabRegister').classList.toggle('active', tab === 'register');
@@ -105,12 +126,13 @@
       return;
     }
 
-    const { error: signInError } = await sb.auth.signInWithPassword({ email: result.email, password: result.password });
+    const { data: signInData, error: signInError } = await sb.auth.signInWithPassword({ email: result.email, password: result.password });
     if (signInError) {
       msg.textContent = 'Акаунт створено, але не вдалося увійти автоматично. Спробуйте увійти вручну.';
       msg.style.color = 'red';
       return;
     }
+    await linkTelegramIfPresent(signInData.user.id);
 
     msg.textContent = 'Готово! Виконуємо вхід...';
     msg.style.color = 'green';
@@ -145,12 +167,13 @@
       return;
     }
 
-    const { error } = await sb.auth.signInWithPassword({ email: resolved.email, password });
+    const { data: signInData, error } = await sb.auth.signInWithPassword({ email: resolved.email, password });
     if (error) {
       msg.textContent = error.message;
       msg.style.color = 'red';
       return;
     }
+    await linkTelegramIfPresent(signInData.user.id);
     window.location.href = 'index.html';
   }
 
