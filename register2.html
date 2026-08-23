@@ -69,13 +69,51 @@
   const sb = window.supabase.createClient(supabaseUrl, supabaseKey);
 
   let tgUser = null;
+  let tgApp = null;
   if (window.Telegram && window.Telegram.WebApp) {
     const tg = window.Telegram.WebApp;
+    tgApp = tg;
     try { tg.expand(); } catch (e) {}
     if (tg.isVersionAtLeast && tg.isVersionAtLeast('7.7') && tg.disableVerticalSwipes) {
       try { tg.disableVerticalSwipes(); } catch (e) {}
     }
     tgUser = tg.initDataUnsafe && tg.initDataUnsafe.user;
+  }
+
+  // ===== Збереження входу між закриттями Mini App =====
+  // Всередині Telegram Mini App звичайна браузерна пам'ять (localStorage) не завжди
+  // переживає повне закриття застосунку на iOS. Telegram для цього дає власне сховище
+  // CloudStorage, прив'язане до акаунту Telegram — саме в нього дублюємо сесію.
+  const CLOUD_KEY = 'sb_session';
+  function cloudStorageAvailable() {
+    return !!(tgApp && tgApp.CloudStorage && tgApp.isVersionAtLeast && tgApp.isVersionAtLeast('6.9'));
+  }
+  function saveSessionToCloud(session) {
+    if (!cloudStorageAvailable() || !session) return;
+    try {
+      tgApp.CloudStorage.setItem(CLOUD_KEY, JSON.stringify({
+        access_token: session.access_token,
+        refresh_token: session.refresh_token
+      }), () => {});
+    } catch (e) { console.error('saveSessionToCloud failed', e); }
+  }
+  function tryRestoreSessionFromCloud() {
+    return new Promise((resolve) => {
+      if (!cloudStorageAvailable()) { resolve(false); return; }
+      try {
+        tgApp.CloudStorage.getItem(CLOUD_KEY, async (err, value) => {
+          if (err || !value) { resolve(false); return; }
+          try {
+            const saved = JSON.parse(value);
+            const { error } = await sb.auth.setSession({
+              access_token: saved.access_token,
+              refresh_token: saved.refresh_token
+            });
+            resolve(!error);
+          } catch (e) { resolve(false); }
+        });
+      } catch (e) { resolve(false); }
+    });
   }
 
   // Телефон нормалізуємо однаково і при реєстрації, і при вході, і при скиданні паролю
@@ -98,11 +136,20 @@
     return data;
   }
 
+  // При відкритті сторінки — якщо в CloudStorage вже є збережений вхід, пускаємо
+  // одразу без форми. Робиться один раз, до будь-якої взаємодії користувача з формою.
+  (async () => {
+    const restored = await tryRestoreSessionFromCloud();
+    if (restored) window.location.href = 'index.html';
+  })();
+
   // Якщо вхід/реєстрація формально "впала" з помилкою браузера, але сесія на сервері
   // все ж встановилась — не лякаємо людину помилкою, а пускаємо в застосунок.
+  // Заодно дублюємо сесію в CloudStorage, якщо раніше цього не сталося.
   async function hasActiveSession() {
     try {
       const { data: { session } } = await sb.auth.getSession();
+      if (session) saveSessionToCloud(session);
       return !!session;
     } catch (e) { return false; }
   }
@@ -175,6 +222,7 @@
         return;
       }
       await linkTelegramIfPresent(signInData.user.id);
+      saveSessionToCloud(signInData.session);
 
       msg.textContent = 'Готово! Виконуємо вхід...';
       msg.style.color = 'green';
@@ -235,6 +283,7 @@
           return;
         }
         await linkTelegramIfPresent(signInData.user.id);
+        saveSessionToCloud(signInData.session);
         window.location.href = 'index.html';
       } catch (e) {
         console.error('login(): signInWithPassword failed', e, 'email used:', resolved.email);
