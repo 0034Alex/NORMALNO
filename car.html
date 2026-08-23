@@ -210,6 +210,11 @@
     loadSimilarCars(car);
     initGallerySwipe();
 
+    // Прямий перехід у калькулятор лізингу з посилання (наприклад, з поста в Telegram-каналі)
+    if (new URLSearchParams(window.location.search).get('openLeasing') === '1') {
+      openLeasingModal();
+    }
+
     const el = document.getElementById('viewsFavStats');
     if (el) el.textContent = '⏳ рахуємо перегляди...';
 
