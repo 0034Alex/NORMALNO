@@ -70,12 +70,11 @@
   const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwenZncXlqdHFvZnRoYnBrZHNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMTEwNjEsImV4cCI6MjEwMTU4NzA2MX0.jbbpKpHaD6S9SJMIbxcwb12ggBCv44J_-s4OQ8ESNfA';
   const sb = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-  // Якщо сесія вже активна (людина вже входила раніше на цьому пристрої/в цьому Mini App) —
-  // одразу пускаємо в застосунок, форму не показуємо.
-  (async () => {
-    const { data: { session } } = await sb.auth.getSession();
-    if (session) window.location.href = 'index.html';
-  })();
+  // ПРИМІТКА: раніше тут був автоперехід в index.html, якщо в цьому браузері/Mini App
+  // вже була збережена сесія. Прибрано: якщо на цьому пристрої лишалась стара сесія
+  // (з періоду ДО зміни паролю), вона могла непомітно "перехопити" перехід саме в
+  // момент, коли людина вводить НОВИЙ пароль на цій сторінці — форма мовчки не
+  // реагувала. Тепер форма входу показується завжди явно.
 
   // Прив'язуємо Telegram до профілю (потрібно, щоб бот міг присилати скидання паролю
   // і повідомлення). Робиться після успішного входу/реєстрації.
@@ -121,31 +120,37 @@
     msg.textContent = 'Створюємо акаунт...';
     msg.style.color = '#999';
 
-    const refCode = new URLSearchParams(window.location.search).get('ref');
+    try {
+      const refCode = new URLSearchParams(window.location.search).get('ref');
 
-    const resp = await fetch('/api/telegram-auth', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'register', name, phone, email, password, refCode })
-    });
-    const result = await resp.json();
-    if (result.error) {
-      msg.textContent = result.error;
+      const resp = await fetch('/api/telegram-auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'register', name, phone, email, password, refCode })
+      });
+      const result = await resp.json();
+      if (result.error) {
+        msg.textContent = result.error;
+        msg.style.color = 'red';
+        return;
+      }
+
+      const { data: signInData, error: signInError } = await sb.auth.signInWithPassword({ email: result.email, password: result.password });
+      if (signInError) {
+        msg.textContent = 'Акаунт створено, але не вдалося увійти автоматично. Спробуйте увійти вручну.';
+        msg.style.color = 'red';
+        return;
+      }
+      await linkTelegramIfPresent(signInData.user.id);
+
+      msg.textContent = 'Готово! Виконуємо вхід...';
+      msg.style.color = 'green';
+      window.location.href = 'index.html';
+    } catch (e) {
+      console.error('register() error', e);
+      msg.textContent = 'Сталася помилка: ' + (e && e.message ? e.message : String(e));
       msg.style.color = 'red';
-      return;
     }
-
-    const { data: signInData, error: signInError } = await sb.auth.signInWithPassword({ email: result.email, password: result.password });
-    if (signInError) {
-      msg.textContent = 'Акаунт створено, але не вдалося увійти автоматично. Спробуйте увійти вручну.';
-      msg.style.color = 'red';
-      return;
-    }
-    await linkTelegramIfPresent(signInData.user.id);
-
-    msg.textContent = 'Готово! Виконуємо вхід...';
-    msg.style.color = 'green';
-    window.location.href = 'index.html';
   }
 
   async function resolveEmail(identifier) {
@@ -169,21 +174,30 @@
       return;
     }
 
-    const resolved = await resolveEmail(identifier);
-    if (resolved.error || !resolved.email) {
-      msg.textContent = resolved.error || 'Користувача не знайдено';
-      msg.style.color = 'red';
-      return;
-    }
+    msg.textContent = 'Входимо...';
+    msg.style.color = '#999';
 
-    const { data: signInData, error } = await sb.auth.signInWithPassword({ email: resolved.email, password });
-    if (error) {
-      msg.textContent = error.message;
+    try {
+      const resolved = await resolveEmail(identifier);
+      if (resolved.error || !resolved.email) {
+        msg.textContent = resolved.error || 'Користувача не знайдено';
+        msg.style.color = 'red';
+        return;
+      }
+
+      const { data: signInData, error } = await sb.auth.signInWithPassword({ email: resolved.email, password });
+      if (error) {
+        msg.textContent = error.message;
+        msg.style.color = 'red';
+        return;
+      }
+      await linkTelegramIfPresent(signInData.user.id);
+      window.location.href = 'index.html';
+    } catch (e) {
+      console.error('login() error', e);
+      msg.textContent = 'Сталася помилка: ' + (e && e.message ? e.message : String(e));
       msg.style.color = 'red';
-      return;
     }
-    await linkTelegramIfPresent(signInData.user.id);
-    window.location.href = 'index.html';
   }
 
   async function forgotPassword() {
@@ -192,17 +206,22 @@
       alert('Спочатку введіть email або номер телефону вище');
       return;
     }
-    const resp = await fetch('/api/telegram-auth', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'password_reset_request', identifier })
-    });
-    const result = await resp.json();
-    if (result.error) {
-      alert(result.error);
-      return;
+    try {
+      const resp = await fetch('/api/telegram-auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'password_reset_request', identifier })
+      });
+      const result = await resp.json();
+      if (result.error) {
+        alert(result.error);
+        return;
+      }
+      alert('Ми надіслали повідомлення у ваш Telegram. Напишіть боту новий пароль одним повідомленням (мінімум 6 символів).');
+    } catch (e) {
+      console.error('forgotPassword() error', e);
+      alert('Сталася помилка: ' + (e && e.message ? e.message : String(e)));
     }
-    alert('Ми надіслали повідомлення у ваш Telegram. Напишіть боту новий пароль одним повідомленням (мінімум 6 символів).');
   }
 </script>
 
