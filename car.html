@@ -618,6 +618,11 @@
 
   window.markSold = async function() {
     await sb.from('cars').update({ sold: true }).eq('id', carId);
+    fetch('/api/post-to-partner-channel', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ carId: carId, eventType: 'sold' })
+    }).catch(() => {});
     load();
   };
 

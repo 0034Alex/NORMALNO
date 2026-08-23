@@ -471,6 +471,12 @@
     if (error) { msgEl.textContent = error.message; msgEl.style.color = 'red'; return; }
     if (!data.success) { msgEl.textContent = data.error; msgEl.style.color = 'red'; return; }
 
+    fetch('/api/post-to-partner-channel', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ carId: carId, eventType: 'sold' })
+    }).catch(() => {});
+
     msgEl.textContent = 'Вітаємо, ви купили авто!';
     msgEl.style.color = 'green';
     await loadCar();
@@ -483,6 +489,12 @@
 
     const { error } = await sb.rpc('post_auction_buyout', { p_car_id: parseInt(carId) });
     if (error) { alert(error.message); return; }
+
+    fetch('/api/post-to-partner-channel', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ carId: carId, eventType: 'sold' })
+    }).catch(() => {});
 
     alert('Вітаємо, ви викупили авто!');
     await loadCar();

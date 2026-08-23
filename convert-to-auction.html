@@ -126,6 +126,12 @@
       return;
     }
 
+    fetch('/api/post-to-partner-channel', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ carId: carId, eventType: 'converted_to_auction' })
+    }).catch(() => {});
+
     msg.textContent = 'Готово! Авто на аукціоні.';
     msg.style.color = 'green';
     setTimeout(() => { window.location.href = 'my-auctions.html'; }, 1200);
