@@ -89,6 +89,15 @@
     } catch (e) { /* не критично, не блокуємо вхід */ }
   }
 
+  // Автопідстановка імені з Telegram при першому дотику — поле лишається редагованим,
+  // людині не треба вводити ім'я вручну, але вона може його змінити.
+  if (tgUser) {
+    const nameField = document.getElementById('regName');
+    if (nameField) {
+      nameField.value = [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' ') || (tgUser.username || '');
+    }
+  }
+
   function showTab(tab) {
     document.getElementById('tabRegister').classList.toggle('active', tab === 'register');
     document.getElementById('tabLogin').classList.toggle('active', tab === 'login');

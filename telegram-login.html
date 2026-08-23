@@ -9,7 +9,9 @@
 <script>
   // Раніше тут був тихий автовхід через Telegram (без вибору Реєстрація/Вхід).
   // Тепер єдина точка входу для сайту, PWA і Mini App — register2.html.
-  window.location.replace('register2.html' + window.location.search);
+  // ВАЖЛИВО: Telegram передає дані про користувача у "хвості" адреси (#tgWebAppData=...),
+  // тому його теж треба зберегти при переході, інакше register2.html не побачить Telegram-акаунт.
+  window.location.replace('register2.html' + window.location.search + window.location.hash);
 </script>
 </body>
 </html>
