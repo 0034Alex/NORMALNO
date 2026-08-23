@@ -5,6 +5,12 @@ const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const SB_HEADERS = { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json' };
 
+// Той самий алгоритм нормалізації телефону, що і на клієнті (register2.html):
+// лишаємо тільки цифри, щоб "050...", "+380 50...", "380-50..." завжди збігались.
+function normalizePhone(raw) {
+  return String(raw || '').replace(/\D/g, '');
+}
+
 async function sendTG(chatId, text, replyMarkup) {
   try {
     const body = { chat_id: chatId, text };
@@ -68,7 +74,7 @@ async function handlePasswordResetRequest(identifier, res) {
     const u = (listData.users || []).find(u => u.email === identifier);
     if (u) userId = u.id;
   } else {
-    const profResp = await fetch(`${SUPABASE_URL}/rest/v1/profiles?phone=eq.${encodeURIComponent(identifier)}&select=user_id`, { headers: SB_HEADERS });
+    const profResp = await fetch(`${SUPABASE_URL}/rest/v1/profiles?phone=eq.${encodeURIComponent(normalizePhone(identifier))}&select=user_id`, { headers: SB_HEADERS });
     const profs = await profResp.json();
     userId = profs && profs[0] && profs[0].user_id;
   }
@@ -108,7 +114,8 @@ async function handlePasswordResetRequest(identifier, res) {
 // 2) email_confirm:true одразу активує акаунт — не треба листа з підтвердженням,
 //    що в Mini App відкривав Safari і "губив" користувача (див. п.3 запиту).
 async function handleRegister(body, res) {
-  const { name, phone, email, password, refCode } = body;
+  const { name, phone: phoneRaw, email, password, refCode } = body;
+  const phone = normalizePhone(phoneRaw);
   if (!name || !phone || !email || !password) {
     res.status(200).json({ error: "Заповніть ім'я, телефон, email і пароль" });
     return;
