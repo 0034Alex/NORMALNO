@@ -41,19 +41,13 @@
   body { font-family: Arial, sans-serif; background: #fff; margin: 0; padding: 20px; max-width: 480px; margin-left: auto; margin-right: auto; }
   .back { color: #FF7A00; text-decoration: none; font-size: 14px; display: inline-block; margin-bottom: 10px; }
 
-  .photo { position: relative; width: 100%; aspect-ratio: 4/3; background: transparent; border-radius: 14px; overflow: hidden; margin-bottom: 14px; margin-top: 8px; }
+  .photo { position: relative; width: 100%; aspect-ratio: 4/3; background: transparent; border-radius: 14px; overflow: hidden; margin-bottom: 14px; margin-top: 8px; transition: aspect-ratio 0.25s ease; }
+  .photo.portrait-mode { aspect-ratio: 3/4; }
   .gallery-stack-item {
-    position: absolute; top: 0; width: 66%; height: 100%;
-    border-radius: 16px; transition: all 0.3s ease; left: 17%; overflow: hidden;
+    position: absolute; top: 0; width: 66%; height: 100%; object-fit: cover;
+    border-radius: 16px; transition: all 0.3s ease; left: 17%;
     box-shadow: 0 6px 16px rgba(0,0,0,0.25);
   }
-  .gallery-stack-item .bg { display: none; }
-  .gallery-stack-item .fg { position: relative; width: 100%; height: 100%; object-fit: cover; }
-  .gallery-stack-item.pos-current .bg {
-    display: block; position: absolute; inset: -10px; background-size: cover; background-position: center;
-    filter: blur(18px) brightness(0.6); transform: scale(1.15);
-  }
-  .gallery-stack-item.pos-current .fg { object-fit: contain; }
   .gallery-stack-item.pos-prev { transform: translateX(-72%) scale(0.8) rotate(-6deg); z-index: 1; opacity: 0.85; }
   .gallery-stack-item.pos-current { transform: translateX(0) scale(1) rotate(0deg); z-index: 3; opacity: 1; cursor: zoom-in; }
   .gallery-stack-item.pos-next { transform: translateX(72%) scale(0.8) rotate(6deg); z-index: 1; opacity: 0.85; }
@@ -173,12 +167,25 @@
   const leaderNamesCache = {};
   let currentUserId = null;
   let galleryIndex = 0;
+  let photoOrientations = {};
+
+  window.handlePhotoOrientation = function(idx, imgEl) {
+    photoOrientations[idx] = (imgEl.naturalWidth && imgEl.naturalHeight && imgEl.naturalWidth < imgEl.naturalHeight) ? 'portrait' : 'landscape';
+    if (idx === galleryIndex) applyGalleryOrientation();
+  };
+
+  function applyGalleryOrientation() {
+    const wrap = document.getElementById('photoWrap');
+    if (!wrap) return;
+    wrap.classList.toggle('portrait-mode', photoOrientations[galleryIndex] === 'portrait');
+  }
 
   function initGallerySwipe() {
     const photos = carPhotos(car);
     if (photos.length === 0) return;
     galleryIndex = 0;
     renderGalleryPositions();
+    applyGalleryOrientation();
 
     const stack = document.getElementById('photoWrap');
     let startX = 0;
@@ -258,6 +265,7 @@
     if (direction === 'left') galleryIndex = (galleryIndex + 1) % n;
     else galleryIndex = (galleryIndex - 1 + n) % n;
     renderGalleryPositions();
+    applyGalleryOrientation();
   };
 
   let timerInterval = null;
@@ -287,7 +295,7 @@
     const photoWrap = document.getElementById('photoWrap');
     const photos = carPhotos(car);
     const photoHtml = photos.length
-      ? photos.map((p, i) => `<div class="gallery-stack-item" data-idx="${i}"><div class="bg" style="background-image:url('${p}')"></div><img class="fg" src="${p}" onerror="this.style.display='none'"></div>`).join('') +
+      ? photos.map((p, i) => `<img class="gallery-stack-item" data-idx="${i}" src="${p}" onerror="this.style.display='none'" onload="handlePhotoOrientation(${i}, this)">`).join('') +
         (photos.length > 1 ? `
           <button class="gallery-nav-arrow left" onclick="event.stopPropagation(); swipeGallery('right')">‹</button>
           <button class="gallery-nav-arrow right" onclick="event.stopPropagation(); swipeGallery('left')">›</button>
