@@ -97,6 +97,74 @@ async function handlePasswordResetRequest(identifier, res) {
   res.status(200).json({ ok: true });
 }
 
+// ===== Реєстрація email+пароль (register2.html) =====
+// Робиться через service role, а не sb.auth.signUp() з клієнта, з двох причин:
+// 1) sb.auth.signUp() не дає активної сесії поки email не підтверджено — тому
+//    подальший insert в profiles з клієнта блокувався RLS і "ім'я/телефон губились".
+// 2) email_confirm:true одразу активує акаунт — не треба листа з підтвердженням,
+//    що в Mini App відкривав Safari і "губив" користувача (див. п.3 запиту).
+async function handleRegister(body, res) {
+  const { name, phone, email, password, refCode } = body;
+  if (!name || !phone || !email || !password) {
+    res.status(200).json({ error: "Заповніть ім'я, телефон, email і пароль" });
+    return;
+  }
+
+  const listResp = await fetch(`${SUPABASE_URL}/auth/v1/admin/users?email=${encodeURIComponent(email)}`, { headers: SB_HEADERS });
+  const listData = await listResp.json();
+  if ((listData.users || []).some(u => u.email === email)) {
+    res.status(200).json({ error: 'Цей email вже зареєстровано. Спробуйте увійти або скинути пароль.' });
+    return;
+  }
+
+  const createResp = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
+    method: 'POST', headers: SB_HEADERS,
+    body: JSON.stringify({ email, password, email_confirm: true })
+  });
+  const created = await createResp.json();
+  if (!createResp.ok) {
+    res.status(200).json({ error: 'Не вдалося створити акаунт: ' + (created.msg || created.error_description || JSON.stringify(created)) });
+    return;
+  }
+
+  let referredBy = null;
+  let referredByPartner = null;
+  if (refCode) {
+    const rpcResp = await fetch(`${SUPABASE_URL}/rest/v1/rpc/resolve_referral_code`, {
+      method: 'POST', headers: SB_HEADERS, body: JSON.stringify({ code_input: refCode.toUpperCase() })
+    });
+    const rpcData = await rpcResp.json();
+    if (rpcData && rpcData[0]) { referredBy = rpcData[0].user_id; referredByPartner = rpcData[0].partner_id; }
+  }
+
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let newCode = '';
+  for (let i = 0; i < 7; i++) newCode += chars[Math.floor(Math.random() * chars.length)];
+
+  await fetch(`${SUPABASE_URL}/rest/v1/profiles`, {
+    method: 'POST',
+    headers: { ...SB_HEADERS, Prefer: 'return=minimal' },
+    body: JSON.stringify({
+      user_id: created.id, name, phone,
+      referred_by: referredBy, referred_by_partner: referredByPartner,
+      referral_code: newCode
+    })
+  });
+
+  if (referredBy || referredByPartner) {
+    await fetch(`${SUPABASE_URL}/rest/v1/referral_events`, {
+      method: 'POST',
+      headers: { ...SB_HEADERS, Prefer: 'return=minimal' },
+      body: JSON.stringify({
+        referrer_user_id: referredBy, referrer_partner_id: referredByPartner,
+        referred_user_id: created.id, event_type: 'registration', points: 10
+      })
+    });
+  }
+
+  res.status(200).json({ ok: true, email, password });
+}
+
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
@@ -110,13 +178,19 @@ module.exports = async (req, res) => {
       return;
     }
 
-    // 2) Запит на скидання паролю з сайту
+    // 2) Реєстрація email+пароль
+    if (req.body && req.body.action === 'register') {
+      await handleRegister(req.body, res);
+      return;
+    }
+
+    // 3) Запит на скидання паролю з сайту
     if (req.body && req.body.action === 'password_reset_request') {
       await handlePasswordResetRequest(req.body.identifier, res);
       return;
     }
 
-    // 3) Стандартний вхід через Telegram Mini App (initData)
+    // 4) Стандартний вхід через Telegram Mini App (initData)
     const { initData, startParam } = req.body;
     if (!initData) {
       res.status(400).json({ error: 'No initData' });
