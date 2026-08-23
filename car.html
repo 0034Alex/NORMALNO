@@ -499,11 +499,11 @@
   function applyGalleryOrientation() {
     const gallery = document.getElementById('galleryStack');
     if (!gallery) return;
-    const HEADER = 54, SIDE = 10, BOTTOM = 10;
+    const HEADER = 54, BOTTOM = 10, ITEM_WIDTH_PCT = 0.66;
     const ratio = Math.max(0.55, Math.min(1.9, photoRatios[galleryIndex] || 4 / 3));
-    const innerWidth = gallery.clientWidth - SIDE * 2;
-    const innerHeight = innerWidth / ratio;
-    gallery.style.height = Math.round(innerHeight + HEADER + BOTTOM) + 'px';
+    const itemWidth = gallery.clientWidth * ITEM_WIDTH_PCT;
+    const itemHeight = itemWidth / ratio;
+    gallery.style.height = Math.round(itemHeight + HEADER + BOTTOM) + 'px';
   }
 
   function initGallerySwipe() {

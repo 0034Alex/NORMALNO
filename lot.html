@@ -181,11 +181,11 @@
   function applyGalleryOrientation() {
     const wrap = document.getElementById('photoWrap');
     if (!wrap) return;
-    const HEADER = 40, SIDE = 10, BOTTOM = 10;
+    const HEADER = 40, BOTTOM = 10, ITEM_WIDTH_PCT = 0.66;
     const ratio = Math.max(0.55, Math.min(1.9, photoRatios[galleryIndex] || 4 / 3));
-    const innerWidth = wrap.clientWidth - SIDE * 2;
-    const innerHeight = innerWidth / ratio;
-    wrap.style.height = Math.round(innerHeight + HEADER + BOTTOM) + 'px';
+    const itemWidth = wrap.clientWidth * ITEM_WIDTH_PCT;
+    const itemHeight = itemWidth / ratio;
+    wrap.style.height = Math.round(itemHeight + HEADER + BOTTOM) + 'px';
   }
 
   function initGallerySwipe() {
