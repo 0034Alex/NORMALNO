@@ -78,8 +78,12 @@
 
   .seller-box { border: 1px solid #eee; border-radius: 12px; padding: 14px; margin-bottom: 16px; }
   .views-fav-stats { font-size: 12px; color: #999; margin-bottom: 12px; }
-  .car-id-row { display: flex; align-items: center; gap: 10px; font-size: 12px; color: #999; margin-bottom: 16px; }
-  .car-id-copy { background: #f5e6ff; color: #8E00FF; border: none; border-radius: 8px; padding: 6px 10px; font-size: 11px; font-weight: bold; cursor: pointer; }
+  .car-id-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #999; margin-bottom: 16px; }
+  .icon-btn { display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; padding: 0; border: none; border-radius: 7px; cursor: pointer; flex-shrink: 0; }
+  .icon-btn svg { width: 15px; height: 15px; }
+  .icon-btn-copy { background: #f5e6ff; color: #8E00FF; }
+  .icon-btn-share { background: transparent; margin-left: auto; }
+  .icon-btn-share svg { width: 26px; height: 26px; }
   .section-title { font-size: 16px; font-weight: bold; }
   .similar-cars-row { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 8px; }
   .similar-cars-row .ncard { flex: 0 0 65vw; max-width: 220px; margin-bottom: 0; }
@@ -135,7 +139,8 @@
   const sb = window.supabase.createClient(supabaseUrl, supabaseKey);
 
   const params = new URLSearchParams(window.location.search);
-  const carId = params.get('id');
+  const carId = (params.get('id') || '').trim();
+  const TELEGRAM_LOGO_SVG = '<svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg"><circle cx="120" cy="120" r="120" fill="#26A5E4"/><path fill="#fff" d="M167.5 72.7c2.1-1.1 4.6.6 4.2 2.9l-19.6 108.1c-1 5.5-8.3 6.9-11.3 2.2l-31-40.3-19.5 18.8c-2.2 2.1-5.9.8-6.3-2.2l-4.1-30.1-33.8-11c-4.4-1.4-4.5-7.6-.1-9.2l121.5-39.2z"/></svg>';
   let currentUserId = null;
   let isFav = false;
   let currentCarData = null;
@@ -161,8 +166,20 @@
       isFav = !!fav;
     }
 
-    const { data: car, error } = await sb.from('cars').select('*').eq('id', carId).single();
-    if (error || !car) {
+    if (!carId) {
+      console.error('car.html: no id param in URL', window.location.href);
+      document.getElementById('content').innerHTML = '<div class="empty">Оголошення не знайдено (немає ID у посиланні)</div>';
+      return;
+    }
+
+    const { data: car, error } = await sb.from('cars').select('*').eq('id', carId).maybeSingle();
+    if (error) {
+      console.error('car.html: Supabase error loading car', carId, error);
+      document.getElementById('content').innerHTML = '<div class="empty">Не вдалося завантажити оголошення. Спробуйте оновити сторінку.</div>';
+      return;
+    }
+    if (!car) {
+      console.error('car.html: no car found for id', carId);
       document.getElementById('content').innerHTML = '<div class="empty">Оголошення не знайдено</div>';
       return;
     }
@@ -315,10 +332,13 @@
 
       <div class="car-id-row">
         ID оголошення: <b>${car.id}</b>
-        <button class="car-id-copy" onclick="copyCarId(${car.id})">📋 Копіювати</button>
+        <button class="icon-btn icon-btn-copy" onclick="copyCarId(${car.id})" title="Копіювати ID" aria-label="Копіювати ID">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+        </button>
+        <button class="icon-btn icon-btn-share" onclick="shareToTelegram(${car.id})" title="Поділитися в Telegram" aria-label="Поділитися в Telegram">
+          ${TELEGRAM_LOGO_SVG}
+        </button>
       </div>
-
-      <button class="ncard-compare-btn" style="width:100%; margin-bottom:12px; padding:12px; font-size:13px; background:#26A5E4; color:#fff; border:none;" onclick="shareToTelegram(${car.id})">✈️ Поділитися в Telegram</button>
 
       <button class="leasing-btn" onclick="openLeasingModal()">📊 Розрахувати в лізинг</button>
 

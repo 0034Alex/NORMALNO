@@ -172,13 +172,17 @@
       alert('Спочатку введіть email або номер телефону вище');
       return;
     }
-    const resolved = await resolveEmail(identifier);
-    if (resolved.error || !resolved.email) {
-      alert(resolved.error || 'Користувача не знайдено');
+    const resp = await fetch('/api/telegram-auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'password_reset_request', identifier })
+    });
+    const result = await resp.json();
+    if (result.error) {
+      alert(result.error);
       return;
     }
-    await sb.auth.resetPasswordForEmail(resolved.email);
-    alert('Лист для відновлення паролю надіслано на email');
+    alert('Ми надіслали повідомлення у ваш Telegram. Напишіть боту новий пароль одним повідомленням (мінімум 6 символів).');
   }
 </script>
 
