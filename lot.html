@@ -42,14 +42,13 @@
   .back { color: #FF7A00; text-decoration: none; font-size: 14px; display: inline-block; margin-bottom: 10px; }
 
   .photo {
-    position: relative; width: 100%; aspect-ratio: 4/3; border-radius: 22px; margin-bottom: 14px; margin-top: 8px;
-    background: linear-gradient(160deg, #1a1030, #0f0a20); overflow: hidden; transition: aspect-ratio 0.25s ease;
-    padding: 16px; box-sizing: border-box;
+    position: relative; width: 100%; border-radius: 22px; margin-bottom: 14px; margin-top: 8px;
+    background: linear-gradient(160deg, #1a1030, #0f0a20); overflow: hidden;
+    padding: 40px 10px 10px 10px; box-sizing: border-box;
   }
-  .photo.portrait-mode { aspect-ratio: 3/4; }
   .gallery-stack-item {
-    position: absolute; top: 16px; bottom: 16px; width: 62%; height: auto; object-fit: contain;
-    border-radius: 16px; transition: all 0.3s ease; left: 19%; background: #120c22;
+    position: absolute; top: 40px; bottom: 10px; width: 66%; height: auto; object-fit: contain;
+    border-radius: 16px; transition: all 0.3s ease; left: 17%; background: #120c22;
     box-shadow: 0 0 0 2px rgba(142,0,255,0.55), 0 0 26px rgba(142,0,255,0.35), 0 10px 22px rgba(0,0,0,0.45);
   }
   .gallery-stack-item.pos-prev { transform: translateX(-70%) scale(0.8) rotate(-7deg); z-index: 1; opacity: 0.8; }
@@ -170,17 +169,23 @@
   const leaderNamesCache = {};
   let currentUserId = null;
   let galleryIndex = 0;
-  let photoOrientations = {};
+  let photoRatios = {};
 
   window.handlePhotoOrientation = function(idx, imgEl) {
-    photoOrientations[idx] = (imgEl.naturalWidth && imgEl.naturalHeight && imgEl.naturalWidth < imgEl.naturalHeight) ? 'portrait' : 'landscape';
+    if (imgEl.naturalWidth && imgEl.naturalHeight) {
+      photoRatios[idx] = imgEl.naturalWidth / imgEl.naturalHeight;
+    }
     if (idx === galleryIndex) applyGalleryOrientation();
   };
 
   function applyGalleryOrientation() {
     const wrap = document.getElementById('photoWrap');
     if (!wrap) return;
-    wrap.classList.toggle('portrait-mode', photoOrientations[galleryIndex] === 'portrait');
+    const HEADER = 40, SIDE = 10, BOTTOM = 10;
+    const ratio = Math.max(0.55, Math.min(1.9, photoRatios[galleryIndex] || 4 / 3));
+    const innerWidth = wrap.clientWidth - SIDE * 2;
+    const innerHeight = innerWidth / ratio;
+    wrap.style.height = Math.round(innerHeight + HEADER + BOTTOM) + 'px';
   }
 
   function initGallerySwipe() {

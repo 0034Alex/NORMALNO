@@ -42,14 +42,13 @@
   .back { color: #FF7A00; text-decoration: none; font-size: 14px; display: inline-block; margin-bottom: 10px; }
 
   .gallery {
-    position: relative; width: 100%; aspect-ratio: 4/3; border-radius: 22px; margin-bottom: 12px; margin-top: 8px;
-    background: linear-gradient(160deg, #1a1030, #0f0a20); overflow: hidden; transition: aspect-ratio 0.25s ease;
-    padding: 16px; box-sizing: border-box;
+    position: relative; width: 100%; border-radius: 22px; margin-bottom: 12px; margin-top: 8px;
+    background: linear-gradient(160deg, #1a1030, #0f0a20); overflow: hidden;
+    padding: 54px 10px 10px 10px; box-sizing: border-box;
   }
-  .gallery.portrait-mode { aspect-ratio: 3/4; }
   .gallery-stack-item {
-    position: absolute; top: 16px; bottom: 16px; width: 62%; height: auto; object-fit: contain;
-    border-radius: 16px; transition: all 0.3s ease; left: 19%; background: #120c22;
+    position: absolute; top: 54px; bottom: 10px; width: 66%; height: auto; object-fit: contain;
+    border-radius: 16px; transition: all 0.3s ease; left: 17%; background: #120c22;
     box-shadow: 0 0 0 2px rgba(142,0,255,0.55), 0 0 26px rgba(142,0,255,0.35), 0 10px 22px rgba(0,0,0,0.45);
   }
   .gallery-stack-item.pos-prev { transform: translateX(-70%) scale(0.8) rotate(-7deg); z-index: 1; opacity: 0.8; }
@@ -65,14 +64,16 @@
   .gallery-nav-arrow.right { right: 8px; }
   .gallery-noimg { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 50px; color: #ccc; }
   .gallery-logo {
-    position: absolute; top: 12px; left: 12px; width: 52px; height: auto; z-index: 20;
-    opacity: 0.9; pointer-events: none; filter: drop-shadow(0 1px 3px rgba(0,0,0,0.4));
+    position: absolute; top: 14px; left: 14px; width: 44px; height: auto; z-index: 20;
+    opacity: 0.95; pointer-events: none;
   }
-  .gallery-heart {
-    position: absolute; top: 12px; right: 12px; width: 38px; height: 38px; border-radius: 50%; z-index: 20;
-    background: rgba(255,255,255,0.9); display: flex; align-items: center; justify-content: center;
-    font-size: 20px; color: #8E00FF; cursor: pointer;
+  .gallery-top-actions { position: absolute; top: 14px; right: 14px; z-index: 20; display: flex; gap: 8px; }
+  .gallery-heart, .gallery-share {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: rgba(255,255,255,0.12); display: flex; align-items: center; justify-content: center;
+    font-size: 18px; color: #fff; cursor: pointer; border: none; padding: 0;
   }
+  .gallery-share svg { width: 22px; height: 22px; border-radius: 50%; }
   .gallery-dots { position: absolute; bottom: 12px; left: 0; right: 0; display: flex; justify-content: center; gap: 6px; pointer-events: none; }
   .gallery-dots span { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.6); box-shadow: 0 0 3px rgba(0,0,0,0.4); }
   .gallery-count { text-align: center; font-size: 12px; color: #999; margin-bottom: 16px; }
@@ -321,7 +322,10 @@
       <div class="gallery" id="galleryStack">
         ${stackHtml}
         <img class="gallery-logo" src="/logo-watermark.png" alt="">
-        <div class="gallery-heart" onclick="event.stopPropagation(); toggleFav()">${isFav ? '❤️' : '♡'}</div>
+        <div class="gallery-top-actions">
+          <button class="gallery-share" onclick="event.stopPropagation(); shareToTelegram(${car.id})" title="Поділитися в Telegram" aria-label="Поділитися в Telegram">${TELEGRAM_LOGO_SVG}</button>
+          <button class="gallery-heart" onclick="event.stopPropagation(); toggleFav()">${isFav ? '❤️' : '♡'}</button>
+        </div>
         ${photos.length > 1 ? `
           <button class="gallery-nav-arrow left" onclick="event.stopPropagation(); swipeGallery('right')">‹</button>
           <button class="gallery-nav-arrow right" onclick="event.stopPropagation(); swipeGallery('left')">›</button>
@@ -353,9 +357,6 @@
         ID оголошення: <b>${car.id}</b>
         <button class="icon-btn icon-btn-copy" onclick="copyCarId(${car.id})" title="Копіювати ID" aria-label="Копіювати ID">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-        </button>
-        <button class="icon-btn icon-btn-share" onclick="shareToTelegram(${car.id})" title="Поділитися в Telegram" aria-label="Поділитися в Telegram">
-          ${TELEGRAM_LOGO_SVG}
         </button>
       </div>
 
@@ -483,17 +484,26 @@
   }
 
   let galleryIndex = 0;
-  let photoOrientations = {};
+  let photoRatios = {};
 
   window.handlePhotoOrientation = function(idx, imgEl) {
-    photoOrientations[idx] = (imgEl.naturalWidth && imgEl.naturalHeight && imgEl.naturalWidth < imgEl.naturalHeight) ? 'portrait' : 'landscape';
+    if (imgEl.naturalWidth && imgEl.naturalHeight) {
+      photoRatios[idx] = imgEl.naturalWidth / imgEl.naturalHeight;
+    }
     if (idx === galleryIndex) applyGalleryOrientation();
   };
 
+  // Висота підганяється точно під пропорції поточного фото: зверху лишається
+  // фіксована смуга під лого/сердечко/поділитися, знизу і по боках — мінімальні
+  // відступи, щоб фіолетового фону майже не було видно за фото.
   function applyGalleryOrientation() {
     const gallery = document.getElementById('galleryStack');
     if (!gallery) return;
-    gallery.classList.toggle('portrait-mode', photoOrientations[galleryIndex] === 'portrait');
+    const HEADER = 54, SIDE = 10, BOTTOM = 10;
+    const ratio = Math.max(0.55, Math.min(1.9, photoRatios[galleryIndex] || 4 / 3));
+    const innerWidth = gallery.clientWidth - SIDE * 2;
+    const innerHeight = innerWidth / ratio;
+    gallery.style.height = Math.round(innerHeight + HEADER + BOTTOM) + 'px';
   }
 
   function initGallerySwipe() {
