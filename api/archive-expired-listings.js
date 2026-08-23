@@ -42,6 +42,11 @@ module.exports = async (req, res) => {
           body: `${lot.brand} ${lot.model}, ${lot.year} — фінальна ставка ${lot.current_bid} ${lot.currency}`,
           url: `/lot.html?id=${lot.id}`
         }).catch(() => {});
+
+        await fetch('https://normalno-a55.vercel.app/api/post-to-partner-channel', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ carId: lot.id, eventType: 'sold' })
+        }).catch(() => {});
       }
     }
 

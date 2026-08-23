@@ -8,7 +8,7 @@ module.exports = async (req, res) => {
     return;
   }
   try {
-    const { carId, eventType } = req.body; // eventType: 'new' | 'price_drop' | 'sold'
+    const { carId, eventType } = req.body; // eventType: 'new' | 'price_drop' | 'sold' | 'converted_to_auction'
     const headers = { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` };
 
     const carResp = await fetch(`${SUPABASE_URL}/rest/v1/cars?id=eq.${carId}&select=*`, { headers });
@@ -26,7 +26,9 @@ module.exports = async (req, res) => {
     if (eventType === 'price_drop') {
       caption = `📉 Знижена ціна!\n\n🚗 ${car.brand} ${car.model}, ${car.year}\n💰 Нова ціна: ${priceStr}`;
     } else if (eventType === 'sold') {
-      caption = `✅ Продано!\n\n🚗 ${car.brand} ${car.model}, ${car.year}`;
+      caption = `✅ Продано${car.listing_type === 'auction' ? ' на аукціоні' : ''}!\n\n🚗 ${car.brand} ${car.model}, ${car.year}`;
+    } else if (eventType === 'converted_to_auction') {
+      caption = `🔨 Переведено в аукціон!\n\n🚗 ${car.brand} ${car.model}, ${car.year}\n💰 Стартова ціна: ${priceStr}`;
     } else {
       caption = `🆕 Нове авто${car.listing_type === 'auction' ? ' на аукціоні' : ''}!\n\n🚗 ${car.brand} ${car.model}, ${car.year}\n💰 ${priceStr}`;
     }
