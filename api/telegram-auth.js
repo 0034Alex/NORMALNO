@@ -5,15 +5,19 @@ const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const SB_HEADERS = { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json' };
 
-async function sendTG(chatId, text) {
+async function sendTG(chatId, text, replyMarkup) {
   try {
+    const body = { chat_id: chatId, text };
+    if (replyMarkup) body.reply_markup = replyMarkup;
     await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text })
+      body: JSON.stringify(body)
     });
   } catch (e) { /* ignore send errors */ }
 }
+
+const OPEN_APP_BUTTON = { inline_keyboard: [[{ text: 'Відкрити NORMALNO', web_app: { url: 'https://normalno-a55.vercel.app/register2.html' } }]] };
 
 // ===== Обробка вхідних повідомлень боту (Telegram webhook) =====
 // Використовується для сценарію "скидання паролю через бота": якщо у користувача
@@ -43,7 +47,7 @@ async function handleBotMessage(message, res) {
         await fetch(`${SUPABASE_URL}/rest/v1/password_reset_requests?id=eq.${pending.id}`, {
           method: 'PATCH', headers: SB_HEADERS, body: JSON.stringify({ status: 'used' })
         });
-        await sendTG(chatId, '✅ Пароль змінено! Тепер увійдіть на сайті з новим паролем.');
+        await sendTG(chatId, '✅ Пароль змінено!\n\nУвійти з новим паролем треба в самому застосунку NORMALNO (кнопка нижче) — тут, у чаті бота, увійти не можна, бот лише прийняв ваш новий пароль.', OPEN_APP_BUTTON);
       } else {
         await sendTG(chatId, 'Сталася помилка при зміні паролю. Спробуйте пізніше або зверніться в підтримку.');
       }
