@@ -148,6 +148,11 @@
       window.location.href = 'index.html';
     } catch (e) {
       console.error('register() error', e);
+      // Можливий glitch Safari при обробці токена — перевіримо, чи сесія все ж з'явилась.
+      try {
+        const { data: { session: checkSession } } = await sb.auth.getSession();
+        if (checkSession) { window.location.href = 'index.html'; return; }
+      } catch (e2) { /* ігноруємо */ }
       msg.textContent = 'Сталася помилка: ' + (e && e.message ? e.message : String(e));
       msg.style.color = 'red';
     }
@@ -177,14 +182,25 @@
     msg.textContent = 'Входимо...';
     msg.style.color = '#999';
 
+    let resolved;
     try {
-      const resolved = await resolveEmail(identifier);
-      if (resolved.error || !resolved.email) {
-        msg.textContent = resolved.error || 'Користувача не знайдено';
-        msg.style.color = 'red';
-        return;
-      }
+      resolved = await resolveEmail(identifier);
+    } catch (e) {
+      console.error('login(): resolveEmail failed', e);
+      msg.textContent = 'Помилка пошуку акаунта: ' + (e && e.message ? e.message : String(e));
+      msg.style.color = 'red';
+      return;
+    }
 
+    console.log('login(): resolved =', resolved);
+
+    if (resolved.error || !resolved.email || typeof resolved.email !== 'string') {
+      msg.textContent = resolved.error || 'Користувача не знайдено';
+      msg.style.color = 'red';
+      return;
+    }
+
+    try {
       const { data: signInData, error } = await sb.auth.signInWithPassword({ email: resolved.email, password });
       if (error) {
         msg.textContent = error.message;
@@ -194,8 +210,18 @@
       await linkTelegramIfPresent(signInData.user.id);
       window.location.href = 'index.html';
     } catch (e) {
-      console.error('login() error', e);
-      msg.textContent = 'Сталася помилка: ' + (e && e.message ? e.message : String(e));
+      console.error('login(): signInWithPassword failed', e, 'email used:', resolved.email);
+      // Відомий глюк Safari/WebKit при обробці токена: сесія на сервері могла
+      // створитися успішно, а браузер лише "спіткнувся" на обробці відповіді.
+      // Перевіряємо — може, вхід насправді відбувся.
+      try {
+        const { data: { session: checkSession } } = await sb.auth.getSession();
+        if (checkSession) {
+          window.location.href = 'index.html';
+          return;
+        }
+      } catch (e2) { /* ігноруємо, покажемо початкову помилку нижче */ }
+      msg.textContent = 'Помилка входу (' + resolved.email + '): ' + (e && e.message ? e.message : String(e));
       msg.style.color = 'red';
     }
   }
