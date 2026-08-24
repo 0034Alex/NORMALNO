@@ -68,6 +68,19 @@
   const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwenZncXlqdHFvZnRoYnBrZHNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMTEwNjEsImV4cCI6MjEwMTU4NzA2MX0.jbbpKpHaD6S9SJMIbxcwb12ggBCv44J_-s4OQ8ESNfA';
   const sb = window.supabase.createClient(supabaseUrl, supabaseKey);
 
+  function showBlockedMessage(msgEl) {
+    msgEl.innerHTML = 'Цей акаунт заблоковано.<br><button type="button" onclick="window.location.href=\'support.html?reason=blocked\'" style="margin-top:10px; padding:10px 16px; background:#8E00FF; color:#fff; border:none; border-radius:8px; font-size:14px; cursor:pointer;">📩 Звернутися в підтримку</button>';
+    msgEl.style.color = 'red';
+  }
+
+  // Якщо сюди перекинуло з index.html (сесія вже була активна, але акаунт виявився заблокований)
+  if (new URLSearchParams(window.location.search).get('blocked') === '1') {
+    window.addEventListener('DOMContentLoaded', () => {
+      const loginMsg = document.getElementById('loginMsg');
+      if (loginMsg) { showTab('login'); showBlockedMessage(loginMsg); }
+    });
+  }
+
   let tgUser = null;
   let tgApp = null;
   if (window.Telegram && window.Telegram.WebApp) {
@@ -286,8 +299,7 @@
         const { data: profileCheck } = await sb.from('profiles').select('blocked').eq('user_id', signInData.user.id).maybeSingle();
         if (profileCheck && profileCheck.blocked) {
           await sb.auth.signOut();
-          msg.textContent = 'Цей акаунт заблоковано. Зверніться в підтримку.';
-          msg.style.color = 'red';
+          showBlockedMessage(msg);
           return;
         }
 

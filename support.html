@@ -33,10 +33,14 @@
 <div class="logo">🎫 Підтримка</div>
 <div class="subtitle">Опишіть проблему детально — ми відповімо якнайшвидше</div>
 
+<label>Ім'я</label>
+<input type="text" id="supName">
 <label>Телефон</label>
 <input type="tel" id="supPhone">
 <label>Email</label>
 <input type="email" id="supEmail">
+<label>Telegram</label>
+<input type="text" id="supTelegram" placeholder="@нікнейм" readonly style="background:#f5f5f5; color:#666;">
 <label>Що сталося?</label>
 <textarea id="supMessage" placeholder="Опишіть проблему якомога детальніше"></textarea>
 
@@ -48,31 +52,46 @@
   const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwenZncXlqdHFvZnRoYnBrZHNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMTEwNjEsImV4cCI6MjEwMTU4NzA2MX0.jbbpKpHaD6S9SJMIbxcwb12ggBCv44J_-s4OQ8ESNfA';
   const sb = window.supabase.createClient(supabaseUrl, supabaseKey);
 
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('reason') === 'blocked') {
+    document.getElementById('supMessage').value = 'Мій акаунт заблоковано. Прошу розглянути причину та розблокувати, якщо це помилка.';
+    document.querySelector('.subtitle').textContent = 'Ваш акаунт заблоковано — опишіть ситуацію, ми розглянемо звернення';
+  }
+
+  if (window.Telegram && window.Telegram.WebApp) {
+    const tgUser = window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user;
+    if (tgUser) {
+      document.getElementById('supTelegram').value = tgUser.username ? '@' + tgUser.username : (tgUser.id ? 'ID ' + tgUser.id : '');
+      if (!document.getElementById('supName').value) {
+        document.getElementById('supName').value = [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' ');
+      }
+    }
+  }
+
   async function submitSupport() {
     const msg = document.getElementById('msg');
+    const name = document.getElementById('supName').value.trim();
     const phone = document.getElementById('supPhone').value.trim();
     const email = document.getElementById('supEmail').value.trim();
+    const telegram = document.getElementById('supTelegram').value.trim();
     const message = document.getElementById('supMessage').value.trim();
 
-    if (!phone || !email || !message) {
-      msg.textContent = "Заповніть телефон, email і опис проблеми";
+    if (!name || !phone || !email || !message) {
+      msg.textContent = "Заповніть ім'я, телефон, email і опис проблеми";
       msg.style.color = 'red';
       return;
     }
 
     const { data: { session } } = await sb.auth.getSession();
-    let name = '';
-    if (session) {
-      const { data: profile } = await sb.from('profiles').select('name').eq('user_id', session.user.id).maybeSingle();
-      name = (profile && profile.name) || '';
-    }
+
+    const details = `Email: ${email}${telegram ? `\nTelegram: ${telegram}` : ''}\n\n${message}`;
 
     const { error } = await sb.from('leads').insert({
       type: 'support',
       user_id: session ? session.user.id : null,
       name: name,
       phone: phone,
-      details: `Email: ${email}\n${message}`
+      details: details
     });
 
     if (error) {
@@ -84,12 +103,12 @@
     fetch('/api/notify-lead', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ leadType: 'support', name, phone, summary: `Email: ${email}\n${message}` })
+      body: JSON.stringify({ leadType: 'support', name, phone, summary: details })
     }).catch(() => {});
 
     msg.textContent = 'Дякуємо! Ми зв\'яжемося з вами найближчим часом.';
     msg.style.color = 'green';
-    setTimeout(() => { window.location.href = 'profile.html'; }, 1500);
+    setTimeout(() => { window.location.href = session ? 'profile.html' : 'register2.html'; }, 1500);
   }
 
   if (window.Telegram && window.Telegram.WebApp) {

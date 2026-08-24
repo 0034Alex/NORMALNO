@@ -327,8 +327,7 @@
     const { data: profileCheck } = await sb.from('profiles').select('blocked').eq('user_id', currentUserId).maybeSingle();
     if (profileCheck && profileCheck.blocked) {
       await sb.auth.signOut();
-      alert('Цей акаунт заблоковано. Зверніться в підтримку.');
-      window.location.href = 'register2.html';
+      window.location.href = 'register2.html?blocked=1';
       return;
     }
 
