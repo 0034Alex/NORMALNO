@@ -121,6 +121,8 @@
       return;
     }
     currentUserId = session.user.id;
+    logPageVisit(sb, currentUserId, 'favorites');
+    syncTelegramSessionOnRefresh(sb);
 
     const { data: favs } = await sb.from('favorites').select('car_id').eq('user_id', currentUserId);
     const carIds = (favs || []).map(f => f.car_id);

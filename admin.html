@@ -716,7 +716,12 @@
 
     const visitCounts = {};
     (visits || []).forEach(v => { visitCounts[v.page] = (visitCounts[v.page] || 0) + 1; });
-    const PAGE_LABELS = { index: 'Головна', search: 'Пошук', auction: 'Аукціон' };
+    const PAGE_LABELS = {
+      index: 'Головна', search: 'Пошук', auction: 'Аукціон', car: 'Перегляд авто', lot: 'Перегляд лоту',
+      favorites: 'Обране', chat: 'Чат', 'hot-offers': 'Гарячі пропозиції', profile: 'Профіль',
+      'my-listings': 'Мої оголошення', 'my-auctions': 'Мої аукціони', 'my-archive': 'Архів',
+      'urgent-buyout': 'Терміновий викуп', sell: 'Продати авто'
+    };
 
     let viewedCarsHtml = '<div class="empty">Ще нічого не переглядав</div>';
     if (viewedCarsLog && viewedCarsLog.length) {

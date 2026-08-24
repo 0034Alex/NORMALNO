@@ -274,6 +274,7 @@
       const { data: favs } = await sb.from('favorites').select('car_id').eq('user_id', currentUserId);
       favoritedIds = new Set((favs || []).map(f => f.car_id));
       logPageVisit(sb, currentUserId, 'search');
+      syncTelegramSessionOnRefresh(sb);
     }
 
     const { data: cars } = await sb.from('cars').select('*').neq('listing_type', 'auction').eq('archived', false).order('created_at', { ascending: false });

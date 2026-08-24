@@ -152,6 +152,8 @@
     const { data: { session } } = await sb.auth.getSession();
     if (!session) { window.location.href = 'register2.html'; return; }
     sessionUserId = session.user.id;
+    logPageVisit(sb, sessionUserId, 'urgent-buyout');
+    syncTelegramSessionOnRefresh(sb);
 
     msg.textContent = 'Завантажуємо фото...';
     msg.style.color = '#8E00FF';

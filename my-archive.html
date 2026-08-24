@@ -121,6 +121,8 @@
     const { data: { session } } = await sb.auth.getSession();
     if (!session) { window.location.href = 'register2.html'; return; }
     sessionUserId = session.user.id;
+    logPageVisit(sb, sessionUserId, 'my-archive');
+    syncTelegramSessionOnRefresh(sb);
 
     const { data } = await sb.from('cars').select('*').eq('user_id', sessionUserId).eq('archived', true).order('archived_at', { ascending: false });
     allArchived = data || [];

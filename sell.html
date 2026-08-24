@@ -304,6 +304,8 @@
     const panel = document.getElementById('statusPanel');
     const { data: { session } } = await sb.auth.getSession();
     if (!session) { window.location.href = 'register2.html'; return; }
+    logPageVisit(sb, session.user.id, 'sell');
+    syncTelegramSessionOnRefresh(sb);
 
     const { count: soldCount } = await sb
       .from('cars').select('*', { count: 'exact', head: true })

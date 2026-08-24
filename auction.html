@@ -421,6 +421,7 @@
       const { data: favs } = await sb.from('favorites').select('car_id').eq('user_id', currentUserId);
       favoritedIds = new Set((favs || []).map(f => f.car_id));
       logPageVisit(sb, currentUserId, 'auction');
+      syncTelegramSessionOnRefresh(sb);
     }
 
     await ensureRatesLoaded();

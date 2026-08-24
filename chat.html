@@ -71,6 +71,8 @@
     const { data: { session } } = await sb.auth.getSession();
     if (!session) { window.location.href = 'register2.html'; return; }
     currentUserId = session.user.id;
+    logPageVisit(sb, currentUserId, 'chat');
+    syncTelegramSessionOnRefresh(sb);
 
     const { data: chat, error } = await sb.from('chats').select('*').eq('id', chatId).single();
     if (error || !chat || (chat.buyer_id !== currentUserId && chat.seller_id !== currentUserId)) {

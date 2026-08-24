@@ -324,6 +324,14 @@
     if (!session) { window.location.href = 'register2.html'; return; }
     currentUserId = session.user.id;
 
+    const { data: profileCheck } = await sb.from('profiles').select('blocked').eq('user_id', currentUserId).maybeSingle();
+    if (profileCheck && profileCheck.blocked) {
+      await sb.auth.signOut();
+      alert('Цей акаунт заблоковано. Зверніться в підтримку.');
+      window.location.href = 'register2.html';
+      return;
+    }
+
     const { data: favs } = await sb.from('favorites').select('car_id').eq('user_id', currentUserId);
     favoritedIds = new Set((favs || []).map(f => f.car_id));
 
@@ -333,6 +341,7 @@
     registerInstallTracking(sb);
     sb.from('profiles').update({ last_login_at: new Date().toISOString() }).eq('user_id', currentUserId).then(() => {});
     logPageVisit(sb, currentUserId, 'index');
+    syncTelegramSessionOnRefresh(sb);
   }
 
   function shuffle(arr) {

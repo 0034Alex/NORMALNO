@@ -609,6 +609,35 @@ function logCarView(sbClient, userId, carId) {
   sbClient.from('car_views_log').insert({ user_id: userId, car_id: carId }).then(() => {}).catch(() => {});
 }
 
+/* ---------- Синхронізація сесії з Telegram CloudStorage (щоб вхід не "злітав") ----------
+   Проблема: якщо зберігати токен в CloudStorage ТІЛЬКИ в момент входу, а Supabase згодом
+   в фоні сам оновлює токен (access+refresh) під час звичайного користування — старий
+   refresh_token в CloudStorage стає недійсним, і за кілька годин людину викидає з акаунту.
+   Тому підписуємось на onAuthStateChange на КОЖНІЙ сторінці і оновлюємо CloudStorage щоразу,
+   коли Supabase сам оновлює сесію (TOKEN_REFRESHED), а не тільки один раз при вході. */
+function syncTelegramSessionOnRefresh(sbClient) {
+  try {
+    if (!(window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.CloudStorage)) return;
+    const tg = window.Telegram.WebApp;
+    if (!(tg.isVersionAtLeast && tg.isVersionAtLeast('6.9'))) return;
+
+    const saveToCloud = (session) => {
+      if (!session) return;
+      try {
+        tg.CloudStorage.setItem('sb_session', JSON.stringify({
+          access_token: session.access_token,
+          refresh_token: session.refresh_token
+        }), () => {});
+      } catch (e) { /* не критично */ }
+    };
+
+    sbClient.auth.getSession().then(({ data }) => { if (data && data.session) saveToCloud(data.session); });
+    sbClient.auth.onAuthStateChange((event, session) => {
+      if (session && (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN')) saveToCloud(session);
+    });
+  } catch (e) { /* не критично, не блокуємо роботу сторінки */ }
+}
+
 /* ---------- Порівняння авто (до 3 одночасно, зберігається на пристрої) ---------- */
 const COMPARE_MAX = 3;
 const COMPARE_KEY = 'normalno_compare_list';

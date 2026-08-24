@@ -250,6 +250,8 @@
 
     const { data: { session } } = await sb.auth.getSession();
     if (!session) { window.location.href = 'register2.html'; return; }
+    logPageVisit(sb, session.user.id, 'profile');
+    syncTelegramSessionOnRefresh(sb);
 
     const { data: profile } = await sb.from('profiles').select('name, phone, telegram_username, avatar_url').eq('user_id', session.user.id).maybeSingle();
 

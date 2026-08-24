@@ -55,6 +55,8 @@
     const { data: { session } } = await sb.auth.getSession();
     if (!session) { window.location.href = 'register2.html'; return; }
     sessionUserId = session.user.id;
+    logPageVisit(sb, sessionUserId, 'my-listings');
+    syncTelegramSessionOnRefresh(sb);
 
     const { data: cars } = await sb.from('cars').select('*').eq('user_id', sessionUserId).neq('listing_type', 'auction').eq('archived', false).order('created_at', { ascending: false });
     render(cars || []);

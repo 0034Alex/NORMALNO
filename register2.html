@@ -282,6 +282,15 @@
           msg.style.color = 'red';
           return;
         }
+
+        const { data: profileCheck } = await sb.from('profiles').select('blocked').eq('user_id', signInData.user.id).maybeSingle();
+        if (profileCheck && profileCheck.blocked) {
+          await sb.auth.signOut();
+          msg.textContent = 'Цей акаунт заблоковано. Зверніться в підтримку.';
+          msg.style.color = 'red';
+          return;
+        }
+
         await linkTelegramIfPresent(signInData.user.id);
         saveSessionToCloud(signInData.session);
         window.location.href = 'index.html';

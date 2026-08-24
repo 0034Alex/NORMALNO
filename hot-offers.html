@@ -75,6 +75,8 @@
     const { data: { session } } = await sb.auth.getSession();
     if (session) {
       currentUserId = session.user.id;
+      logPageVisit(sb, currentUserId, 'hot-offers');
+      syncTelegramSessionOnRefresh(sb);
       const { data: favs } = await sb.from('favorites').select('car_id').eq('user_id', currentUserId);
       favoritedIds = new Set((favs || []).map(f => f.car_id));
     }
